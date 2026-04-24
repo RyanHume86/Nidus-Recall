@@ -1,0 +1,47 @@
+{
+  "name": "Flashcard",
+  "type": "object",
+  "properties": {
+    "deck_id": {
+      "type": "string",
+      "description": "ID of the parent deck"
+    },
+    "question": {
+      "type": "string",
+      "description": "The question shown on the front of the card"
+    },
+    "answer": {
+      "type": "string",
+      "description": "The answer shown on the back of the card"
+    },
+    "additional_info": {
+      "type": "string",
+      "description": "Additional information or reasoning shown with the answer"
+    },
+    "mastery_level": {
+      "type": "number",
+      "description": "Mastery level 0-5 based on study history",
+      "default": 0
+    },
+    "times_correct": {
+      "type": "number",
+      "description": "Number of times answered correctly",
+      "default": 0
+    },
+    "times_incorrect": {
+      "type": "number",
+      "description": "Number of times answered incorrectly",
+      "default": 0
+    },
+    "last_studied": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time this card was studied"
+    }
+  },
+  "required": [
+    "deck_id",
+    "question",
+    "answer"
+  ]
+}
