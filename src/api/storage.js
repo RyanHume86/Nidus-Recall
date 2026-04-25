@@ -6,6 +6,11 @@
  *   The app generates its own stable clientIds (genId). Base44 assigns its own
  *   entity IDs on create. We store clientId as a field in the entity and keep
  *   an in-memory map (clientId → entityId) so the two ID spaces stay decoupled.
+ *
+ * Concurrency:
+ *   syncCards is serialised via syncLock so concurrent calls never race against
+ *   entityIdMap. ensureDeck caches the in-flight promise so two simultaneous
+ *   calls for the same deck name only fire one create.
  */
 
 import { base44 } from "@/api/base44Client"
@@ -14,15 +19,33 @@ import { base44 } from "@/api/base44Client"
 let entityIdMap  = new Map()  // clientId  → Base44 entity id
 let cardSnapshot = new Map()  // clientId  → last-synced card object (for diffing)
 let deckNameToId = new Map()  // deckTitle → Base44 Deck entity id
+let deckPending  = new Map()  // deckTitle → in-flight Deck.create Promise
+
+// Serialises concurrent syncCards calls so they never race against entityIdMap
+let syncLock = Promise.resolve()
 
 // ── Deck helpers ──────────────────────────────────────────────────────────────
 
-/** Ensure a deck exists in Base44; returns its entity id. */
+/**
+ * Ensure a deck exists in Base44; returns its entity id.
+ * Concurrent calls with the same name share a single in-flight promise so only
+ * one Deck.create fires regardless of how many callers race.
+ */
 export const ensureDeck = async (name) => {
   if (deckNameToId.has(name)) return deckNameToId.get(name)
-  const entity = await base44.entities.Deck.create({ title: name })
-  deckNameToId.set(name, entity.id)
-  return entity.id
+  if (deckPending.has(name))  return deckPending.get(name)
+  const p = base44.entities.Deck.create({ title: name })
+    .then(entity => {
+      deckNameToId.set(name, entity.id)
+      deckPending.delete(name)
+      return entity.id
+    })
+    .catch(err => {
+      deckPending.delete(name)
+      throw err
+    })
+  deckPending.set(name, p)
+  return p
 }
 
 // ── Entity ↔ app object mapping ───────────────────────────────────────────────
@@ -71,15 +94,17 @@ const toEntityData = (card, deckId) => ({
  * Returns { cards, deckNames, log }.
  */
 export const loadAll = async () => {
-  // Reset maps
+  // Reset all maps and the sync lock
   entityIdMap.clear()
   cardSnapshot.clear()
   deckNameToId.clear()
+  deckPending.clear()
+  syncLock = Promise.resolve()
 
   const [deckEntities, cardEntities, logEntities] = await Promise.all([
     base44.entities.Deck.list(),
     base44.entities.Flashcard.list(),
-    base44.entities.SessionLog.list({ created_date: "desc" }),
+    base44.entities.SessionLog.list(),
   ])
 
   // Build deck lookup maps
@@ -95,14 +120,17 @@ export const loadAll = async () => {
     return card
   })
 
-  // Map log
-  const log = logEntities.map(e => ({
-    date:         e.date         || new Date().toISOString(),
-    reviewed:     e.reviewed     || 0,
-    failed:       e.failed       || 0,
-    newAdded:     e.newAdded     || 0,
-    frictionNote: e.frictionNote || "",
-  }))
+  // Map log — sort by session date descending in JS (safer than relying on
+  // created_date which mis-sorts batch-imported entries with old date values)
+  const log = logEntities
+    .map(e => ({
+      date:         e.date         || new Date().toISOString(),
+      reviewed:     e.reviewed     || 0,
+      failed:       e.failed       || 0,
+      newAdded:     e.newAdded     || 0,
+      frictionNote: e.frictionNote || "",
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
 
   const deckNames = deckEntities.map(d => d.title)
 
@@ -112,9 +140,17 @@ export const loadAll = async () => {
 /**
  * Diff updatedCards against the last-synced snapshot and push only the
  * changes (creates / updates / deletes) to Base44.
+ *
+ * Calls are serialised via syncLock so a rapid sequence of calls (e.g. rating
+ * several cards quickly) won't race against entityIdMap.
  */
-export const syncCards = async (updatedCards) => {
-  // Pre-ensure all deck entities exist
+export const syncCards = (updatedCards) => {
+  syncLock = syncLock.then(() => _doSync(updatedCards))
+  return syncLock
+}
+
+const _doSync = async (updatedCards) => {
+  // Pre-ensure all deck entities exist (concurrent-safe via deckPending cache)
   const uniqueDecks = [...new Set(updatedCards.map(c => c.deck))]
   await Promise.all(uniqueDecks.map(ensureDeck))
 

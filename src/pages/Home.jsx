@@ -396,6 +396,7 @@ const CSS = `
     line-height: 1.5;
     appearance: none;
     -webkit-appearance: none;
+    -moz-appearance: none;
   }
   .rapp-input:focus,
   .rapp-textarea:focus,
@@ -542,6 +543,23 @@ const CSS = `
   }
   .rapp-fadein { animation: rapp-fadein 0.22s ease forwards; }
 
+  @keyframes rapp-shimmer {
+    0%, 100% { opacity: 0.45; }
+    50%       { opacity: 0.9;  }
+  }
+  .rapp-skel {
+    background: #E6DDD2;
+    border-radius: 8px;
+    animation: rapp-shimmer 1.5s ease infinite;
+  }
+
+  .rapp-sync {
+    padding: 0 24px 4px;
+    font-size: 11px;
+    letter-spacing: 0.1px;
+    min-height: 18px;
+  }
+
   @keyframes rapp-reveal {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -610,16 +628,17 @@ function HomeView({ due, newAvail, log, onStart, totalCards, forecast }) {
 
   const streak = (() => {
     if (log.length === 0) return 0
-    const days = new Set(log.map(e => new Date(e.date).toISOString().split("T")[0]))
+    // Use localDateStr (local timezone) so sessions logged late at night
+    // aren't attributed to the next UTC day, breaking the streak count.
+    const days = new Set(log.map(e => localDateStr(new Date(e.date))))
     let count = 0
-    const d = new Date()
-    const todayS = d.toISOString().split("T")[0]
-    d.setDate(d.getDate() - 1)
-    const yestS = d.toISOString().split("T")[0]
-    const start = days.has(todayS) ? todayS : (days.has(yestS) ? yestS : null)
+    const todayS = localDateStr()
+    const yest   = new Date(); yest.setDate(yest.getDate() - 1)
+    const yestS  = localDateStr(yest)
+    const start  = days.has(todayS) ? todayS : (days.has(yestS) ? yestS : null)
     if (!start) return 0
     const cur = new Date(start)
-    while (days.has(cur.toISOString().split("T")[0])) { count++; cur.setDate(cur.getDate() - 1) }
+    while (days.has(localDateStr(cur))) { count++; cur.setDate(cur.getDate() - 1) }
     return count
   })()
 
@@ -1510,7 +1529,7 @@ function LogView({ log, cards, leechThreshold = 5 }) {
 
 // ─── Onboarding Overlay ───────────────────────────────────────────────────────
 const ONBOARDING = [
-  { title: "How Recall works", icon: "01", body: "Each card has a question on the front and an answer on the back. During a session you attempt to recall the answer from memory — no peeking — then reveal it and rate how well you did." },
+  { title: "How MemoryDeck works", icon: "01", body: "Each card has a question on the front and an answer on the back. During a session you attempt to recall the answer from memory — no peeking — then reveal it and rate how well you did." },
   { title: "Rating your recall", icon: "02", body: "After revealing the back, rate yourself honestly: Again (blank recall), Hard (major gaps), Good (correct with effort), or Easy (instant). Honest ratings make the system work." },
   { title: "Sessions and scheduling", icon: "03", body: "Every session has three phases: warm-up review of due cards, introduction of new cards (up to 5 per session), and a brief close log. The FSRS v4 algorithm schedules each card at the optimal interval for long-term retention." },
 ]
@@ -1554,8 +1573,10 @@ export default function Home() {
   const [settings,    setSettings]    = useState({ newCardCap: 5, leechThreshold: 5 })
   const [ready,       setReady]       = useState(false)
   const [showOnboard, setShowOnboard] = useState(false)
+  const [syncStatus,  setSyncStatus]  = useState("idle")  // "idle" | "saving" | "saved" | "error"
   const pendingCards  = useRef(null)
   const saveTimer     = useRef(null)
+  const savedTimer    = useRef(null)
 
   // ── Initial load from Base44 ────────────────────────────────────────────────
   useEffect(() => {
@@ -1579,18 +1600,40 @@ export default function Home() {
   }, [])
 
   // ── Card writes — debounced 800ms so rapid session reviews batch ─────────────
+  const markSaved = () => {
+    setSyncStatus("saved")
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSyncStatus("idle"), 2000)
+  }
+
+  // Returns a resolved Promise so callers can safely await it even though the
+  // actual network write is debounced.
   const updateCards = (updated) => {
     setCards(updated)
     pendingCards.current = updated
+    setSyncStatus("saving")
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      if (pendingCards.current) storage.syncCards(pendingCards.current).catch(console.error)
+      if (pendingCards.current) {
+        storage.syncCards(pendingCards.current)
+          .then(markSaved)
+          .catch(() => setSyncStatus("error"))
+      }
     }, 800)
+    return Promise.resolve()
   }
 
   const flushCards = async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    if (pendingCards.current) await storage.syncCards(pendingCards.current)
+    if (pendingCards.current) {
+      setSyncStatus("saving")
+      try {
+        await storage.syncCards(pendingCards.current)
+        markSaved()
+      } catch {
+        setSyncStatus("error")
+      }
+    }
   }
 
   // ── Log ─────────────────────────────────────────────────────────────────────
@@ -1635,18 +1678,25 @@ export default function Home() {
       try {
         const data = JSON.parse(ev.target.result)
         if (!data.cards || !Array.isArray(data.cards)) throw new Error("Invalid format — no cards array found")
+        setSyncStatus("saving")
         // Push imported cards to Base44 (full replace via sync)
         setCards(data.cards)
         pendingCards.current = data.cards
         await storage.syncCards(data.cards)
-        if (data.log && Array.isArray(data.log)) setLog(data.log)
         if (data.decks && Array.isArray(data.decks)) {
           const merged = [...new Set([...DECK_LIST, ...data.decks])]
           setDecks(merged)
           await Promise.all(data.decks.map(storage.ensureDeck))
         }
+        if (data.log && Array.isArray(data.log)) {
+          setLog(data.log)
+          // Persist imported session history to Base44
+          await Promise.all(data.log.map(entry => storage.appendLog(entry).catch(console.error)))
+        }
+        markSaved()
         onResult({ ok: true, count: data.cards.length })
       } catch (err) {
+        setSyncStatus("error")
         onResult({ ok: false, msg: err.message })
       }
     }
@@ -1672,9 +1722,30 @@ export default function Home() {
   ]
 
   if (!ready) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, color: C.textMut, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", fontSize: 14 }}>
-      Loading...
-    </div>
+    <>
+      <style>{CSS}</style>
+      <div className="rapp">
+        <div className="rapp-sidebar">
+          <div className="rapp-logo"><div className="rapp-logo-dot" />MemoryDeck</div>
+        </div>
+        <div className="rapp-main">
+          <div className="rapp-wrap">
+            <div className="rapp-skel" style={{ height: 28, width: 140, marginBottom: 8 }} />
+            <div className="rapp-skel" style={{ height: 14, width: 180, marginBottom: 28 }} />
+            <div className="rapp-stat-row rapp-mb24">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="rapp-stat-box" style={{ height: 84 }}>
+                  <div className="rapp-skel" style={{ height: 32, width: 44, margin: "0 auto 10px" }} />
+                  <div className="rapp-skel" style={{ height: 12, width: 52, margin: "0 auto" }} />
+                </div>
+              ))}
+            </div>
+            <div className="rapp-skel" style={{ height: 130, marginBottom: 16, borderRadius: 16 }} />
+            <div className="rapp-skel" style={{ height: 52, borderRadius: 16 }} />
+          </div>
+        </div>
+      </div>
+    </>
   )
 
   return (
@@ -1684,13 +1755,21 @@ export default function Home() {
         {showOnboard && <OnboardingOverlay onDone={doneOnboard} />}
 
         <div className="rapp-sidebar">
-          <div className="rapp-logo"><div className="rapp-logo-dot" />Recall</div>
+          <div className="rapp-logo"><div className="rapp-logo-dot" />MemoryDeck</div>
           {nav.map(n => (
             <div key={n.id} className={`rapp-nav-item${view === n.id ? " active" : ""}`} onClick={() => setView(n.id)}>
               {n.icon(17)}<span>{n.label}</span>
               {n.id === "session" && due.length > 0 && <span className="rapp-nav-badge">{due.length}</span>}
             </div>
           ))}
+          <div className="rapp-sync" style={{
+            marginTop: "auto",
+            color: syncStatus === "error" ? C.again : syncStatus === "saved" ? C.accent : C.textMut,
+          }}>
+            {syncStatus === "saving" && "● Saving…"}
+            {syncStatus === "saved"  && "✓ Saved"}
+            {syncStatus === "error"  && "⚠ Sync failed"}
+          </div>
         </div>
 
         <div className="rapp-main">
