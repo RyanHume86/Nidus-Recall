@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { base44 } from "@/api/base44Client"
 import * as storage from "@/api/storage"
+import * as excel  from "@/api/excel"
+import * as notion from "@/api/notion"
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const CONTENT_TYPES = ["Factual", "Mechanism", "Clinical Reasoning", "Anatomy", "Pathology"]
@@ -58,6 +60,15 @@ const onboardedGet = () => {
 }
 const onboardedSet = () => {
   try { localStorage.setItem("recall-onboarded", "true") } catch {}
+}
+
+// Notion credentials (localStorage — never sent to Base44)
+const notionGet = () => {
+  try { return JSON.parse(localStorage.getItem("notion-creds") || "{}") }
+  catch { return {} }
+}
+const notionSet = (v) => {
+  try { localStorage.setItem("notion-creds", JSON.stringify(v)) } catch {}
 }
 
 const localDateStr = (d = new Date()) => {
@@ -1222,6 +1233,221 @@ function AIGeneratePanel({ decks, onAddCards }) {
   )
 }
 
+// ─── Import / Export Panel ────────────────────────────────────────────────────
+function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, decks }) {
+  const [tab,          setTab]         = useState("excel")   // "excel" | "notion" | "backup"
+  const [notionToken,  setNotionToken] = useState(() => notionGet().token  || "")
+  const [notionDb,     setNotionDb]    = useState(() => notionGet().db     || "")
+  const [notionStatus, setNotionStatus]= useState("")        // info/error string
+  const [notionBusy,   setNotionBusy]  = useState(false)
+  const [notionPct,    setNotionPct]   = useState(0)
+  const [excelResult,  setExcelResult] = useState(null)
+  const [importResult, setImportResult]= useState(null)
+  const xlsxImportRef = useRef(null)
+  const backupRef     = useRef(null)
+
+  const saveNotion = (t, d) => { notionSet({ token: t, db: d }) }
+
+  const testNotion = async () => {
+    if (!notionToken.trim() || !notionDb.trim()) {
+      setNotionStatus("Enter a token and database ID first.")
+      return
+    }
+    setNotionBusy(true); setNotionStatus("Testing…")
+    try {
+      const title = await notion.testConnection(notionToken.trim(), notionDb.trim())
+      setNotionStatus(`✓ Connected to "${title}"`)
+    } catch (e) {
+      setNotionStatus("✗ " + e.message)
+    }
+    setNotionBusy(false)
+  }
+
+  const exportNotion = async () => {
+    if (!notionToken.trim() || !notionDb.trim()) {
+      setNotionStatus("Enter a token and database ID first.")
+      return
+    }
+    const active = cards.filter(c => c.status !== "Archived")
+    setNotionBusy(true); setNotionStatus(`Exporting ${active.length} cards…`); setNotionPct(0)
+    try {
+      const n = await notion.exportToNotion(notionToken.trim(), notionDb.trim(), active, setNotionPct)
+      setNotionStatus(`✓ Exported ${n} card${n !== 1 ? "s" : ""} to Notion`)
+    } catch (e) {
+      setNotionStatus("✗ " + e.message)
+    }
+    setNotionBusy(false); setNotionPct(0)
+  }
+
+  const importNotion = async () => {
+    if (!notionToken.trim() || !notionDb.trim()) {
+      setNotionStatus("Enter a token and database ID first.")
+      return
+    }
+    setNotionBusy(true); setNotionStatus("Reading database…")
+    try {
+      const imported = await notion.importFromNotion(notionToken.trim(), notionDb.trim())
+      if (imported.length === 0) {
+        setNotionStatus("No valid cards found in that database.")
+      } else {
+        onImportCards(imported, r => setNotionStatus(r.ok ? `✓ Imported ${r.count} cards` : "✗ " + r.msg))
+      }
+    } catch (e) {
+      setNotionStatus("✗ " + e.message)
+    }
+    setNotionBusy(false)
+  }
+
+  const exportExcel = () => {
+    try { excel.exportToExcel(cards); setExcelResult("✓ Downloaded") }
+    catch (e) { setExcelResult("✗ " + e.message) }
+  }
+
+  const importExcel = (file) => {
+    if (!file) return
+    excel.importFromExcel(file)
+      .then(imported => onImportCards(imported, r =>
+        setExcelResult(r.ok ? `✓ Imported ${r.count} cards` : "✗ " + r.msg)
+      ))
+      .catch(e => setExcelResult("✗ " + e.message))
+  }
+
+  const TAB_BTN = (id, label) => (
+    <button onClick={() => setTab(id)}
+      style={{
+        padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+        fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+        background: tab === id ? C.elevated : "transparent",
+        color: tab === id ? C.text : C.textMut,
+        boxShadow: tab === id ? `0 1px 4px rgba(44,40,37,0.08)` : "none",
+        transition: "all 0.14s",
+      }}>
+      {label}
+    </button>
+  )
+
+  const statusColor = (s) =>
+    !s ? C.textMut : s.startsWith("✓") ? C.accent : s.startsWith("✗") ? C.again : C.textMut
+
+  return (
+    <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+      <div className="rapp-sec-title" style={{ marginBottom: 14 }}>Import &amp; Export</div>
+
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 4, background: C.bg, borderRadius: 10, padding: 3, marginBottom: 20 }}>
+        {TAB_BTN("excel",  "Excel")}
+        {TAB_BTN("notion", "Notion")}
+        {TAB_BTN("backup", "JSON backup")}
+      </div>
+
+      {/* ── Excel ───────────────────────────────────────────────────────────── */}
+      {tab === "excel" && (
+        <div className="rapp-fadein">
+          <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, marginBottom: 16 }}>
+            Export all cards to an <strong>.xlsx</strong> spreadsheet. Edit in Excel or Google Sheets, then re-import. All scheduling fields are preserved.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <button className="rapp-btn rapp-btn-primary" style={{ padding: "9px 18px", fontSize: 13 }} onClick={exportExcel}>
+              ↓ Download .xlsx
+            </button>
+            <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 18px", fontSize: 13 }}
+              onClick={() => xlsxImportRef.current?.click()}>
+              ↑ Import .xlsx
+            </button>
+            <input ref={xlsxImportRef} type="file" accept=".xlsx,.xls,.ods,.csv" style={{ display: "none" }}
+              onChange={e => { importExcel(e.target.files[0]); e.target.value = "" }} />
+          </div>
+          {excelResult && (
+            <p style={{ fontSize: 13, color: statusColor(excelResult) }}>{excelResult}</p>
+          )}
+          <p style={{ fontSize: 11.5, color: C.textMut, lineHeight: 1.65, marginTop: 10 }}>
+            Columns: ID · Front · Back · Content Type · Deck · Elaboration · Status · Next Review · Interval · Review Count · Stability · Difficulty · Lapses · Last Review
+          </p>
+        </div>
+      )}
+
+      {/* ── Notion ──────────────────────────────────────────────────────────── */}
+      {tab === "notion" && (
+        <div className="rapp-fadein">
+          <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, marginBottom: 16 }}>
+            Sync cards with a Notion database. Create an <strong>Internal Integration</strong> at <em>notion.so/profile/integrations</em>, copy its token, then add the integration to your database via <em>⋯ → Connections</em>.
+          </p>
+
+          <div className="rapp-mb12">
+            <label className="rapp-label">Integration token</label>
+            <input className="rapp-input" type="password" placeholder="secret_…"
+              value={notionToken}
+              onChange={e => { setNotionToken(e.target.value); saveNotion(e.target.value, notionDb) }} />
+          </div>
+          <div className="rapp-mb16">
+            <label className="rapp-label">Database ID or URL</label>
+            <input className="rapp-input" placeholder="Paste database URL or 32-char ID"
+              value={notionDb}
+              onChange={e => { setNotionDb(e.target.value); saveNotion(notionToken, e.target.value) }} />
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+            <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 14px", fontSize: 13 }}
+              onClick={testNotion} disabled={notionBusy}>
+              Test connection
+            </button>
+            <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 14px", fontSize: 13 }}
+              onClick={importNotion} disabled={notionBusy}>
+              ↑ Import from Notion
+            </button>
+            <button className="rapp-btn rapp-btn-primary" style={{ padding: "9px 14px", fontSize: 13 }}
+              onClick={exportNotion} disabled={notionBusy || cards.length === 0}>
+              ↓ Export to Notion
+            </button>
+          </div>
+
+          {notionBusy && notionPct > 0 && (
+            <div className="rapp-progress" style={{ marginBottom: 8 }}>
+              <div className="rapp-progress-fill" style={{ width: `${notionPct}%` }} />
+            </div>
+          )}
+          {notionStatus && (
+            <p style={{ fontSize: 13, color: statusColor(notionStatus), lineHeight: 1.6 }}>{notionStatus}</p>
+          )}
+
+          <div style={{ marginTop: 14, padding: "12px 14px", background: C.bg, borderRadius: 10, fontSize: 12, color: C.textMut, lineHeight: 1.7 }}>
+            <strong style={{ color: C.textSec }}>Export</strong> creates new pages in your database (does not overwrite existing ones).<br />
+            <strong style={{ color: C.textSec }}>Import</strong> reads all pages — cards need at minimum a <em>Front</em> (title) and <em>Back</em> column.
+          </div>
+        </div>
+      )}
+
+      {/* ── JSON backup ─────────────────────────────────────────────────────── */}
+      {tab === "backup" && (
+        <div className="rapp-fadein">
+          <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, marginBottom: 16 }}>
+            Full JSON backup including session history and custom decks. Import <strong>replaces</strong> all current data.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 16px", fontSize: 13 }} onClick={onExport}>
+              ↓ Export backup
+            </button>
+            <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 16px", fontSize: 13 }}
+              onClick={() => backupRef.current?.click()}>
+              ↑ Import backup
+            </button>
+            <input ref={backupRef} type="file" accept=".json" style={{ display: "none" }}
+              onChange={e => { onImportFile(e.target.files[0], r => setImportResult(r)); e.target.value = "" }} />
+          </div>
+          {importResult && (
+            <div style={{ marginTop: 4, padding: "10px 14px", borderRadius: 10, fontSize: 13,
+              background: importResult.ok ? "#EEF6EF" : "#FBF0EE",
+              color: importResult.ok ? "#527A5F" : C.again,
+              border: `1px solid ${importResult.ok ? "#C4DFCA" : "#EFCFCC"}` }}>
+              {importResult.ok ? `✓ Imported ${importResult.count} cards` : `✗ ${importResult.msg}`}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Settings View ────────────────────────────────────────────────────────────
 function SettingsView({ settings, onUpdateSettings }) {
   const { newCardCap = 5, leechThreshold = 5 } = settings || {}
@@ -1262,7 +1488,7 @@ function SettingsView({ settings, onUpdateSettings }) {
 }
 
 // ─── Cards View ───────────────────────────────────────────────────────────────
-function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport, settings, onAddCards }) {
+function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport, onImportCards, settings, onAddCards }) {
   const [showForm,    setShowForm]    = useState(false)
   const [filterDeck,  setFilterDeck]  = useState("all")
   const [filterSt,    setFilterSt]    = useState("active")
@@ -1273,8 +1499,6 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
   const [form,        setForm]        = useState({ front: "", back: "", contentType: "Factual", deck: (decks || DECK_LIST)[0], elaboration: "" })
   const [newDeckInput, setNewDeckInput] = useState("")
   const [showDeckForm, setShowDeckForm] = useState(false)
-  const [importResult, setImportResult] = useState(null)
-  const importRef = useRef(null)
 
   const leechThreshold = (settings || {}).leechThreshold || 5
   const isLeech    = c => (c.lapses || 0) >= leechThreshold
@@ -1450,20 +1674,7 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
             </div>
           )}
 
-          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
-            <div className="rapp-sec-title" style={{ marginBottom: 12 }}>Data</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 16px", fontSize: 13 }} onClick={onExport}>Export backup</button>
-              <button className="rapp-btn rapp-btn-ghost" style={{ padding: "9px 16px", fontSize: 13 }} onClick={() => importRef.current?.click()}>Import backup</button>
-              <input ref={importRef} type="file" accept=".json" style={{ display: "none" }} onChange={e => { onImport(e.target.files[0], r => setImportResult(r)); e.target.value = "" }} />
-            </div>
-            {importResult && (
-              <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, fontSize: 13, background: importResult.ok ? "#EEF6EF" : "#FBF0EE", color: importResult.ok ? "#527A5F" : C.again, border: `1px solid ${importResult.ok ? "#C4DFCA" : "#EFCFCC"}` }}>
-                {importResult.ok ? `✓ Imported ${importResult.count} cards` : `✗ ${importResult.msg}`}
-              </div>
-            )}
-            <p style={{ fontSize: 11.5, color: C.textMut, marginTop: 10, lineHeight: 1.65 }}>Export saves all cards, session log, and custom decks as JSON. Import replaces current data.</p>
-          </div>
+          <ImportExportPanel cards={cards} decks={decks} onExport={onExport} onImportFile={onImport} onImportCards={onImportCards} />
         </>
       )}
     </div>
@@ -1666,6 +1877,21 @@ export default function Home() {
     updateCards(updated)
   }
 
+  // ── Import from pre-parsed card array (Excel / Notion) ───────────────────────
+  const handleImportCards = async (importedCards, onResult) => {
+    try {
+      setSyncStatus("saving")
+      setCards(importedCards)
+      pendingCards.current = importedCards
+      await storage.syncCards(importedCards)
+      markSaved()
+      onResult({ ok: true, count: importedCards.length })
+    } catch (err) {
+      setSyncStatus("error")
+      onResult({ ok: false, msg: err.message })
+    }
+  }
+
   // ── Deck management ──────────────────────────────────────────────────────────
   const addDeck = async (name) => {
     const t = name.trim()
@@ -1787,7 +2013,7 @@ export default function Home() {
         <div className="rapp-main">
           {view === "home"     && <HomeView     due={due} newAvail={newAvail} log={log} onStart={() => setView("session")} totalCards={cards.length} forecast={forecast} />}
           {view === "session"  && <SessionView  cards={cards} onUpdateCards={updateCards} onSaveLog={async e => { await flushCards(); await addLog(e) }} onDone={() => setView("home")} newCardCap={settings.newCardCap} />}
-          {view === "cards"    && <CardsView    cards={cards} onUpdateCards={updateCards} decks={decks} onAddDeck={addDeck} onExport={handleExport} onImport={handleImport} settings={settings} onAddCards={addCards} />}
+          {view === "cards"    && <CardsView    cards={cards} onUpdateCards={updateCards} decks={decks} onAddDeck={addDeck} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} settings={settings} onAddCards={addCards} />}
           {view === "log"      && <LogView      log={log} cards={cards} leechThreshold={settings.leechThreshold} />}
           {view === "settings" && <SettingsView settings={settings} onUpdateSettings={updateSettings} />}
         </div>
