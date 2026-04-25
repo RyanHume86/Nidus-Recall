@@ -2,26 +2,7 @@
   "name": "Deck",
   "type": "object",
   "properties": {
-    "title": {
-      "type": "string",
-      "description": "Name of the deck"
-    },
-    "description": {
-      "type": "string",
-      "description": "Optional description of the deck topic"
-    },
-    "color": {
-      "type": "string",
-      "description": "Accent color for the deck card",
-      "default": "#6366f1"
-    },
-    "card_count": {
-      "type": "number",
-      "description": "Total number of cards in the deck",
-      "default": 0
-    }
+    "title": { "type": "string", "description": "Deck name" }
   },
-  "required": [
-    "title"
-  ]
+  "required": ["title"]
 }

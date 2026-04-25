@@ -1,0 +1,12 @@
+{
+  "name": "SessionLog",
+  "type": "object",
+  "properties": {
+    "date":         { "type": "string", "description": "ISO timestamp of session end" },
+    "reviewed":     { "type": "number", "description": "Due cards reviewed", "default": 0 },
+    "failed":       { "type": "number", "description": "Cards rated Again", "default": 0 },
+    "newAdded":     { "type": "number", "description": "New cards introduced", "default": 0 },
+    "frictionNote": { "type": "string", "description": "Optional free-text friction note" }
+  },
+  "required": ["date"]
+}

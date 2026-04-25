@@ -2,46 +2,20 @@
   "name": "Flashcard",
   "type": "object",
   "properties": {
-    "deck_id": {
-      "type": "string",
-      "description": "ID of the parent deck"
-    },
-    "question": {
-      "type": "string",
-      "description": "The question shown on the front of the card"
-    },
-    "answer": {
-      "type": "string",
-      "description": "The answer shown on the back of the card"
-    },
-    "additional_info": {
-      "type": "string",
-      "description": "Additional information or reasoning shown with the answer"
-    },
-    "mastery_level": {
-      "type": "number",
-      "description": "Mastery level 0-5 based on study history",
-      "default": 0
-    },
-    "times_correct": {
-      "type": "number",
-      "description": "Number of times answered correctly",
-      "default": 0
-    },
-    "times_incorrect": {
-      "type": "number",
-      "description": "Number of times answered incorrectly",
-      "default": 0
-    },
-    "last_studied": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Last time this card was studied"
-    }
+    "clientId":    { "type": "string",  "description": "Stable local ID used by the app" },
+    "deckId":      { "type": "string",  "description": "ID of the parent Deck entity" },
+    "front":       { "type": "string",  "description": "Question shown on the front" },
+    "back":        { "type": "string",  "description": "Answer shown on the back" },
+    "contentType": { "type": "string",  "description": "One of: Factual, Mechanism, Clinical Reasoning, Anatomy, Pathology", "default": "Factual" },
+    "elaboration": { "type": "string",  "description": "Why is this true — one sentence explanation" },
+    "status":      { "type": "string",  "description": "Active | Archived | Parked", "default": "Active" },
+    "nextReview":  { "type": "string",  "description": "YYYY-MM-DD date for next scheduled review" },
+    "interval":    { "type": "number",  "description": "Days until next review (FSRS)", "default": 1 },
+    "reviewCount": { "type": "number",  "description": "Total times reviewed", "default": 0 },
+    "stability":   { "type": "number",  "description": "FSRS stability (days of 90% retention)" },
+    "difficulty":  { "type": "number",  "description": "FSRS difficulty 1-10" },
+    "lapses":      { "type": "number",  "description": "Times rated Again after first review", "default": 0 },
+    "lastReview":  { "type": "string",  "description": "YYYY-MM-DD date of last review" }
   },
-  "required": [
-    "deck_id",
-    "question",
-    "answer"
-  ]
+  "required": ["deckId", "front", "back"]
 }

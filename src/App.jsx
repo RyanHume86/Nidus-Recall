@@ -1,38 +1,29 @@
-import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Home from './pages/Home';
-import DeckView from './pages/DeckView';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4EFE8", color: "#ADA59C", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", fontSize: 14 }}>
+        Loading...
       </div>
     );
   }
 
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/deck/:deckId" element={<DeckView />} />
-      <Route path="*" element={<PageNotFound />} />
+      <Route path="/*" element={<Home />} />
     </Routes>
   );
 };
@@ -44,7 +35,6 @@ function App() {
         <Router>
           <AuthenticatedApp />
         </Router>
-        <Toaster />
       </QueryClientProvider>
     </AuthProvider>
   );
