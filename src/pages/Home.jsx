@@ -157,6 +157,7 @@ const CSS = `
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
   }
 
   .rapp-sidebar {
@@ -251,6 +252,17 @@ const CSS = `
       user-select: none;
     }
     .rapp-bnav-item.active { color: #6A9D79; }
+
+    /* Prevent auto-zoom on input focus (Android requires font-size >= 16px) */
+    .rapp-input,
+    .rapp-textarea,
+    .rapp-select { font-size: 16px; }
+
+    /* Reduce study card min-height so ratings stay on screen without scrolling */
+    .rapp-study-card { min-height: 160px; }
+
+    /* Larger tap targets on rating buttons for small screens */
+    .rapp-rating-btn { padding: 18px 6px 16px; }
   }
 
   .rapp-wrap { max-width: 520px; }

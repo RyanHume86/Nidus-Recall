@@ -1,0 +1,18 @@
+{
+  "name": "MemoryDeck",
+  "short_name": "MemoryDeck",
+  "description": "Spaced repetition flashcards with FSRS v4 scheduling",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4EFE8",
+  "theme_color": "#6A9D79",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
