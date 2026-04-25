@@ -5,8 +5,6 @@
  * (export → edit in Excel → re-import) keeps full card history.
  */
 
-import * as XLSX from 'xlsx'
-
 const COLUMNS = [
   { key: 'id',          header: 'ID'              },
   { key: 'front',       header: 'Front'           },
@@ -26,7 +24,8 @@ const COLUMNS = [
 
 const COL_WIDTHS = [16, 52, 52, 18, 20, 52, 10, 12, 14, 12, 10, 10, 8, 12]
 
-export const exportToExcel = (cards, filename = 'memorydeck-cards') => {
+export const exportToExcel = async (cards, filename = 'memorydeck-cards') => {
+  const XLSX = await import('xlsx')
   const rows = cards.map(c =>
     COLUMNS.reduce((row, col) => {
       row[col.header] = c[col.key] ?? ''
@@ -46,8 +45,9 @@ export const importFromExcel = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
 
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
+        const XLSX = await import('xlsx')
         const wb = XLSX.read(ev.target.result, { type: 'array' })
         const ws = wb.Sheets[wb.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
