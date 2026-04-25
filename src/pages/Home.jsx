@@ -7,14 +7,13 @@ import * as notion from "@/api/notion"
 // ─── Constants ───────────────────────────────────────────────────────────────
 const CONTENT_TYPES = ["Factual", "Mechanism", "Clinical Reasoning", "Anatomy", "Pathology"]
 const DECK_LIST = ["Pain Neuroscience", "Epidemiology", "Research Methods", "Bioethics", "Clinical Pharmacology", "General"]
-const NEEDS_ELAB = ["Mechanism", "Clinical Reasoning", "Anatomy", "Pathology"]
 
 const TYPE_HELP = {
   "Factual":            "A discrete fact, definition, or number that must simply be known.",
-  "Mechanism":          "A process, pathway, or cause-and-effect chain. Requires an elaboration.",
-  "Clinical Reasoning": "A case-based prompt requiring judgement. Requires an elaboration.",
-  "Anatomy":            "A structural or pathway card. Requires an elaboration.",
-  "Pathology":          "A disease process or clinical presentation. Requires an elaboration.",
+  "Mechanism":          "A process, pathway, or cause-and-effect chain.",
+  "Clinical Reasoning": "A case-based prompt requiring judgement.",
+  "Anatomy":            "A structural or pathway card.",
+  "Pathology":          "A disease process or clinical presentation.",
 }
 
 // ─── Colour palette ──────────────────────────────────────────────────────────
@@ -303,8 +302,52 @@ const CSS = `
   }
   .rapp-card-front { font-size: 19px; line-height: 1.6; color: #2C2825; font-weight: 500; flex-grow: 1; }
   .rapp-card-back  { font-size: 14px; line-height: 1.75; color: #5C5049; white-space: pre-wrap; }
-  .rapp-card-sep   { height: 1px; background: #E6DDD2; margin: 22px 0; }
+  .rapp-card-sep   { height: 1px; background: #E6DDD2; margin: 20px 0; }
+  .rapp-card-sep-elab { height: 1px; background: #C4DFCA; margin: 20px 0; }
   .rapp-card-meta  { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+
+  .rapp-side-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .rapp-side-dots {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-left: auto;
+  }
+  .rapp-side-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    transition: background 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .rapp-elab-face {
+    background: #F4EFE8;
+    border: 1.5px dashed #C4DFCA;
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 4px;
+  }
+  .rapp-elab-face.filled {
+    background: #F4EFE8;
+    border-style: solid;
+    border-color: #C4DFCA;
+  }
 
   .rapp-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .rapp-stat-box {
@@ -369,6 +412,16 @@ const CSS = `
   }
   .rapp-btn-reveal:hover {
     background: #FDFAF5;
+    border-color: #6A9D79;
+    border-style: solid;
+    color: #2C2825;
+  }
+  .rapp-btn-reveal.elab {
+    border-color: #C4DFCA;
+    color: #527A5F;
+  }
+  .rapp-btn-reveal.elab:hover {
+    background: #EEF6EF;
     border-color: #6A9D79;
     border-style: solid;
     color: #2C2825;
@@ -759,41 +812,46 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
     return "empty"
   })()
 
-  const [phase,       setPhase]      = useState(initialPhase)
-  const [dueCards]                   = useState(() => getDue(cards))
-  const [newCards]                   = useState(() => getNew(cards).slice(0, newCardCap))
-  const [idx,         setIdx]        = useState(0)
-  const [revealed,    setRevealed]   = useState(false)
-  const [showElab,    setShowElab]   = useState(false)
-  const [elabText,    setElabText]   = useState("")
-  const [stats,       setStats]      = useState({ reviewed: 0, failed: 0, newAdded: 0 })
-  const [friction,    setFriction]   = useState("")
-  const [lastAction,  setLastAction] = useState(null)
+  const [phase,      setPhase]     = useState(initialPhase)
+  const [dueCards]                 = useState(() => getDue(cards))
+  const [newCards]                 = useState(() => getNew(cards).slice(0, newCardCap))
+  const [idx,        setIdx]       = useState(0)
+  // side: 0 = question only, 1 = answer revealed, 2 = elaboration revealed + rate
+  const [side,       setSide]      = useState(0)
+  const [elabDraft,  setElabDraft] = useState("")
+  const [stats,      setStats]     = useState({ reviewed: 0, failed: 0, newAdded: 0 })
+  const [friction,   setFriction]  = useState("")
+  const [lastAction, setLastAction]= useState(null)
 
   const list = phase === "warmup" ? dueCards : newCards
   const card = list[idx]
 
-  const revealedRef   = useRef(revealed)
-  const showElabRef   = useRef(showElab)
+  const sideRef       = useRef(side)
   const phaseRef      = useRef(phase)
   const handleRateRef = useRef(null)
 
-  useEffect(() => { revealedRef.current = revealed  }, [revealed])
-  useEffect(() => { showElabRef.current = showElab  }, [showElab])
-  useEffect(() => { phaseRef.current    = phase     }, [phase])
+  useEffect(() => { sideRef.current  = side  }, [side])
+  useEffect(() => { phaseRef.current = phase }, [phase])
+
+  // Reset to question side and load elaboration whenever the card changes
+  useEffect(() => {
+    setSide(0)
+    setElabDraft(card?.elaboration || "")
+  }, [idx, phase])  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handler = e => {
       if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return
       const ph = phaseRef.current
+      const s  = sideRef.current
       if (ph === "warmup" || ph === "new") {
-        if (!revealedRef.current && !showElabRef.current) {
-          if (e.key === " " || e.key === "Enter") { e.preventDefault(); setRevealed(true) }
-        } else if (revealedRef.current && !showElabRef.current) {
-          if (e.key === "1") handleRateRef.current("again")
-          if (e.key === "2") handleRateRef.current("hard")
-          if (e.key === "3") handleRateRef.current("good")
-          if (e.key === "4") handleRateRef.current("easy")
+        if (s < 2) {
+          if (e.key === " " || e.key === "Enter") { e.preventDefault(); setSide(prev => prev + 1) }
+        } else {
+          if (e.key === "1") handleRateRef.current?.("again")
+          if (e.key === "2") handleRateRef.current?.("hard")
+          if (e.key === "3") handleRateRef.current?.("good")
+          if (e.key === "4") handleRateRef.current?.("easy")
         }
       }
     }
@@ -804,9 +862,9 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
   const advance = (ph, ci) => {
     const l = ph === "warmup" ? dueCards : newCards
     if (ci + 1 < l.length) {
-      setIdx(ci + 1); setRevealed(false); setShowElab(false); setElabText("")
+      setIdx(ci + 1)
     } else if (ph === "warmup" && newCards.length > 0) {
-      setPhase("new"); setIdx(0); setRevealed(false); setShowElab(false); setElabText("")
+      setPhase("new"); setIdx(0)
     } else {
       setPhase("close")
     }
@@ -819,61 +877,71 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
     const isNew   = phase === "new"
     const failed  = rating === "again" ? 1 : 0
 
+    // Persist any elaboration edits made on the third side alongside FSRS update
     const updated = cards.map(c =>
       c.id === card.id
-        ? { ...c, interval, nextReview: nextRev, reviewCount: (c.reviewCount || 0) + 1,
-            stability, difficulty, lastReview: localDateStr(),
-            lapses: rating === "again" ? (c.lapses || 0) + 1 : (c.lapses || 0) }
+        ? { ...c,
+            elaboration:  elabDraft.trim(),
+            interval,     nextReview: nextRev,
+            reviewCount:  (c.reviewCount || 0) + 1,
+            stability,    difficulty,
+            lastReview:   localDateStr(),
+            lapses:       rating === "again" ? (c.lapses || 0) + 1 : (c.lapses || 0),
+          }
         : c
     )
     await onUpdateCards(updated)
 
     setLastAction({
-      cardId: card.id,
-      prevInterval: card.interval, prevNextReview: card.nextReview,
-      prevReviewCount: card.reviewCount || 0, prevStability: card.stability,
-      prevDifficulty: card.difficulty, prevLastReview: card.lastReview,
-      prevLapses: card.lapses || 0,
+      cardId:          card.id,
+      prevElaboration: card.elaboration,
+      prevInterval:    card.interval,    prevNextReview:  card.nextReview,
+      prevReviewCount: card.reviewCount || 0,
+      prevStability:   card.stability,   prevDifficulty:  card.difficulty,
+      prevLastReview:  card.lastReview,  prevLapses:      card.lapses || 0,
       statDelta: { reviewed: isNew ? 0 : 1, failed, newAdded: isNew ? 1 : 0 },
-      phase, idx
+      phase, idx,
     })
-    setStats(s => ({ reviewed: s.reviewed + (isNew ? 0 : 1), failed: s.failed + failed, newAdded: s.newAdded + (isNew ? 1 : 0) }))
-
-    if ((rating === "good" || rating === "easy") && NEEDS_ELAB.includes(card.contentType)) {
-      setShowElab(true); setElabText(card.elaboration || "")
-    } else {
-      advance(phase, idx)
-    }
+    setStats(s => ({
+      reviewed: s.reviewed + (isNew ? 0 : 1),
+      failed:   s.failed   + failed,
+      newAdded: s.newAdded + (isNew ? 1 : 0),
+    }))
+    advance(phase, idx)
   }
 
   handleRateRef.current = handleRate
-
-  const handleElabDone = async (save) => {
-    if (save && elabText.trim() && card) {
-      const updated = cards.map(c => c.id === card.id ? { ...c, elaboration: elabText.trim() } : c)
-      await onUpdateCards(updated)
-    }
-    setShowElab(false); advance(phase, idx)
-  }
 
   const handleUndo = async () => {
     if (!lastAction) return
     const restored = cards.map(c =>
       c.id === lastAction.cardId
-        ? { ...c, interval: lastAction.prevInterval, nextReview: lastAction.prevNextReview,
-            reviewCount: lastAction.prevReviewCount, stability: lastAction.prevStability,
-            difficulty: lastAction.prevDifficulty, lastReview: lastAction.prevLastReview,
-            lapses: lastAction.prevLapses }
+        ? { ...c,
+            elaboration:  lastAction.prevElaboration,
+            interval:     lastAction.prevInterval,    nextReview:  lastAction.prevNextReview,
+            reviewCount:  lastAction.prevReviewCount,
+            stability:    lastAction.prevStability,   difficulty:  lastAction.prevDifficulty,
+            lastReview:   lastAction.prevLastReview,  lapses:      lastAction.prevLapses,
+          }
         : c
     )
     await onUpdateCards(restored)
-    setStats(s => ({ reviewed: s.reviewed - lastAction.statDelta.reviewed, failed: s.failed - lastAction.statDelta.failed, newAdded: s.newAdded - lastAction.statDelta.newAdded }))
-    setIdx(lastAction.idx); setPhase(lastAction.phase)
-    setRevealed(false); setShowElab(false); setElabText(""); setLastAction(null)
+    setStats(s => ({
+      reviewed: s.reviewed - lastAction.statDelta.reviewed,
+      failed:   s.failed   - lastAction.statDelta.failed,
+      newAdded: s.newAdded - lastAction.statDelta.newAdded,
+    }))
+    setIdx(lastAction.idx)
+    setPhase(lastAction.phase)
+    setLastAction(null)
   }
 
   const handleClose = async () => {
-    await onSaveLog({ date: new Date().toISOString(), reviewed: stats.reviewed, failed: stats.failed, newAdded: stats.newAdded, frictionNote: friction.trim() })
+    await onSaveLog({
+      date: new Date().toISOString(),
+      reviewed: stats.reviewed, failed: stats.failed, newAdded: stats.newAdded,
+      frictionNote: friction.trim(),
+    })
     onDone()
   }
 
@@ -921,6 +989,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
 
   return (
     <div className="rapp-wrap rapp-fadein">
+      {/* Header row */}
       <div className="rapp-row rapp-sb rapp-mb16">
         <span className="rapp-phase-tag">{phase === "warmup" ? "Warm-up review" : "New material"}</span>
         <div className="rapp-row rapp-gap8">
@@ -936,52 +1005,91 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
         </div>
       </div>
 
-      <div className="rapp-progress">
+      <div className="rapp-progress rapp-mb16">
         <div className="rapp-progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
+      {/* Card — grows progressively as each side is revealed */}
       <div className="rapp-study-card rapp-mb16">
+        {/* Meta row with side-progress dots */}
         <div className="rapp-card-meta">
           {card.contentType && <Badge type={card.contentType} />}
           {card.deck && <span className="rapp-ts">{card.deck}</span>}
           {card.stability && (
-            <span className="rapp-ts" style={{ marginLeft: "auto", fontSize: 11, color: "#CFBFB0" }} title="FSRS stability · difficulty">
-              S{Math.round(card.stability)}d · D{(card.difficulty || 5).toFixed(1)}
+            <span style={{ fontSize: 11, color: "#CFBFB0", marginRight: 6 }} title="FSRS stability · difficulty">
+              S{Math.round(card.stability)}d
             </span>
           )}
+          <div className="rapp-side-dots">
+            {["Q", "A", "E"].map((lbl, i) => (
+              <div key={i} className="rapp-side-dot" style={{
+                background: i <= side ? C.accent : C.border,
+                color:      i <= side ? "#fff"   : C.textMut,
+              }} title={["Question", "Answer", "Elaboration"][i]}>
+                {lbl}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ① Question (always visible) */}
+        <div className="rapp-side-label" style={{ color: C.textMut }}>
+          Question
         </div>
         <p className="rapp-card-front">{card.front}</p>
-        {revealed && (
+
+        {/* ② Answer */}
+        {side >= 1 && (
           <div className="rapp-back-reveal">
             <div className="rapp-card-sep" />
+            <div className="rapp-side-label" style={{ color: C.textSec }}>Answer</div>
             <p className="rapp-card-back">{card.back}</p>
-            {card.elaboration && (
-              <p style={{ marginTop: 14, fontSize: 12.5, color: "#ADA59C", fontStyle: "italic", lineHeight: 1.65, borderTop: "1px solid #E6DDD2", paddingTop: 12 }}>
-                ↳ {card.elaboration}
-              </p>
-            )}
+          </div>
+        )}
+
+        {/* ③ Elaboration */}
+        {side >= 2 && (
+          <div className="rapp-back-reveal">
+            <div className="rapp-card-sep-elab" />
+            <div className="rapp-side-label" style={{ color: C.accent }}>Elaboration</div>
+            <div className={`rapp-elab-face ${elabDraft.trim() ? "filled" : ""}`}>
+              {elabDraft.trim() ? (
+                <textarea
+                  className="rapp-textarea"
+                  rows={3}
+                  value={elabDraft}
+                  onChange={e => setElabDraft(e.target.value)}
+                  style={{ background: "transparent", border: "none", padding: 0, resize: "none", fontSize: 14, lineHeight: 1.7, color: C.textSec }}
+                />
+              ) : (
+                <textarea
+                  className="rapp-textarea"
+                  rows={3}
+                  value={elabDraft}
+                  onChange={e => setElabDraft(e.target.value)}
+                  placeholder="Why is this true? Write your own explanation — it will be saved to this card."
+                  style={{ background: "transparent", border: "none", padding: 0, resize: "none", fontSize: 14, lineHeight: 1.7, color: C.textSec }}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {showElab && (
-        <div className="rapp-elab-box rapp-fadein">
-          <p className="rapp-elab-q">
-            {elabText ? "Review and update your elaboration. Does it still capture the mechanism accurately?" : "Why is this true, or how does this work? One sentence in your own words."}
-          </p>
-          <textarea className="rapp-textarea" rows={3} value={elabText} onChange={e => setElabText(e.target.value)} placeholder="Your explanation..." style={{ marginBottom: 10 }} />
-          <div className="rapp-row rapp-gap8">
-            <button className="rapp-btn rapp-btn-primary rapp-flex1" onClick={() => handleElabDone(true)}>Save elaboration</button>
-            <button className="rapp-btn rapp-btn-ghost" onClick={() => handleElabDone(false)}>Skip</button>
-          </div>
-        </div>
+      {/* Action buttons */}
+      {side === 0 && (
+        <button className="rapp-btn-reveal" onClick={() => setSide(1)}>
+          Reveal answer
+        </button>
       )}
 
-      {!revealed && !showElab && (
-        <button className="rapp-btn-reveal" onClick={() => setRevealed(true)}>Reveal answer</button>
+      {side === 1 && (
+        <button className="rapp-btn-reveal elab" onClick={() => setSide(2)}>
+          Show elaboration →
+        </button>
       )}
 
-      {revealed && !showElab && (
+      {side === 2 && (
         <div className="rapp-fadein">
           <p className="rapp-ts rapp-mb12" style={{ textAlign: "center" }}>How well did you recall this?</p>
           <div className="rapp-rating-grid">
@@ -1000,7 +1108,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, newCardCap = 5 }
               Again = blank &nbsp;·&nbsp; Hard = partial &nbsp;·&nbsp; Good = effort &nbsp;·&nbsp; Easy = instant
             </p>
             <p style={{ gridColumn: "1/-1", textAlign: "center", marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-              <span className="rapp-kbd">Space</span><span style={{ fontSize: 11, color: "#CFBFB0" }}>reveal</span>
+              <span className="rapp-kbd">Space</span><span style={{ fontSize: 11, color: "#CFBFB0" }}>advance</span>
               <span style={{ fontSize: 11, color: "#CFBFB0", margin: "0 2px" }}>·</span>
               <span className="rapp-kbd">1</span><span className="rapp-kbd">2</span><span className="rapp-kbd">3</span><span className="rapp-kbd">4</span>
               <span style={{ fontSize: 11, color: "#CFBFB0" }}>rate</span>
@@ -1021,7 +1129,6 @@ function EditModal({ card, cards, onUpdateCards, onClose, decks }) {
     elaboration: card.elaboration || "",
   })
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const needsElab = NEEDS_ELAB.includes(form.contentType)
 
   const handleSave = async () => {
     if (!form.front.trim() || !form.back.trim()) return
@@ -1067,12 +1174,10 @@ function EditModal({ card, cards, onUpdateCards, onClose, decks }) {
           <label className="rapp-label">Back</label>
           <textarea className="rapp-textarea" rows={4} value={form.back} onChange={e => setForm(f => ({ ...f, back: e.target.value }))} />
         </div>
-        {needsElab && (
-          <div className="rapp-mb16">
-            <label className="rapp-label">Elaboration</label>
-            <textarea className="rapp-textarea" rows={2} value={form.elaboration} onChange={e => setForm(f => ({ ...f, elaboration: e.target.value }))} placeholder="Why is this true?" />
-          </div>
-        )}
+        <div className="rapp-mb16">
+          <label className="rapp-label">Elaboration — third side</label>
+          <textarea className="rapp-textarea" rows={2} value={form.elaboration} onChange={e => setForm(f => ({ ...f, elaboration: e.target.value }))} placeholder="Why is this true? Shown as the third side during review." />
+        </div>
 
         <button className="rapp-btn rapp-btn-primary rapp-mb12" style={{ width: "100%" }} onClick={handleSave}
           disabled={!form.front.trim() || !form.back.trim()}>
@@ -1101,13 +1206,15 @@ function EditModal({ card, cards, onUpdateCards, onClose, decks }) {
 // ─── AI Generate Panel ────────────────────────────────────────────────────────
 const AI_SYSTEM_PROMPT = `You are a medical study flashcard generator for a spaced repetition system.
 
+Each card has THREE sides: a front question, a back answer, and an elaboration. The elaboration is always shown as the third side during review.
+
 RULES — follow every one precisely:
 1. Each card tests EXACTLY ONE concept. No compound questions.
 2. Front: a question forcing active retrieval. Never a topic label.
    BAD: "Central Sensitisation"  GOOD: "What three mechanisms drive central sensitisation at the dorsal horn?"
 3. Back: 1-3 sentences maximum. Clinically accurate. No bullet lists.
 4. contentType: exactly one of: Factual | Mechanism | Clinical Reasoning | Anatomy | Pathology
-5. elaboration: for non-Factual types, one sentence answering "why is this true?" in plain language. Empty string for Factual.
+5. elaboration: ALWAYS required. One sentence answering "why is this true?" or "how does this work?" in plain language. Even for simple factual cards, give the underlying reason or a memorable hook.
 6. Generate 4-8 cards. Prioritise load-bearing concepts over peripheral detail.
 7. Skip content too vague to answer with precision.`
 
@@ -1192,8 +1299,8 @@ function AIGeneratePanel({ decks, onAddCards }) {
             </div>
             <textarea className="rapp-textarea" rows={2} value={p.front} onChange={e => update(i, "front", e.target.value)} style={{ marginBottom: 8, fontSize: 13 }} />
             <textarea className="rapp-textarea" rows={2} value={p.back}  onChange={e => update(i, "back",  e.target.value)} style={{ fontSize: 13 }} />
-            {NEEDS_ELAB.includes(p.contentType) && p.elaboration && (
-              <p style={{ marginTop: 8, fontSize: 12, color: C.textMut, fontStyle: "italic", lineHeight: 1.6 }}>↳ {p.elaboration}</p>
+            {p.elaboration && (
+              <p style={{ marginTop: 8, fontSize: 12, color: C.accent, fontStyle: "italic", lineHeight: 1.6 }}>↳ {p.elaboration}</p>
             )}
           </div>
         ))}
@@ -1501,8 +1608,8 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
   const [showDeckForm, setShowDeckForm] = useState(false)
 
   const leechThreshold = (settings || {}).leechThreshold || 5
-  const isLeech    = c => (c.lapses || 0) >= leechThreshold
-  const isArchived = c => c.status === "Archived" || c.status === "Parked"
+  const isLeech        = c => (c.lapses || 0) >= leechThreshold
+  const isArchived     = c => c.status === "Archived" || c.status === "Parked"
 
   const filtered = cards
     .filter(c => filterDeck === "all" || c.deck === filterDeck)
@@ -1529,7 +1636,6 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
 
   const activeCount = cards.filter(c => !isArchived(c)).length
   const leechCount  = cards.filter(c => isActive(c) && isLeech(c)).length
-  const needsElab   = NEEDS_ELAB.includes(form.contentType)
   const canAdd      = form.front.trim() && form.back.trim()
 
   return (
@@ -1590,16 +1696,14 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
                 <label className="rapp-label">Front — question or prompt</label>
                 <textarea className="rapp-textarea" rows={3} value={form.front} onChange={e => setForm(f => ({ ...f, front: e.target.value }))} placeholder="Phrase as a question that forces retrieval." />
               </div>
-              <div className={needsElab ? "rapp-mb12" : "rapp-mb16"}>
+              <div className="rapp-mb12">
                 <label className="rapp-label">Back — answer</label>
                 <textarea className="rapp-textarea" rows={3} value={form.back} onChange={e => setForm(f => ({ ...f, back: e.target.value }))} placeholder="Keep this concise and atomic — one idea only." />
               </div>
-              {needsElab && (
-                <div className="rapp-mb16">
-                  <label className="rapp-label">Elaboration — why is this true? (optional)</label>
-                  <textarea className="rapp-textarea" rows={2} value={form.elaboration} onChange={e => setForm(f => ({ ...f, elaboration: e.target.value }))} placeholder="One sentence in your own words explaining the mechanism." />
-                </div>
-              )}
+              <div className="rapp-mb16">
+                <label className="rapp-label">Elaboration — third side</label>
+                <textarea className="rapp-textarea" rows={2} value={form.elaboration} onChange={e => setForm(f => ({ ...f, elaboration: e.target.value }))} placeholder="Why is this true? Shown as the third side during review." />
+              </div>
               <button className="rapp-btn rapp-btn-primary" style={{ width: "100%" }} onClick={handleAdd} disabled={!canAdd}>Add card</button>
             </div>
           )}
@@ -1665,8 +1769,14 @@ function CardsView({ cards, onUpdateCards, decks, onAddDeck, onExport, onImport,
                   </div>
                   {expanded === c.id && (
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} className="rapp-fadein">
-                      <p style={{ fontSize: 14, color: C.textSec, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>{c.back}</p>
-                      {c.elaboration && <p style={{ marginTop: 10, fontSize: 13, color: C.textMut, fontStyle: "italic", lineHeight: 1.65 }}>↳ {c.elaboration}</p>}
+                      <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: C.textMut, marginBottom: 6 }}>Answer</p>
+                      <p style={{ fontSize: 14, color: C.textSec, lineHeight: 1.75, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.back}</p>
+                      <div style={{ borderTop: `1px solid #C4DFCA`, paddingTop: 12 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", color: C.accent, marginBottom: 6 }}>Elaboration</p>
+                        <p style={{ fontSize: 13, color: C.textSec, fontStyle: c.elaboration ? "italic" : "normal", lineHeight: 1.65, color: c.elaboration ? C.textSec : C.textMut }}>
+                          {c.elaboration || "No elaboration yet."}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
