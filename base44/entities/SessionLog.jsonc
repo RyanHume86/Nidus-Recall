@@ -2,11 +2,32 @@
   "name": "SessionLog",
   "type": "object",
   "properties": {
-    "date":         { "type": "string", "description": "ISO timestamp of session end" },
-    "reviewed":     { "type": "number", "description": "Due cards reviewed", "default": 0 },
-    "failed":       { "type": "number", "description": "Cards rated Again", "default": 0 },
-    "newAdded":     { "type": "number", "description": "New cards introduced", "default": 0 },
-    "frictionNote": { "type": "string", "description": "Optional free-text friction note" }
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of the session"
+    },
+    "reviewed": {
+      "type": "number",
+      "description": "Number of due cards reviewed",
+      "default": 0
+    },
+    "failed": {
+      "type": "number",
+      "description": "Number of cards rated Again",
+      "default": 0
+    },
+    "newAdded": {
+      "type": "number",
+      "description": "Number of new cards introduced",
+      "default": 0
+    },
+    "frictionNote": {
+      "type": "string",
+      "description": "Optional session note from the user"
+    }
   },
-  "required": ["date"]
+  "required": [
+    "date"
+  ]
 }
