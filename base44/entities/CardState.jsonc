@@ -67,6 +67,16 @@
       "type": "boolean",
       "default": false,
       "description": "Set to true by the migration script to mark this record as migrated."
+    },
+    "clozeIndex": {
+      "type": "number",
+      "nullable": true,
+      "description": "For cloze cards: which deletion index this scheduling row represents. Null for basic cards."
+    },
+    "sourceCardClientId": {
+      "type": "string",
+      "nullable": true,
+      "description": "For generated cards (cloze, image occlusion): clientId of the parent note. Null for basic cards."
     }
   },
   "required": ["cardClientId"]
