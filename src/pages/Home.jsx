@@ -11,7 +11,7 @@ const C = {
   elevated: "#DFE8E3",
   text:     "#1C2820",
   textSec:  "#3A5246",
-  textMut:  "#7BA090",
+  textMut:  "#4A6B5C",
   accent:   "#2D6E52",
   accentDk: "var(--sage)",
   teal:     "#2E7B88",
@@ -312,7 +312,7 @@ const CSS = `
   .rapp-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: #2D6E52; }
   .rapp-nav-item {
     display: flex; align-items: center; gap: 10px; padding: 11px 24px;
-    cursor: pointer; color: #7BA090; font-size: 14px; font-weight: 400;
+    cursor: pointer; color: #4A6B5C; font-size: 14px; font-weight: 400;
     border-left: 2.5px solid transparent;
     transition: color 0.14s, background-color 0.14s, border-color 0.14s;
     user-select: none; letter-spacing: -0.1px;
@@ -336,7 +336,7 @@ const CSS = `
     }
     .rapp-bnav-item {
       flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
-      padding: 10px 0 8px; cursor:pointer; color:#7BA090; font-size:11px;
+      padding: 10px 0 8px; cursor:pointer; color:#4A6B5C; font-size:11px;
       font-weight:500; letter-spacing:0.2px; transition:color 0.14s; user-select:none;
     }
     .rapp-bnav-item.active { color: #2D6E52; }
@@ -347,10 +347,10 @@ const CSS = `
 
   .rapp-wrap { max-width: 520px; width: 100%; }
   .rapp-pg-title  { font-size: 24px; font-weight: 700; letter-spacing: -0.7px; color: #1C2820; }
-  .rapp-pg-sub    { font-size: 13px; color: #7BA090; margin-top: 3px; }
+  .rapp-pg-sub    { font-size: 13px; color: #4A6B5C; margin-top: 3px; }
   .rapp-sec-title { font-size: 14px; font-weight: 600; color: #1C2820; margin-bottom: 14px; letter-spacing: -0.2px; }
   .rapp-label     { font-size: 11.5px; font-weight: 600; color: #3A5246; display: block; margin-bottom: 7px; letter-spacing: 0.15px; text-transform: uppercase; }
-  .rapp-phase-tag { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #7BA090; }
+  .rapp-phase-tag { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #4A6B5C; }
 
   .rapp-card { background: #EBF0ED; border: 1px solid #CFDBD5; border-radius: 16px; padding: 22px; }
   .rapp-study-card {
@@ -365,7 +365,7 @@ const CSS = `
   .rapp-stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
   .rapp-stat-box { background: #DFE8E3; border: 1px solid #CFDBD5; border-radius: 12px; padding: 16px 10px; text-align: center; }
   .rapp-stat-num { font-size: 28px; font-weight: 700; letter-spacing: -1.5px; color: #1C2820; }
-  .rapp-stat-lbl { font-size: 12px; color: #7BA090; margin-top: 4px; }
+  .rapp-stat-lbl { font-size: 12px; color: #4A6B5C; margin-top: 4px; }
 
   .rapp-progress { height: 3px; background: #CFDBD5; border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
   .rapp-progress-fill { height:100%; background:#2D6E52; border-radius:3px; transition:width 0.45s cubic-bezier(0.4,0,0.2,1); }
@@ -438,7 +438,7 @@ const CSS = `
   .rapp-card-item:hover { border-color: #BFD0CA; box-shadow: 0 2px 8px rgba(28,40,32,0.06); }
   .rapp-card-item-q { font-size: 14px; color: #1C2820; line-height: 1.55; }
 
-  .rapp-empty { text-align:center; padding:52px 24px; color:#7BA090; font-size:14px; line-height:1.75; }
+  .rapp-empty { text-align:center; padding:52px 24px; color:#4A6B5C; font-size:14px; line-height:1.75; }
 
   .rapp-badge {
     display: inline-flex; align-items: center; padding: 3px 9px;
@@ -449,7 +449,7 @@ const CSS = `
 
   .rapp-hr { border: none; border-top: 1px solid #CFDBD5; }
   .rapp-slider { width:100%; accent-color:#2D6E52; height:4px; cursor:pointer; }
-  .rapp-kbd { display:inline-flex; align-items:center; justify-content:center; padding:1px 6px; border:1px solid #BFD0CA; border-radius:5px; font-size:10px; font-weight:600; color:#7BA090; background:#EBF0ED; }
+  .rapp-kbd { display:inline-flex; align-items:center; justify-content:center; padding:1px 6px; border:1px solid #BFD0CA; border-radius:5px; font-size:10px; font-weight:600; color:#4A6B5C; background:#EBF0ED; }
 
   .rapp-sync { padding: 0 24px 4px; font-size: 11px; min-height: 18px; }
 
@@ -484,7 +484,7 @@ const CSS = `
   .rapp-mb14  { margin-bottom:14px; }.rapp-mb16  { margin-bottom:16px; }
   .rapp-mb20  { margin-bottom:20px; }.rapp-mb24  { margin-bottom:24px; }
   .rapp-mb28  { margin-bottom:28px; }
-  .rapp-ts    { font-size:13px; color:#7BA090; }
+  .rapp-ts    { font-size:13px; color:#4A6B5C; }
   .rapp-tm    { font-size:14px; color:#3A5246; }
 
   /* ── Nidus-specific ── */
@@ -495,11 +495,11 @@ const CSS = `
   }
   .nid-deck-card:hover { border-color:#BFD0CA; box-shadow:0 4px 16px rgba(28,40,32,0.09); transform:translateY(-1px); }
   .nid-deck-name { font-size:16px; font-weight:600; color:#1C2820; letter-spacing:-0.3px; }
-  .nid-deck-meta { font-size:13px; color:#7BA090; margin-top:6px; }
+  .nid-deck-meta { font-size:13px; color:#4A6B5C; margin-top:6px; }
   .nid-deck-due  { display:inline-flex; align-items:center; padding:3px 10px; background:#F5C8B8; color:#3D1408; border-radius:20px; font-size:11px; font-weight:600; }
 
   .nid-tag { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; background:#EBF0ED; color:#3A5246; border:1px solid #CFDBD5; border-radius:20px; font-size:11px; font-weight:500; }
-  .nid-tag-rm { cursor:pointer; color:#7BA090; font-size:14px; line-height:1; padding:0 1px; margin-left:2px; }
+  .nid-tag-rm { cursor:pointer; color:#4A6B5C; font-size:14px; line-height:1; padding:0 1px; margin-left:2px; }
   .nid-tag-rm:hover { color:#3D1408; }
   .nid-ct-chip { display:inline-block; padding:2px 6px; background:#DFE8E3; color:#3A5246; border-radius:4px; font-size:10px; font-weight:500; margin-bottom:10px; }
   @media (prefers-color-scheme: dark) {
@@ -514,7 +514,7 @@ const CSS = `
   .nid-sleep-banner-body { flex:1; }
   .nid-sleep-banner-dismiss {
     background:none; border:none; cursor:pointer; font-size:16px; line-height:1;
-    color:#7BA090; padding:0; margin-top:-1px; font-family:inherit; flex-shrink:0;
+    color:#4A6B5C; padding:0; margin-top:-1px; font-family:inherit; flex-shrink:0;
   }
   .nid-sleep-banner-dismiss:hover { color:#1C2820; }
   @media (prefers-color-scheme: dark) {
@@ -532,12 +532,12 @@ const CSS = `
 
   .nid-draft-preview {
     background:#EBF0ED; border-left:3px solid #BFD0CA; padding:10px 14px;
-    border-radius:0 8px 8px 0; font-size:13px; color:#7BA090;
+    border-radius:0 8px 8px 0; font-size:13px; color:#4A6B5C;
     font-style:italic; white-space:pre-wrap; line-height:1.6; margin-bottom:14px;
   }
 
   .nid-note-toggle {
-    display:flex; align-items:center; gap:6px; font-size:12px; color:#7BA090;
+    display:flex; align-items:center; gap:6px; font-size:12px; color:#4A6B5C;
     cursor:pointer; padding:8px 0; user-select:none; transition:color 0.14s;
   }
   .nid-note-toggle:hover { color:#3A5246; }
@@ -585,7 +585,7 @@ const CSS = `
 
   .nid-study-label {
     font-size:10px; font-weight:700; text-transform:uppercase;
-    letter-spacing:0.9px; color:#7BA090; margin-bottom:8px;
+    letter-spacing:0.9px; color:#4A6B5C; margin-bottom:8px;
   }
 
   @media (max-width:639px) {
@@ -2282,8 +2282,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>New cards per day</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{newCardCap}</span>
               </div>
-              <input type="range" className="rapp-slider" min={5} max={100} step={5} value={newCardCap}
-                onChange={e=>onUpdateSettings({...settings, newCardCap:Number(e.target.value)})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={5} max={100} step={5} value={newCardCap}
+                  onChange={e=>onUpdateSettings({...settings, newCardCap:Number(e.target.value)})} style={{ flex:1 }} />
+                <input type="number" min={5} max={100} step={5} value={newCardCap}
+                  onChange={e=>onUpdateSettings({...settings, newCardCap:Math.min(100, Math.max(5, +e.target.value||5))})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Start at 15 and raise once a sustainable routine is established. Reference: Wozniak, supermemo.com graduated introduction guidelines.</p>
             </div>
 
@@ -2292,8 +2297,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>Reviews per day</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{reviewCap}</span>
               </div>
-              <input type="range" className="rapp-slider" min={20} max={500} step={10} value={reviewCap}
-                onChange={e=>onUpdateSettings({...settings, reviewCap:Number(e.target.value)})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={20} max={500} step={10} value={reviewCap}
+                  onChange={e=>onUpdateSettings({...settings, reviewCap:Number(e.target.value)})} style={{ flex:1 }} />
+                <input type="number" min={20} max={500} step={10} value={reviewCap}
+                  onChange={e=>onUpdateSettings({...settings, reviewCap:Math.min(500, Math.max(20, +e.target.value||20))})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>100 reviews per day supports a manageable workload. Reference: Anki community defaults.</p>
             </div>
 
@@ -2302,8 +2312,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>Catch-up spread (days)</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{catchupDays}</span>
               </div>
-              <input type="range" className="rapp-slider" min={1} max={14} value={catchupDays}
-                onChange={e=>onUpdateSettings({...settings, catchupDays:Number(e.target.value)})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={1} max={14} value={catchupDays}
+                  onChange={e=>onUpdateSettings({...settings, catchupDays:Number(e.target.value)})} style={{ flex:1 }} />
+                <input type="number" min={1} max={14} step={1} value={catchupDays}
+                  onChange={e=>onUpdateSettings({...settings, catchupDays:Math.min(14, Math.max(1, +e.target.value||1))})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Overdue cards are spread across this many days to avoid overwhelming sessions.</p>
             </div>
           </div>
@@ -2326,8 +2341,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>Target retention</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.accent }}>{Math.round(retentionTarget*100)}%</span>
               </div>
-              <input type="range" className="rapp-slider" min={70} max={97} value={Math.round(retentionTarget*100)}
-                onChange={e=>onUpdateSettings({...settings, retentionTarget:Number(e.target.value)/100})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={70} max={97} value={Math.round(retentionTarget*100)}
+                  onChange={e=>onUpdateSettings({...settings, retentionTarget:Number(e.target.value)/100})} style={{ flex:1 }} />
+                <input type="number" min={70} max={97} step={1} value={Math.round(retentionTarget*100)}
+                  onChange={e=>onUpdateSettings({...settings, retentionTarget:Math.min(97, Math.max(70, +e.target.value||90))/100})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>
                 Higher retention = shorter intervals (more reviews). 90% is the default. Lower values reduce review load at the cost of forgetting more.
               </p>
@@ -2338,8 +2358,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>Leech threshold (lapses)</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.again }}>{leechThreshold}</span>
               </div>
-              <input type="range" className="rapp-slider" min={3} max={10} value={leechThreshold}
-                onChange={e=>onUpdateSettings({...settings, leechThreshold:Number(e.target.value)})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={3} max={10} value={leechThreshold}
+                  onChange={e=>onUpdateSettings({...settings, leechThreshold:Number(e.target.value)})} style={{ flex:1 }} />
+                <input type="number" min={3} max={10} step={1} value={leechThreshold}
+                  onChange={e=>onUpdateSettings({...settings, leechThreshold:Math.min(10, Math.max(3, +e.target.value||5))})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Cards failing this many times are flagged as leeches.</p>
             </div>
           </div>
@@ -2411,8 +2436,13 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 <label className="rapp-label" style={{ marginBottom:0 }}>Maturity threshold (days)</label>
                 <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{matureCardThreshold}</span>
               </div>
-              <input type="range" className="rapp-slider" min={14} max={90} step={1} value={matureCardThreshold}
-                onChange={e=>onUpdateSettings({...settings, matureCardThreshold:Number(e.target.value)})} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <input type="range" className="rapp-slider" min={14} max={90} step={1} value={matureCardThreshold}
+                  onChange={e=>onUpdateSettings({...settings, matureCardThreshold:Number(e.target.value)})} style={{ flex:1 }} />
+                <input type="number" min={14} max={90} step={1} value={matureCardThreshold}
+                  onChange={e=>onUpdateSettings({...settings, matureCardThreshold:Math.min(90, Math.max(14, +e.target.value||30))})}
+                  style={{ width:56, textAlign:"right" }} className="rapp-input" />
+              </div>
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>
                 A card is Mature when its FSRS stability reaches this value. Stability represents days to 90% retention.
               </p>
