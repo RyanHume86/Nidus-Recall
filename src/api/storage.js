@@ -30,6 +30,7 @@ let cardSnapshot = new Map()  // clientId  to last-synced card object (for diffi
 let deckNameToId = new Map()  // deckTitle to Base44 Deck entity id
 let deckPending  = new Map()  // deckTitle to in-flight Deck.create Promise
 let deckCountCache = new Map()  // deckTitle to current card_count
+let deckParentMapMemo = new Map()  // childDeckTitle to parentDeckTitle (from parentDeckId)
 
 // CardState maps (populated in loadAll from CardState entity)
 let cardStateMap         = new Map()  // clientId to CardState app object
@@ -134,6 +135,10 @@ const toAppCard = (entity) => {
 }
 
 const toEntityData = (card, deckId) => ({
+  // Content fields only. Scheduling fields (stability, difficulty, interval,
+  // nextReview, lastReview, reviewCount, lapses, ratingHistory) are now written
+  // via syncCardState to the CardState entity. Writing them here caused redundant
+  // writes on every card save. Removed per deferred item 4 (Session 5).
   clientId:    card.id,
   deckId,
   front:       card.front,
@@ -168,6 +173,7 @@ export const loadAll = async () => {
   deckNameToId.clear()
   deckPending.clear()
   deckCountCache.clear()
+  deckParentMapMemo.clear()
   cardStateMap.clear()
   cardStateEntityIdMap.clear()
   cardStateSnapshot.clear()
@@ -194,6 +200,16 @@ export const loadAll = async () => {
   for (const d of deckEntities) {
     deckNameToId.set(d.title, d.id)
     deckCountCache.set(d.title, d.card_count || 0)
+  }
+
+  // Build deckParentMap from parentDeckId relationships (post-migration).
+  // Maps childTitle to parentTitle so buildDeckTree can render indentation.
+  const deckIdToTitle = new Map(deckEntities.map(d => [d.id, d.title]))
+  for (const d of deckEntities) {
+    if (d.parentDeckId) {
+      const parentTitle = deckIdToTitle.get(d.parentDeckId)
+      if (parentTitle) deckParentMapMemo.set(d.title, parentTitle)
+    }
   }
 
   // Map cards (CardState already loaded so toAppCard will merge it)
@@ -228,7 +244,7 @@ export const loadAll = async () => {
     userSchedulerParamsId = paramRecords[0].id
   }
 
-  return { cards, deckNames, log }
+  return { cards, deckNames, log, deckParentMap: new Map(deckParentMapMemo) }
 }
 
 /**
@@ -403,6 +419,20 @@ export const saveUserSchedulerParams = async (params, reviewCount) => {
 export const runMigration = async () => {
   const { migrateUp } = await import('../../migrations/2026-04-26-split-card-state.js')
   return migrateUp(base44)
+}
+
+/**
+ * Returns the current in-memory deckParentMap (Map<childTitle, parentTitle>).
+ * Built in loadAll from parentDeckId relationships. Falls back to empty Map
+ * if the deck-hierarchy migration has not run yet.
+ */
+export const getDeckParentMap = () => new Map(deckParentMapMemo)
+
+/**
+ * List all CardState records (used for auto-migration check on startup).
+ */
+export const listCardStates = async () => {
+  return base44.entities.CardState.list().catch(() => [])
 }
 
 /**
