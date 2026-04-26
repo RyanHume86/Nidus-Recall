@@ -63,13 +63,19 @@ const toAppCard = (entity) => ({
   status:      entity.status       || "Active",
   nextReview:  entity.nextReview   || null,
   interval:    entity.interval     || 1,
-  reviewCount: entity.reviewCount  || 0,
+  reviewCount: entity.reviewCount  ?? 0,
   stability:   entity.stability    ?? null,
   difficulty:  entity.difficulty   ?? null,
-  lapses:      entity.lapses       || 0,
+  lapses:      entity.lapses       ?? 0,
   lastReview:  entity.lastReview   || null,
   createdAt:   entity.created_date || null,
   ratingHistory: entity.ratingHistory || [],
+  tags:                 entity.tags                 || [],
+  anchor:               entity.anchor               || null,
+  source:               entity.source               || null,
+  stakes_flag:          entity.stakes_flag          || false,
+  connects_to:          entity.connects_to          || [],
+  prerequisite_card_id: entity.prerequisite_card_id || null,
 })
 
 const toEntityData = (card, deckId) => ({
@@ -81,13 +87,19 @@ const toEntityData = (card, deckId) => ({
   elaboration: card.elaboration || "",
   status:      card.status      || "Active",
   nextReview:  card.nextReview  || null,
-  interval:    card.interval    || 1,
-  reviewCount: card.reviewCount || 0,
+  interval:    card.interval    ?? 1,
+  reviewCount: card.reviewCount ?? 0,
   stability:   card.stability   ?? null,
   difficulty:  card.difficulty  ?? null,
-  lapses:      card.lapses      || 0,
+  lapses:      card.lapses      ?? 0,
   lastReview:  card.lastReview  || null,
   ratingHistory: (card.ratingHistory || []).slice(-50),
+  tags:                 card.tags                 || [],
+  anchor:               card.anchor               || null,
+  source:               card.source               || null,
+  stakes_flag:          card.stakes_flag          || false,
+  connects_to:          card.connects_to          || [],
+  prerequisite_card_id: card.prerequisite_card_id || null,
 })
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -130,11 +142,14 @@ export const loadAll = async () => {
   // created_date which mis-sorts batch-imported entries with old date values)
   const log = logEntities
     .map(e => ({
+      id:           e.id,
       date:         e.date         || new Date().toISOString(),
       reviewed:     e.reviewed     || 0,
       failed:       e.failed       || 0,
       newAdded:     e.newAdded     || 0,
       frictionNote: e.frictionNote || "",
+      intensity_score: e.intensity_score ?? 0,
+      status:       e.status       || "complete",
     }))
     .sort((a, b) => new Date(b.date) - new Date(a.date))
 
@@ -202,6 +217,19 @@ const _doSync = async (updatedCards) => {
       })
     ),
   ])
+
+  // Update deckCountCache for any deck that had creates or deletes
+  const affectedDecks = new Set([
+    ...createOps.map(({card}) => card.deck),
+    ...deleteOps.map(({ clientId }) => {
+      const snap = cardSnapshot.get(clientId) || cardSnapshot.get(clientId)
+      return snap ? idToName().get(snap.deckId || "") : null
+    }).filter(Boolean)
+  ])
+  for (const deckName of affectedDecks) {
+    const count = updatedCards.filter(c => c.deck === deckName && c.status !== 'Archived' && c.status !== 'Parked').length
+    deckCountCache.set(deckName, count)
+  }
 }
 
 /**
@@ -214,7 +242,8 @@ export const appendLog = async (entry) => {
     failed:         entry.failed         || 0,
     newAdded:       entry.newAdded       || 0,
     frictionNote:   entry.frictionNote   || "",
-    intensity_score: entry.intensity_score || 0,
+    intensity_score: entry.intensity_score ?? 0,
+    status:         entry.status         || "complete",
   })
   return entity
 }
