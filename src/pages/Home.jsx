@@ -2625,7 +2625,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                     background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
                 </div>
               </div>
-              {/* TODO: wire sleepPrefersReviews into getDueWithCatchup or fsrsSchedule to actually
+              {/* TODO Session 3: wire sleepPrefersReviews into getDueWithCatchup to actually
                   reorder the session queue during sleep windows. Currently UI-only. */}
             </div>
           </div>
