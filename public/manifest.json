@@ -1,18 +1,30 @@
 {
   "name": "Nidus Recall",
   "short_name": "Nidus",
-  "description": "Spaced repetition flashcards with FSRS v4 scheduling",
+  "description": "Spaced repetition for postgraduate learners.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F4F7F5",
+  "background_color": "#F5F0EB",
   "theme_color": "#2D6E52",
   "icons": [
     {
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
