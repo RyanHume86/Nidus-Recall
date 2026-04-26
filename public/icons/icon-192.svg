@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="24" fill="#2D6E52"/>
-  <text x="96" y="115" font-family="system-ui,sans-serif" font-size="72" font-weight="700"
-        fill="#F5F0EB" text-anchor="middle">N</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background with rounded corners, safe zone for maskable icons -->
+  <rect width="512" height="512" rx="80" fill="#2D6E52"/>
+  <!-- Stylised N letterform in cream -->
+  <text x="256" y="345" font-family="Georgia,serif" font-size="300" font-weight="700"
+        fill="#F5F0EB" text-anchor="middle" letter-spacing="-10">N</text>
+  <!-- Dots suggesting spaced repetition cadence (decreasing size and opacity) -->
+  <circle cx="380" cy="140" r="28" fill="#F5F0EB" opacity="0.6"/>
+  <circle cx="380" cy="200" r="18" fill="#F5F0EB" opacity="0.4"/>
+  <circle cx="380" cy="248" r="12" fill="#F5F0EB" opacity="0.25"/>
 </svg>
