@@ -17,6 +17,14 @@ const getAnkiModule = async () => {
   return ankiModule
 }
 
+// Dynamic import for FSRS optimizer (avoids loading gradient descent math at startup).
+// fsrs-optimizer.js: MIT-compatible, Nidus Recall implementation, see src/lib/fsrs-optimizer.js
+let fsrsOptimizerModule = null
+const getFsrsOptimizer = async () => {
+  if (!fsrsOptimizerModule) fsrsOptimizerModule = await import('../lib/fsrs-optimizer.js')
+  return fsrsOptimizerModule
+}
+
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
   bg:       "#F4F7F5",
@@ -185,14 +193,14 @@ const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParams = nul
 }
 
 /**
- * fitSchedulerParams: adjust desired retention based on observed recall accuracy.
- * Compares observed non-Again rate to the target retention. If accuracy is
- * consistently above target + 0.05, the interval scheduler can afford to be
- * less conservative (lower retention target). If consistently below target - 0.05,
- * tighten. Returns an updated retentionTarget value.
+ * fitSchedulerParams: adjust desired retention AND run FSRS-5 gradient descent
+ * parameter fitting using the review log.
  *
- * TODO Session 3: implement full FSRS-5 gradient descent optimisation using review log.
- * See open-spaced-repetition/fsrs-optimizer for reference algorithm.
+ * Synchronous path: adjusts retentionTarget from observed recall accuracy.
+ * Async path (background): runs gradient descent in fsrs-optimizer.js and
+ * persists fitted params to UserSchedulerParams via storage.saveUserSchedulerParams.
+ *
+ * Reference: open-spaced-repetition/fsrs-optimizer (gradient descent algorithm).
  */
 const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
   const events = []
@@ -208,11 +216,27 @@ const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
 
   let newTarget = currentRetentionTarget
   if (observedAccuracy > currentRetentionTarget + 0.05) {
-    // Observed recall better than target: can widen intervals slightly
     newTarget = Math.max(0.70, Math.round((currentRetentionTarget - 0.02) * 100) / 100)
   } else if (observedAccuracy < currentRetentionTarget - 0.05) {
-    // Observed recall worse than target: tighten intervals
     newTarget = Math.min(0.97, Math.round((currentRetentionTarget + 0.02) * 100) / 100)
+  }
+
+  // Run gradient descent in background if enough data (>= 200 reviews).
+  // Does not block return value; writes params asynchronously.
+  if (events.length >= 200) {
+    getFsrsOptimizer().then(async ({ fitParams, buildReviewLog, DEFAULT_PARAMS }) => {
+      try {
+        const reviewLog = buildReviewLog(allCards)
+        const currentParams = storage.getUserSchedulerParams()?.params || DEFAULT_PARAMS
+        const { params, loss, fitted } = fitParams(reviewLog, currentParams)
+        if (fitted) {
+          await storage.saveUserSchedulerParams(params, events.length)
+          console.log('[Nidus Recall] FSRS-5 gradient descent complete. Loss:', loss)
+        }
+      } catch (err) {
+        console.warn('[Nidus Recall] FSRS gradient descent failed (non-fatal):', err)
+      }
+    }).catch(() => {})
   }
 
   return {
@@ -384,17 +408,30 @@ function OcclusionCardRenderer({ card, revealed }) {
            viewBox="0 0 100 100" preserveAspectRatio="none">
         {occlusionRegions.map(r => {
           const isTarget = r.id === occlusionRegionId
+          const fillColor = isTarget && !revealed ? '#2D6E52' : 'rgba(45,110,82,0.35)'
+          const cx = r.type === 'polygon' && r.points
+            ? r.points.reduce((s, p) => s + p.x, 0) / r.points.length
+            : (r.x || 0) + (r.width || 0) / 2
+          const cy = r.type === 'polygon' && r.points
+            ? r.points.reduce((s, p) => s + p.y, 0) / r.points.length
+            : (r.y || 0) + (r.height || 0) / 2
           return (
             <g key={r.id}>
-              <rect
-                x={r.x * 100} y={r.y * 100}
-                width={r.width * 100} height={r.height * 100}
-                fill={isTarget && !revealed ? '#2D6E52' : 'rgba(45,110,82,0.35)'}
-                stroke="#2D6E52" strokeWidth="0.5"
-              />
+              {r.type === 'polygon' && r.points ? (
+                <polygon
+                  points={r.points.map(p => `${p.x * 100},${p.y * 100}`).join(' ')}
+                  fill={fillColor} stroke="#2D6E52" strokeWidth="0.5"
+                />
+              ) : (
+                <rect
+                  x={(r.x || 0) * 100} y={(r.y || 0) * 100}
+                  width={(r.width || 0) * 100} height={(r.height || 0) * 100}
+                  fill={fillColor} stroke="#2D6E52" strokeWidth="0.5"
+                />
+              )}
               {(revealed || !isTarget) && (
                 <text
-                  x={(r.x + r.width / 2) * 100} y={(r.y + r.height / 2) * 100}
+                  x={cx * 100} y={cy * 100}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize="3" fill={isTarget ? '#fff' : '#1a3d2b'} fontWeight="600"
                 >
@@ -409,15 +446,18 @@ function OcclusionCardRenderer({ card, revealed }) {
   )
 }
 
-// ImageOcclusionEditor: lets the user load an image and draw rectangular mask regions.
+// ImageOcclusionEditor: lets the user load an image and draw rectangular or polygon mask regions.
 // Coordinates stored as fractions (0.0 to 1.0) so geometry scales with display size.
 // Design follows Image Occlusion Enhanced addon convention (AnKing, Pepper Pharm).
-// Polygon support is a documented TODO.
+// Keyboard: R = rectangle mode, P = polygon mode.
+// Rectangle: drag to draw. Polygon: click to add vertices, double-click or Enter to close.
 function ImageOcclusionEditor({ onSave }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [regions, setRegions] = useState([])
   const [drawing, setDrawing] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [drawMode, setDrawMode] = useState("rect")
+  const [polyPoints, setPolyPoints] = useState([])
   const imgRef = useRef(null)
 
   const handleFile = (e) => {
@@ -426,43 +466,76 @@ function ImageOcclusionEditor({ onSave }) {
     const reader = new FileReader()
     reader.onload = ev => setImageUrl(ev.target.result)
     reader.readAsDataURL(file)
-    setRegions([]); setSelected(null)
+    setRegions([]); setSelected(null); setPolyPoints([]); setDrawing(null)
+  }
+
+  const getFractionalCoords = (e) => {
+    const rect = imgRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    return {
+      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+    }
   }
 
   const onMouseDown = (e) => {
-    if (!imageUrl) return
-    const rect = imgRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = (e.clientX - rect.left) / rect.width
-    const y = (e.clientY - rect.top) / rect.height
-    setDrawing({ startX: x, startY: y, x, y, w: 0, h: 0 })
+    if (!imageUrl || drawMode !== "rect") return
+    const coords = getFractionalCoords(e)
+    if (!coords) return
+    setDrawing({ startX: coords.x, startY: coords.y, x: coords.x, y: coords.y, w: 0, h: 0 })
     setSelected(null)
     e.preventDefault()
   }
 
   const onMouseMove = (e) => {
-    if (!drawing) return
-    const rect = imgRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const cx = (e.clientX - rect.left) / rect.width
-    const cy = (e.clientY - rect.top) / rect.height
+    if (!drawing || drawMode !== "rect") return
+    const coords = getFractionalCoords(e)
+    if (!coords) return
     setDrawing(d => ({
       ...d,
-      x: Math.min(d.startX, cx), y: Math.min(d.startY, cy),
-      w: Math.abs(cx - d.startX), h: Math.abs(cy - d.startY),
+      x: Math.min(d.startX, coords.x), y: Math.min(d.startY, coords.y),
+      w: Math.abs(coords.x - d.startX), h: Math.abs(coords.y - d.startY),
     }))
   }
 
   const onMouseUp = () => {
+    if (drawMode !== "rect") return
     if (!drawing || drawing.w < 0.02 || drawing.h < 0.02) { setDrawing(null); return }
     const newRegion = {
       id: genId(),
       label: 'Region ' + (regions.length + 1),
+      type: 'rect',
       x: drawing.x, y: drawing.y, width: drawing.w, height: drawing.h,
     }
     setRegions(r => [...r, newRegion])
     setSelected(newRegion.id)
     setDrawing(null)
+  }
+
+  const onSvgClick = (e) => {
+    if (!imageUrl || drawMode !== "poly") return
+    const coords = getFractionalCoords(e)
+    if (!coords) return
+    setPolyPoints(pts => [...pts, coords])
+  }
+
+  const onSvgDblClick = (e) => {
+    if (drawMode !== "poly") return
+    e.preventDefault()
+    closePoly()
+  }
+
+  const closePoly = () => {
+    if (polyPoints.length < 3) { setPolyPoints([]); return }
+    const newRegion = {
+      id: genId(),
+      label: 'Region ' + (regions.length + 1),
+      type: 'polygon',
+      points: polyPoints,
+    }
+    setRegions(r => [...r, newRegion])
+    setSelected(newRegion.id)
+    setPolyPoints([])
   }
 
   const deleteSelected = () => {
@@ -475,12 +548,41 @@ function ImageOcclusionEditor({ onSave }) {
   }
 
   const handleKeyDown = (e) => {
+    if (e.key === 'r' || e.key === 'R') { setDrawMode("rect"); setPolyPoints([]); return }
+    if (e.key === 'p' || e.key === 'P') { setDrawMode("poly"); setDrawing(null); return }
+    if (e.key === 'Enter' && drawMode === "poly" && polyPoints.length >= 3) { closePoly(); return }
+    if (e.key === 'Escape') { setPolyPoints([]); setDrawing(null); return }
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected && e.target.tagName !== 'INPUT') {
       deleteSelected()
     }
   }
 
   const sel = regions.find(r => r.id === selected)
+
+  const renderRegion = (r) => {
+    const isSelected = r.id === selected
+    const fill = isSelected ? 'rgba(45,110,82,0.5)' : 'rgba(45,110,82,0.3)'
+    const strokeWidth = isSelected ? '1' : '0.5'
+    if (r.type === 'polygon' && r.points) {
+      const pts = r.points.map(p => `${p.x * 100},${p.y * 100}`).join(' ')
+      return (
+        <polygon key={r.id} points={pts}
+          fill={fill} stroke="#2D6E52" strokeWidth={strokeWidth}
+          style={{ cursor:'pointer' }}
+          onClick={(e) => { e.stopPropagation(); setSelected(r.id) }}
+        />
+      )
+    }
+    return (
+      <rect key={r.id}
+        x={r.x * 100} y={r.y * 100}
+        width={(r.width || 0) * 100} height={(r.height || 0) * 100}
+        fill={fill} stroke="#2D6E52" strokeWidth={strokeWidth}
+        style={{ cursor:'pointer' }}
+        onClick={(e) => { e.stopPropagation(); setSelected(r.id) }}
+      />
+    )
+  }
 
   return (
     <div onKeyDown={handleKeyDown} tabIndex={0} style={{ outline:'none' }}>
@@ -491,24 +593,40 @@ function ImageOcclusionEditor({ onSave }) {
       </div>
       {imageUrl && (
         <>
+          <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+            {[
+              { id:'rect', label:'Rectangle (R)' },
+              { id:'poly', label:'Polygon (P)' },
+            ].map(m => (
+              <button key={m.id}
+                className={drawMode === m.id ? 'rapp-btn rapp-btn-primary' : 'rapp-btn rapp-btn-ghost'}
+                style={{ padding:'6px 14px', fontSize:12 }}
+                onClick={() => { setDrawMode(m.id); setPolyPoints([]); setDrawing(null) }}>
+                {m.label}
+              </button>
+            ))}
+            {drawMode === 'poly' && polyPoints.length > 0 && (
+              <span style={{ fontSize:12, color:C.textMut, alignSelf:'center' }}>
+                {polyPoints.length} vertices. Double-click or Enter to close.
+              </span>
+            )}
+          </div>
           <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', cursor:'crosshair', marginBottom:12, userSelect:'none' }}
             onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
             <img ref={imgRef} src={imageUrl} style={{ display:'block', maxWidth:'100%' }} alt="Occlusion source" draggable={false} />
-            <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-              {regions.map(r => (
-                <rect key={r.id}
-                  x={r.x * 100} y={r.y * 100}
-                  width={r.width * 100} height={r.height * 100}
-                  fill={r.id === selected ? 'rgba(45,110,82,0.5)' : 'rgba(45,110,82,0.3)'}
-                  stroke="#2D6E52" strokeWidth={r.id === selected ? '1' : '0.5'}
-                  style={{ cursor:'pointer' }}
-                  onClick={(e) => { e.stopPropagation(); setSelected(r.id) }}
-                />
-              ))}
-              {drawing && (
+            <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}
+                 viewBox="0 0 100 100" preserveAspectRatio="none"
+                 onClick={onSvgClick} onDoubleClick={onSvgDblClick}>
+              {regions.map(renderRegion)}
+              {drawing && drawMode === 'rect' && (
                 <rect x={drawing.x * 100} y={drawing.y * 100}
                   width={drawing.w * 100} height={drawing.h * 100}
                   fill="rgba(45,110,82,0.2)" stroke="#2D6E52" strokeWidth="0.8" strokeDasharray="2,1" />
+              )}
+              {drawMode === 'poly' && polyPoints.length > 0 && (
+                <polyline
+                  points={polyPoints.map(p => `${p.x*100},${p.y*100}`).join(' ')}
+                  fill="rgba(45,110,82,0.15)" stroke="#2D6E52" strokeWidth="0.8" strokeDasharray="2,1" />
               )}
             </svg>
           </div>
@@ -523,7 +641,7 @@ function ImageOcclusionEditor({ onSave }) {
             </div>
           )}
           <p style={{ fontSize:12, color:C.textMut, marginBottom:8, lineHeight:1.6 }}>
-            Drag to draw regions. Click a region to select and label it. Delete key removes selected region.
+            Rectangle mode: drag to draw. Polygon mode: click vertices, double-click or Enter to close. Delete key removes selected region.
           </p>
           <p style={{ fontSize:12, color:C.textMut, marginBottom:12 }}>
             {regions.length === 0 ? 'No regions drawn yet.' : `${regions.length} region${regions.length !== 1 ? 's' : ''} drawn.`}
@@ -611,9 +729,28 @@ function ReviewHeatmap({ log }) {
   )
 }
 
-// buildDeckTree: visual hierarchy based on "::" in deck names (immediate fallback).
-// After migration runs, parentDeckId drives hierarchy. See migrations/2026-04-26-deck-hierarchy.js.
-const buildDeckTree = (deckNames) => {
+// buildDeckTree: builds hierarchical deck list from parentMap (from storage.getDeckParentMap()).
+// Falls back to "::" name convention when parentMap has no entries.
+// After the 2026-04-26-deck-hierarchy migration runs, parentDeckId populates parentMap.
+const buildDeckTree = (deckNames, parentMap = new Map()) => {
+  // If parentMap is populated, use parent/child relationships.
+  if (parentMap && parentMap.size > 0) {
+    const result = []
+    const roots = deckNames.filter(n => !parentMap.has(n)).sort()
+    const addNode = (name, depth) => {
+      result.push({ name, displayName: name.split('::').pop().trim(), indent: depth })
+      const children = deckNames.filter(n => parentMap.get(n) === name).sort()
+      for (const child of children) addNode(child, depth + 1)
+    }
+    for (const root of roots) addNode(root, 0)
+    // Include orphans (parentMap references non-existent parent).
+    const seen = new Set(result.map(r => r.name))
+    for (const name of deckNames) {
+      if (!seen.has(name)) result.push({ name, displayName: name.split('::').pop().trim(), indent: 0 })
+    }
+    return result
+  }
+  // Fallback: derive hierarchy from "::" in name.
   return deckNames.map(name => ({
     name,
     displayName: name.includes('::') ? name.split('::').pop().trim() : name,
@@ -1239,7 +1376,7 @@ function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
 }
 
 // ─── Library View ─────────────────────────────────────────────────────────────
-function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck }) {
+function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap }) {
   const [search,         setSearch]         = useState("")
   const [showArchived,   setShowArchived]   = useState(false)
   const [showCreateDeck, setShowCreateDeck] = useState(false)
@@ -1334,7 +1471,7 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
       ) : (
         <div className="rapp-col" style={{ gap:12 }}>
           {(() => {
-            const tree = buildDeckTree(visible.map(d => d.name))
+            const tree = buildDeckTree(visible.map(d => d.name), deckParentMap || new Map())
             return visible.map((d, idx) => {
               const treeEntry = tree[idx]
               return (
@@ -1968,7 +2105,11 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onSt
   const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
   const newCount  = getNew(filtered).slice(0, newCardCap).length
   const freeCount = filtered.filter(isActive).length
-  const canStart  = mode==="srs" ? (dueCount>0||newCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
+  // sleepWindowActive: true when sleepPrefersReviews is on AND we are in the sleep window.
+  // When active, new cards are capped to 0 for this session.
+  const sleepWindowActive = !!(settings?.sleepPrefersReviews && isInSleepWindow(settings))
+  const effectiveNewCount = sleepWindowActive ? 0 : newCount
+  const canStart  = mode==="srs" ? (dueCount>0||effectiveNewCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
 
   return (
     <div className="rapp-wrap rapp-fadein">
@@ -2002,9 +2143,14 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onSt
         <div className="rapp-card rapp-mb20">
           <div className="rapp-row" style={{ gap:28 }}>
             <div><span style={{ fontSize:22, fontWeight:700, color:dueCount>0?C.accent:C.textMut }}>{dueCount}</span><span className="rapp-ts"> due</span></div>
-            <div><span style={{ fontSize:22, fontWeight:700, color:newCount>0?C.text:C.textMut }}>{newCount}</span><span className="rapp-ts"> new</span></div>
+            <div><span style={{ fontSize:22, fontWeight:700, color:(sleepWindowActive?0:newCount)>0?C.text:C.textMut }}>{sleepWindowActive ? 0 : newCount}</span><span className="rapp-ts"> new</span></div>
           </div>
-          {isInSleepWindow(settings) && (dueCount>0||newCount>0) && (
+          {sleepWindowActive && (dueCount>0||newCount>0) && (
+            <p style={{ fontSize:12, color:C.textMut, marginTop:10, lineHeight:1.6 }}>
+              Bedtime window: reviews only. New cards are paused until tomorrow (Diekelmann and Born, 2010).
+            </p>
+          )}
+          {isInSleepWindow(settings) && !sleepWindowActive && (dueCount>0||newCount>0) && (
             <p style={{ fontSize:12, color:C.textMut, marginTop:10, lineHeight:1.6 }}>
               Reviewing before sleep consolidates memory during slow-wave sleep.
             </p>
@@ -2053,7 +2199,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onSt
       )}
       <button className="rapp-btn rapp-btn-primary rapp-btn-full" disabled={!canStart}
         onClick={() => {
-          if (mode==="srs") onStartSRS(deck, null, focused)
+          if (mode==="srs") onStartSRS(deck, sleepWindowActive ? 0 : null, focused)
           else if (mode==="interleaved") onStartInterleaved(interleavedDecks)
           else onStartFree(deck)
         }}>
@@ -3169,8 +3315,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                     background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
                 </div>
               </div>
-              {/* TODO Session 3: wire sleepPrefersReviews into getDueWithCatchup to actually
-                  reorder the session queue during sleep windows. Currently UI-only. */}
+
             </div>
           </div>
 
@@ -3441,6 +3586,7 @@ export default function Home() {
   const [cards,             setCards]             = useState([])
   const [log,               setLog]               = useState([])
   const [decks,             setDecks]             = useState([])
+  const [deckParentMap,     setDeckParentMap]     = useState(() => new Map())
   const [deckMeta,          setDeckMeta]          = useState(() => deckMetaGet())
   const [settings,          setSettings]          = useState(() => settingsGet())
   const [ready,             setReady]             = useState(false)
@@ -3456,9 +3602,28 @@ export default function Home() {
   // ── Load ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
     storage.loadAll()
-      .then(({ cards:rc, deckNames, log:rl }) => {
+      .then(async ({ cards:rc, deckNames, log:rl, deckParentMap:dpm }) => {
         setCards(rc); setLog(rl)
         setDecks([...new Set(deckNames)])
+        if (dpm) setDeckParentMap(dpm)
+        // Auto-run the CardState migration if any cards have scheduling state
+        // but no corresponding CardState record yet.
+        // This is idempotent: the migration script checks the migrated flag.
+        try {
+          const states = await storage.listCardStates()
+          const migratedIds = new Set(states.filter(s => s.migrated).map(s => s.cardClientId))
+          const needsMigration = rc.some(c => {
+            const clientId = c.id
+            return !migratedIds.has(clientId) && (c.stability != null || (c.reviewCount || 0) > 0)
+          })
+          if (needsMigration) {
+            console.log('[Nidus Recall] Running CardState migration...')
+            const result = await storage.runMigration()
+            console.log('[Nidus Recall] Migration complete:', result)
+          }
+        } catch (_) {
+          // Migration errors are non-fatal; app continues normally.
+        }
         setReady(true)
         // Mirror loaded data to Dexie for offline access.
         offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})
@@ -3583,7 +3748,34 @@ export default function Home() {
       ...mkCloze(clozeText2, ["ACE-inhibitors","cloze"]),
       ...mkCloze(clozeText3, ["metformin","cloze"]),
     ]
-    const sampleCards = [...basicCards, ...clozeCards]
+    // Self-contained SVG data URL: no external dependency needed.
+    // Demonstrates image occlusion on the Beta-Blocker Pathway diagram.
+    const pharmacologyDiagramUrl = "data:image/svg+xml," + encodeURIComponent([
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">',
+      '<rect width="400" height="200" fill="#F5F0EB"/>',
+      '<text x="200" y="30" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="600" fill="#2D6E52">Beta-Blocker Pathway</text>',
+      '<rect x="30" y="50" width="100" height="40" rx="6" fill="#DFE8E3" stroke="#2D6E52" stroke-width="1.5"/>',
+      '<text x="80" y="75" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1a3d2b">Beta-1 Receptor</text>',
+      '<rect x="160" y="50" width="100" height="40" rx="6" fill="#DFE8E3" stroke="#2D6E52" stroke-width="1.5"/>',
+      '<text x="210" y="75" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1a3d2b">Adenylyl Cyclase</text>',
+      '<rect x="290" y="50" width="80" height="40" rx="6" fill="#DFE8E3" stroke="#2D6E52" stroke-width="1.5"/>',
+      '<text x="330" y="75" text-anchor="middle" font-family="system-ui" font-size="11" fill="#1a3d2b">cAMP</text>',
+      '<line x1="130" y1="70" x2="160" y2="70" stroke="#2D6E52" stroke-width="1.5" marker-end="url(#arr)"/>',
+      '<line x1="260" y1="70" x2="290" y2="70" stroke="#2D6E52" stroke-width="1.5" marker-end="url(#arr)"/>',
+      '<rect x="130" y="120" width="120" height="40" rx="6" fill="#b3d4bc" stroke="#2D6E52" stroke-width="1.5"/>',
+      '<text x="190" y="145" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="600" fill="#1a3d2b">Beta-Blocker BLOCKS</text>',
+      '<line x1="190" y1="120" x2="190" y2="90" stroke="#1a3d2b" stroke-width="1.5" stroke-dasharray="4,2"/>',
+      '<defs><marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2D6E52"/></marker></defs>',
+      '</svg>',
+    ].join(''))
+    const occlusionRegions = [
+      { id: 'region-adenylyl', label: 'Adenylyl Cyclase', type: 'rect', x: 0.4, y: 0.25, width: 0.25, height: 0.20 },
+      { id: 'region-camp',     label: 'cAMP',             type: 'rect', x: 0.725, y: 0.25, width: 0.20, height: 0.20 },
+    ]
+    const occlusionCards = createOcclusionCards(pharmacologyDiagramUrl, occlusionRegions, deckName).map(c => ({
+      ...c, source: "BNF / standard pharmacology reference", tags: ["beta-blockers","image-occlusion"],
+    }))
+    const sampleCards = [...basicCards, ...clozeCards, ...occlusionCards]
     await updateCards([...cards, ...sampleCards])
     storage.adjustDeckCount(deckName, sampleCards.length).catch(()=>{})
   }
@@ -3794,7 +3986,7 @@ export default function Home() {
                 onCatchUp={() => { dismissOnboarding(); startSRS(null) }}
                 onReviewTen={() => { dismissOnboarding(); startSRS(null, 10) }}
               />
-            : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} onCreateSampleDeck={createSampleDeck} />
+            : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} onCreateSampleDeck={createSampleDeck} deckParentMap={deckParentMap} />
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} />}
