@@ -25,6 +25,10 @@
     "frictionNote": {
       "type": "string",
       "description": "Optional session note from the user"
+    },
+    "intensity_score": {
+      "type": "number",
+      "description": "Cumulative cognitive load score for the session."
     }
   },
   "required": [

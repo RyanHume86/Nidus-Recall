@@ -2,26 +2,128 @@
   "name": "Flashcard",
   "type": "object",
   "properties": {
-    "clientId":    { "type": "string",  "description": "Stable local ID used by the app" },
-    "deckId":      { "type": "string",  "description": "ID of the parent Deck entity" },
-    "front":       { "type": "string",  "description": "Question shown on the front" },
-    "back":        { "type": "string",  "description": "Answer shown on the back" },
-    "contentType": { "type": "string",  "description": "One of: Factual, Mechanism, Clinical Reasoning, Anatomy, Pathology", "default": "Factual" },
-    "elaboration": { "type": "string",  "description": "Why is this true — one sentence explanation" },
-    "anchor":              { "type": "string",  "description": "Personal memory anchor — a case, moment, or story linking the card to prior knowledge", "nullable": true, "maxLength": 400 },
-    "source":              { "type": "string",  "description": "Article, chapter, guideline, or lecture this card came from", "nullable": true, "maxLength": 200, "default": null },
-    "prerequisite_card_id":{ "type": "string",  "description": "clientId of another card that should be reviewed before this one (stability >= 7 gate)", "nullable": true, "default": null },
-    "connects_to":         { "type": "array",   "description": "Array of clientIds of related cards (shown after reveal on mature cards)", "items": { "type": "string" }, "default": [] },
-    "stakes_flag":  { "type": "boolean", "description": "High-stakes / clinically critical card — sorted first within shared due dates", "default": false },
-    "status":      { "type": "string",  "description": "Active | Archived | Parked", "default": "Active" },
-    "nextReview":  { "type": "string",  "description": "YYYY-MM-DD date for next scheduled review" },
-    "interval":    { "type": "number",  "description": "Days until next review (FSRS)", "default": 1 },
-    "reviewCount": { "type": "number",  "description": "Total times reviewed", "default": 0 },
-    "stability":   { "type": "number",  "description": "FSRS stability (days of 90% retention)" },
-    "difficulty":  { "type": "number",  "description": "FSRS difficulty 1-10" },
-    "lapses":        { "type": "number",  "description": "Times rated Again after first review", "default": 0 },
-    "lastReview":    { "type": "string",  "description": "YYYY-MM-DD date of last review" },
-    "ratingHistory": { "type": "array",   "description": "Last 50 rating events [{date: ISO timestamp, rating: again|hard|good|easy}]", "items": { "type": "object", "properties": { "date": { "type": "string" }, "rating": { "type": "string" } } }, "maxItems": 50, "default": [] }
+    "clientId": {
+      "type": "string",
+      "description": "App-generated stable ID"
+    },
+    "deckId": {
+      "type": "string",
+      "description": "Base44 entity ID of the parent deck"
+    },
+    "front": {
+      "type": "string",
+      "description": "The question shown on the front of the card"
+    },
+    "back": {
+      "type": "string",
+      "description": "The answer shown on the back of the card"
+    },
+    "contentType": {
+      "type": "string",
+      "enum": [
+        "Factual",
+        "Mechanism",
+        "Clinical Reasoning",
+        "Anatomy",
+        "Pathology"
+      ],
+      "default": "Factual",
+      "description": "Card content category"
+    },
+    "elaboration": {
+      "type": "string",
+      "description": "Third-side elaboration shown during review"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Parked",
+        "Archived"
+      ],
+      "default": "Active",
+      "description": "Card status"
+    },
+    "nextReview": {
+      "type": "string",
+      "description": "YYYY-MM-DD date of next scheduled review"
+    },
+    "interval": {
+      "type": "number",
+      "description": "Current review interval in days",
+      "default": 1
+    },
+    "reviewCount": {
+      "type": "number",
+      "description": "Total number of reviews",
+      "default": 0
+    },
+    "stability": {
+      "type": "number",
+      "description": "FSRS stability parameter"
+    },
+    "difficulty": {
+      "type": "number",
+      "description": "FSRS difficulty parameter"
+    },
+    "lapses": {
+      "type": "number",
+      "description": "Number of times rated Again",
+      "default": 0
+    },
+    "lastReview": {
+      "type": "string",
+      "description": "YYYY-MM-DD date of last review"
+    },
+    "anchor": {
+      "type": "string",
+      "description": "Personal memory anchor \u2014 a case, moment, or story connecting this card to existing knowledge.",
+      "maxLength": 400
+    },
+    "stakes_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Clinically critical card \u2014 prioritised in session queue."
+    },
+    "connects_to": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "description": "clientId values of related cards in the same deck."
+    },
+    "ratingHistory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "again",
+              "hard",
+              "good",
+              "easy"
+            ]
+          }
+        }
+      },
+      "maxItems": 50,
+      "description": "Per-card rating event log for calibration scoring."
+    },
+    "source": {
+      "type": "string",
+      "description": "Source reference \u2014 article, chapter, guideline, or lecture.",
+      "maxLength": 200
+    },
+    "prerequisite_card_id": {
+      "type": "string",
+      "description": "clientId of a prerequisite card that must reach stability >= 7 before this card enters the review queue."
+    }
   },
   "required": [
     "front",

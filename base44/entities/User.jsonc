@@ -1,19 +1,58 @@
 {
   "name": "User",
   "type": "object",
-  "description": "Per-user preferences stored in localStorage under nidus-settings",
   "properties": {
-    "newCardCap":          { "type": "number",  "description": "Max new cards per day",                        "default": 50 },
-    "reviewCap":           { "type": "number",  "description": "Max review cards per day",                     "default": 200 },
-    "leechThreshold":      { "type": "number",  "description": "Lapse count before a card is flagged leech",   "default": 5 },
-    "retentionTarget":     { "type": "number",  "description": "FSRS target retention 0.70–0.97",              "default": 0.90 },
-    "catchupDays":         { "type": "number",  "description": "Days over which to spread overdue backlog",    "default": 7 },
-    "sleepBedtime":           { "type": "string",  "description": "Bedtime in HH:MM 24-hour format",                    "default": null, "nullable": true },
-    "sleepWindowMinutes":     { "type": "number",  "description": "Minutes before bedtime to show sleep banner",        "default": 90 },
-    "sleepBannerEnabled":     { "type": "boolean", "description": "Show sleep review banner and session hint",          "default": true },
-    "matureModeEnabled":      { "type": "boolean", "description": "Enable mature card mode (expanded recall prompt)",   "default": true },
-    "matureCardThreshold":    { "type": "number",  "description": "Stability (days) at which a card enters Mature mode; range 14-90", "default": 30 },
-    "fatigueAlertsEnabled":          { "type": "boolean", "description": "Show sustainable pace alert when fatigue risk score >= 2", "default": true },
-    "attentionDeclarationEnabled":   { "type": "boolean", "description": "Show focused-session checkbox on session start screen", "default": true }
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user"
+    },
+    "sleep_bedtime": {
+      "type": "string",
+      "description": "User's bedtime in HH:MM 24-hour format for sleep-aware scheduling."
+    },
+    "sleep_window_minutes": {
+      "type": "number",
+      "default": 90,
+      "description": "Minutes before bedtime when sleep review banner activates."
+    },
+    "sleep_banner_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show sleep review banner when cards are due near bedtime."
+    },
+    "mature_card_threshold": {
+      "type": "number",
+      "default": 30,
+      "description": "FSRS stability threshold in days above which a card enters mature review mode."
+    },
+    "mature_mode_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable mature card review mode with modified prompts."
+    },
+    "intensity_prompts_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show break prompts when session intensity accumulates."
+    },
+    "intensity_threshold": {
+      "type": "number",
+      "default": 40,
+      "description": "Cumulative intensity score that triggers a break prompt."
+    },
+    "fatigue_alerts_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show sustainable pace alerts based on session trend data."
+    },
+    "attention_declaration_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show focus declaration checkbox at session start."
+    }
   }
 }
