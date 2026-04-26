@@ -246,6 +246,372 @@ const buildReverseIndex = (cards) => {
   return index
 }
 
+// parseCloze: parses Anki-compatible cloze syntax.
+// Supported: {{c1::answer}}, {{c1::answer::hint}}, multiple indices.
+// Returns: { indices: number[], cards: Array<{index, front, back, hint}> }
+// Reference: Anki cloze deletion format, apps.ankiweb.net/docs/manual.html
+const CLOZE_RE = /\{\{c(\d+)::([^:}]+)(?:::([^}]+))?\}\}/g
+
+const parseCloze = (text) => {
+  if (!text) return { indices: [], cards: [] }
+  const indices = new Set()
+  let m
+  CLOZE_RE.lastIndex = 0
+  while ((m = CLOZE_RE.exec(text)) !== null) indices.add(Number(m[1]))
+  const sortedIndices = [...indices].sort((a, b) => a - b)
+
+  const cards = sortedIndices.map(idx => {
+    CLOZE_RE.lastIndex = 0
+    const front = text.replace(CLOZE_RE, (_, i, ans, hint) =>
+      Number(i) === idx ? (hint ? `[${hint}]` : '[...]') : ans
+    )
+    CLOZE_RE.lastIndex = 0
+    const back = text.replace(CLOZE_RE, (_, _i, ans) => ans)
+    CLOZE_RE.lastIndex = 0
+    return { index: idx, front, back, hint: null }
+  })
+  return { indices: sortedIndices, cards }
+}
+
+// renderClozeFront: replace [hint] or [...] tokens with styled blank spans.
+const renderClozeFront = (text) => {
+  if (!text) return text
+  const parts = text.split(/(\[[^\]]+\])/g)
+  return parts.map((part, i) => {
+    if (/^\[.+\]$/.test(part)) {
+      return <span key={i} className="nid-cloze-blank" style={{ color:'transparent' }}>{part}</span>
+    }
+    return part
+  })
+}
+
+// createClozeCards: build one Flashcard per cloze index with pre-computed front/back.
+// Pre-computing front/back at create time means existing review machinery works unchanged.
+const createClozeCards = (clozeText, deckName) => {
+  const { cards: variants } = parseCloze(clozeText)
+  const now = new Date().toISOString()
+  return variants.map(v => ({
+    id: genId(),
+    front: v.front,
+    back: v.back,
+    cardType: 'cloze',
+    clozeText,
+    clozeIndex: v.index,
+    deck: deckName,
+    contentType: 'Factual',
+    status: 'Active',
+    interval: 1,
+    reviewCount: 0,
+    lapses: 0,
+    ratingHistory: [],
+    connects_to: [],
+    stability: null,
+    difficulty: null,
+    nextReview: null,
+    lastReview: null,
+    elaboration: '',
+    anchor: null,
+    source: null,
+    stakes_flag: false,
+    prerequisite_card_id: null,
+    tags: [],
+    createdAt: now,
+    imageUrl: null,
+    occlusionRegions: null,
+    occlusionRegionId: null,
+  }))
+}
+
+// createOcclusionCards: build one Flashcard per region.
+// Design follows Image Occlusion Enhanced addon convention used in the medical
+// Anki community (AnKing, Pepper Pharm) - most users from that ecosystem expect
+// this behaviour. Polygon support is a documented TODO.
+const createOcclusionCards = (imageUrl, regions, deckName) => {
+  const now = new Date().toISOString()
+  return regions.map(region => ({
+    id: genId(),
+    front: region.label,
+    back: region.label,
+    cardType: 'image_occlusion',
+    imageUrl,
+    occlusionRegions: regions,
+    occlusionRegionId: region.id,
+    clozeText: null,
+    clozeIndex: null,
+    deck: deckName,
+    contentType: 'Factual',
+    status: 'Active',
+    interval: 1,
+    reviewCount: 0,
+    lapses: 0,
+    ratingHistory: [],
+    connects_to: [],
+    stability: null,
+    difficulty: null,
+    nextReview: null,
+    lastReview: null,
+    elaboration: '',
+    anchor: null,
+    source: null,
+    stakes_flag: false,
+    prerequisite_card_id: null,
+    tags: [],
+    createdAt: now,
+  }))
+}
+
+// OcclusionCardRenderer: renders image with region overlays.
+// Front: tested region is opaque mask; all others semi-transparent.
+// Back (revealed=true): all regions shown with labels.
+function OcclusionCardRenderer({ card, revealed }) {
+  const { imageUrl, occlusionRegions, occlusionRegionId } = card
+  if (!imageUrl || !occlusionRegions) return null
+  return (
+    <div style={{ position:'relative', display:'inline-block', maxWidth:'100%' }}>
+      <img src={imageUrl} style={{ display:'block', maxWidth:'100%', userSelect:'none' }} alt="Occlusion card" />
+      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }}
+           viewBox="0 0 100 100" preserveAspectRatio="none">
+        {occlusionRegions.map(r => {
+          const isTarget = r.id === occlusionRegionId
+          return (
+            <g key={r.id}>
+              <rect
+                x={r.x * 100} y={r.y * 100}
+                width={r.width * 100} height={r.height * 100}
+                fill={isTarget && !revealed ? '#2D6E52' : 'rgba(45,110,82,0.35)'}
+                stroke="#2D6E52" strokeWidth="0.5"
+              />
+              {(revealed || !isTarget) && (
+                <text
+                  x={(r.x + r.width / 2) * 100} y={(r.y + r.height / 2) * 100}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize="3" fill={isTarget ? '#fff' : '#1a3d2b'} fontWeight="600"
+                >
+                  {r.label}
+                </text>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+// ImageOcclusionEditor: lets the user load an image and draw rectangular mask regions.
+// Coordinates stored as fractions (0.0 to 1.0) so geometry scales with display size.
+// Design follows Image Occlusion Enhanced addon convention (AnKing, Pepper Pharm).
+// Polygon support is a documented TODO.
+function ImageOcclusionEditor({ onSave }) {
+  const [imageUrl, setImageUrl] = useState(null)
+  const [regions, setRegions] = useState([])
+  const [drawing, setDrawing] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const imgRef = useRef(null)
+
+  const handleFile = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => setImageUrl(ev.target.result)
+    reader.readAsDataURL(file)
+    setRegions([]); setSelected(null)
+  }
+
+  const onMouseDown = (e) => {
+    if (!imageUrl) return
+    const rect = imgRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = (e.clientX - rect.left) / rect.width
+    const y = (e.clientY - rect.top) / rect.height
+    setDrawing({ startX: x, startY: y, x, y, w: 0, h: 0 })
+    setSelected(null)
+    e.preventDefault()
+  }
+
+  const onMouseMove = (e) => {
+    if (!drawing) return
+    const rect = imgRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const cx = (e.clientX - rect.left) / rect.width
+    const cy = (e.clientY - rect.top) / rect.height
+    setDrawing(d => ({
+      ...d,
+      x: Math.min(d.startX, cx), y: Math.min(d.startY, cy),
+      w: Math.abs(cx - d.startX), h: Math.abs(cy - d.startY),
+    }))
+  }
+
+  const onMouseUp = () => {
+    if (!drawing || drawing.w < 0.02 || drawing.h < 0.02) { setDrawing(null); return }
+    const newRegion = {
+      id: genId(),
+      label: 'Region ' + (regions.length + 1),
+      x: drawing.x, y: drawing.y, width: drawing.w, height: drawing.h,
+    }
+    setRegions(r => [...r, newRegion])
+    setSelected(newRegion.id)
+    setDrawing(null)
+  }
+
+  const deleteSelected = () => {
+    setRegions(r => r.filter(reg => reg.id !== selected))
+    setSelected(null)
+  }
+
+  const updateLabel = (id, label) => {
+    setRegions(r => r.map(reg => reg.id === id ? { ...reg, label } : reg))
+  }
+
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selected && e.target.tagName !== 'INPUT') {
+      deleteSelected()
+    }
+  }
+
+  const sel = regions.find(r => r.id === selected)
+
+  return (
+    <div onKeyDown={handleKeyDown} tabIndex={0} style={{ outline:'none' }}>
+      <div className="rapp-mb12">
+        <label className="rapp-label">Image file</label>
+        <input type="file" accept="image/*" onChange={handleFile}
+          style={{ width:'100%', fontSize:13, color:C.text, fontFamily:'inherit', padding:'8px 0', cursor:'pointer' }} />
+      </div>
+      {imageUrl && (
+        <>
+          <div style={{ position:'relative', display:'inline-block', maxWidth:'100%', cursor:'crosshair', marginBottom:12, userSelect:'none' }}
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
+            <img ref={imgRef} src={imageUrl} style={{ display:'block', maxWidth:'100%' }} alt="Occlusion source" draggable={false} />
+            <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {regions.map(r => (
+                <rect key={r.id}
+                  x={r.x * 100} y={r.y * 100}
+                  width={r.width * 100} height={r.height * 100}
+                  fill={r.id === selected ? 'rgba(45,110,82,0.5)' : 'rgba(45,110,82,0.3)'}
+                  stroke="#2D6E52" strokeWidth={r.id === selected ? '1' : '0.5'}
+                  style={{ cursor:'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); setSelected(r.id) }}
+                />
+              ))}
+              {drawing && (
+                <rect x={drawing.x * 100} y={drawing.y * 100}
+                  width={drawing.w * 100} height={drawing.h * 100}
+                  fill="rgba(45,110,82,0.2)" stroke="#2D6E52" strokeWidth="0.8" strokeDasharray="2,1" />
+              )}
+            </svg>
+          </div>
+          {sel && (
+            <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+              <input className="rapp-input" value={sel.label}
+                onChange={e => updateLabel(sel.id, e.target.value)}
+                style={{ flex:1 }} placeholder="Region label" />
+              <button className="rapp-btn rapp-btn-ghost"
+                style={{ padding:'8px 12px', fontSize:12, color:C.again, borderColor:'#E8B0A0' }}
+                onClick={deleteSelected}>Delete</button>
+            </div>
+          )}
+          <p style={{ fontSize:12, color:C.textMut, marginBottom:8, lineHeight:1.6 }}>
+            Drag to draw regions. Click a region to select and label it. Delete key removes selected region.
+          </p>
+          <p style={{ fontSize:12, color:C.textMut, marginBottom:12 }}>
+            {regions.length === 0 ? 'No regions drawn yet.' : `${regions.length} region${regions.length !== 1 ? 's' : ''} drawn.`}
+          </p>
+          <button className="rapp-btn rapp-btn-primary" style={{ width:'100%' }}
+            disabled={regions.length === 0}
+            onClick={() => onSave(imageUrl, regions)}>
+            Save regions ({regions.length} card{regions.length !== 1 ? 's' : ''} will be created)
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// buildHeatmapData: map of ISO date string -> review count from session log.
+// Ref: streak visibility supports habit maintenance (Lally et al., Eur J Soc Psychol 2010).
+const buildHeatmapData = (log) => {
+  const map = {}
+  for (const entry of log) {
+    const d = entry.date ? entry.date.split('T')[0] : null
+    if (d) map[d] = (map[d] || 0) + (entry.reviewed || 0)
+  }
+  return map
+}
+
+function ReviewHeatmap({ log }) {
+  const data = buildHeatmapData(log)
+  const today = new Date()
+  const days = []
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    days.push({ key, count: data[key] || 0 })
+  }
+  let streak = 0, longestStreak = 0, cur = 0
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (days[i].count > 0) {
+      cur++
+      longestStreak = Math.max(longestStreak, cur)
+      if (i === days.length - 1 || days[i + 1].count > 0) streak = cur
+    } else {
+      if (i < days.length - 1) cur = 0
+    }
+  }
+  const maxCount = Math.max(1, ...days.map(d => d.count))
+  const intensity = (count) => {
+    if (count === 0) return 0
+    const ratio = count / maxCount
+    if (ratio < 0.25) return 1
+    if (ratio < 0.5)  return 2
+    if (ratio < 0.75) return 3
+    return 4
+  }
+  const COLOURS = ['#e8f0eb', '#b3d4bc', '#6dab7e', '#2D6E52', '#1a4535']
+  const weeks = []
+  for (let w = 0; w < 53; w++) weeks.push(days.slice(w * 7, w * 7 + 7))
+  return (
+    <div style={{ marginBottom:24 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6, fontSize:12, color:C.textMut }}>
+        <span>Current streak: <strong>{streak}</strong> day{streak !== 1 ? 's' : ''}</span>
+        <span>Longest streak: <strong>{longestStreak}</strong> day{longestStreak !== 1 ? 's' : ''}</span>
+      </div>
+      <div style={{ display:'flex', gap:2, overflowX:'auto' }}>
+        {weeks.map((week, wi) => (
+          <div key={wi} style={{ display:'flex', flexDirection:'column', gap:2 }}>
+            {week.map((day) => (
+              <div key={day.key}
+                title={`${day.key}: ${day.count} review${day.count !== 1 ? 's' : ''}`}
+                style={{ width:11, height:11, borderRadius:2, background:COLOURS[intensity(day.count)] }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize:10, color:C.textMut, marginTop:4, textAlign:'right' }}>
+        Less
+        {COLOURS.map((c, i) => (
+          <span key={i} style={{ display:'inline-block', width:10, height:10, background:c, borderRadius:2, margin:'0 1px', verticalAlign:'middle' }} />
+        ))}
+        More
+      </div>
+    </div>
+  )
+}
+
+// buildDeckTree: visual hierarchy based on "::" in deck names (immediate fallback).
+// After migration runs, parentDeckId drives hierarchy. See migrations/2026-04-26-deck-hierarchy.js.
+const buildDeckTree = (deckNames) => {
+  return deckNames.map(name => ({
+    name,
+    displayName: name.includes('::') ? name.split('::').pop().trim() : name,
+    indent: name.includes('::') ? (name.split('::').length - 1) : 0,
+  }))
+}
+
+
+
 // Compute recall accuracy (calibration) score for a set of cards.
 // Looks at pairs: good/easy entry followed by an "again" on the next review = mismatch.
 // Returns { score: number 0-100, total: number } - score is null when total < 10.
@@ -650,6 +1016,19 @@ const CSS = `
   }
   button,[role="button"],.rapp-nav-item,.rapp-bnav-item,.rapp-card-item,.nid-deck-card { touch-action:manipulation; }
   button:focus-visible,[tabindex]:focus-visible { outline:2px solid #2D6E52; outline-offset:2px; border-radius:8px; }
+
+  /* Cloze and image occlusion card styles (Session 3) */
+  .nid-cloze-blank {
+    display: inline-block; background: #CFDBD5; color: transparent;
+    border-radius: 4px; padding: 2px 8px; min-width: 40px; text-align: center;
+    font-weight: 600; letter-spacing: 0.5px; user-select: none;
+  }
+  @media (prefers-color-scheme: dark) { .nid-cloze-blank { background: #2D4A3C; } }
+  .nid-cloze-revealed {
+    display: inline; color: #2D6E52; font-weight: 700;
+    background: rgba(45,110,82,0.12); border-radius: 4px; padding: 0 3px;
+  }
+  @media (prefers-color-scheme: dark) { .nid-cloze-revealed { background: rgba(45,110,82,0.25); } }
 `
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -804,68 +1183,24 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
 
 // ─── Onboarding View ──────────────────────────────────────────────────────────
 function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
-  const [showHowItWorks, setShowHowItWorks] = useState(false)
-  const [howItWorksStep, setHowItWorksStep] = useState(0)
-
-  const HOW_STEPS = [
-    {
-      title: "Create a deck",
-      body: "Decks organise your cards by subject. You can have as many as you like: Anatomy, Pharmacology, Clinical Reasoning, whatever fits your study."
-    },
-    {
-      title: "Add cards",
-      body: "Each card has a question on the front and an answer on the back. Add elaboration notes, memory anchors, and links between related cards."
-    },
-    {
-      title: "Let spaced repetition do the work",
-      body: "After each review you rate how well you remembered. The FSRS algorithm schedules the next review; harder cards come back sooner, easy ones wait longer. Study what needs it, when it needs it."
-    },
-  ]
-
+  // "See how it works" modal removed in Session 3: the sample deck (Common Pharmacology: Essentials)
+  // demonstrates all card types in context, making the modal redundant. Users learn by doing.
+  // The secondary action is kept as an outline button for users who prefer to build from scratch.
   return (
     <div className="rapp-wrap rapp-fadein" style={{ textAlign:"center", paddingTop:60 }}>
       <div style={{ fontSize:22, fontWeight:700, marginBottom:8 }}>Welcome to Nidus Recall</div>
       <div style={{ fontSize:14, color:C.textSec, marginBottom:32, lineHeight:1.65 }}>
         Build your own flashcard decks. Study using active recall.<br/>Let spaced repetition handle the scheduling.
       </div>
-      <button className="rapp-btn rapp-btn-primary" onClick={onCreateDeck} style={{ width:"100%", marginBottom:12 }}>
-        {Ico.plus(14)} Create your first deck
+      <button className="rapp-btn rapp-btn-primary" onClick={onCreateSampleDeck} style={{ width:"100%", marginBottom:12 }}>
+        {Ico.plus(14)} Try a sample deck
       </button>
-      <button className="rapp-btn rapp-btn-ghost" onClick={()=>setShowHowItWorks(true)} style={{ width:"100%", marginBottom:24 }}>
-        See how it works
+      <button className="rapp-btn rapp-btn-ghost" onClick={onCreateDeck} style={{ width:"100%", marginBottom:16 }}>
+        Create your first deck
       </button>
-      <div style={{ fontSize:13, color:C.accent, cursor:"pointer" }} onClick={onCreateSampleDeck}>
-        Or start with a sample deck to see how it works →
-      </div>
-
-      {showHowItWorks && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
-          onClick={e=>{ if(e.target===e.currentTarget) setShowHowItWorks(false) }}>
-          <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:440, padding:"28px 24px 32px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}>
-            <div className="rapp-row rapp-sb rapp-mb20">
-              <span style={{ fontSize:15, fontWeight:600, color:C.text }}>How it works</span>
-              <button onClick={()=>setShowHowItWorks(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
-            </div>
-            <div style={{ display:"flex", gap:6, marginBottom:20 }}>
-              {HOW_STEPS.map((_,i) => (
-                <div key={i} style={{ flex:1, height:3, borderRadius:3, background:i<=howItWorksStep?C.accent:C.elevated, cursor:"pointer" }} onClick={()=>setHowItWorksStep(i)} />
-              ))}
-            </div>
-            <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:10 }}>{HOW_STEPS[howItWorksStep].title}</div>
-            <div style={{ fontSize:14, color:C.textSec, lineHeight:1.7, marginBottom:24 }}>{HOW_STEPS[howItWorksStep].body}</div>
-            <div style={{ display:"flex", gap:8 }}>
-              {howItWorksStep > 0 && (
-                <button className="rapp-btn rapp-btn-ghost" style={{ flex:1 }} onClick={()=>setHowItWorksStep(s=>s-1)}>Back</button>
-              )}
-              {howItWorksStep < HOW_STEPS.length - 1 ? (
-                <button className="rapp-btn rapp-btn-primary" style={{ flex:2 }} onClick={()=>setHowItWorksStep(s=>s+1)}>Next →</button>
-              ) : (
-                <button className="rapp-btn rapp-btn-primary" style={{ flex:2 }} onClick={()=>{ setShowHowItWorks(false); onCreateDeck() }}>Create my first deck →</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <p style={{ fontSize:12, color:C.textMut, lineHeight:1.6 }}>
+        The sample deck includes basic, cloze, and image occlusion card types so you can explore each format before building your own content.
+      </p>
     </div>
   )
 }
@@ -916,10 +1251,12 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
               </div>
             )}
           </div>
-          <button className="rapp-btn rapp-btn-primary" style={{ padding:"8px 16px", fontSize:13 }}
-            onClick={() => { setShowCreateDeck(true); setTimeout(()=>newDeckRef.current?.focus(),50) }}>
-            {Ico.plus(13)} New Deck
-          </button>
+          {(cards.length > 0 || decks.length > 0) && (
+            <button className="rapp-btn rapp-btn-primary" style={{ padding:"8px 16px", fontSize:13 }}
+              onClick={() => { setShowCreateDeck(true); setTimeout(()=>newDeckRef.current?.focus(),50) }}>
+              {Ico.plus(13)} New Deck
+            </button>
+          )}
         </div>
       </div>
 
@@ -963,19 +1300,30 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
         <div className="rapp-empty">No decks match "{search}"</div>
       ) : (
         <div className="rapp-col" style={{ gap:12 }}>
-          {visible.map(d => (
-            <div key={d.name} className="nid-deck-card" onClick={() => onSelectDeck(d.name)}>
-              <div className="rapp-row rapp-sb">
-                <div className="nid-deck-name">{d.name}</div>
-                {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
-              </div>
-              <div className="nid-deck-meta">
-                {d.total} card{d.total!==1?"s":""}
-                {d.newCount > 0 && <span style={{ color:C.accent }}> · {d.newCount} new</span>}
-                {d.archived && <span> · archived</span>}
-              </div>
-            </div>
-          ))}
+          {(() => {
+            const tree = buildDeckTree(visible.map(d => d.name))
+            return visible.map((d, idx) => {
+              const treeEntry = tree[idx]
+              return (
+                <div key={d.name} className="nid-deck-card"
+                  style={{ marginLeft: treeEntry.indent * 20 }}
+                  onClick={() => onSelectDeck(d.name)}>
+                  <div className="rapp-row rapp-sb">
+                    <div className="nid-deck-name">
+                      {treeEntry.indent > 0 && <span style={{ color:C.textMut, marginRight:4, fontSize:12 }}>{'> '.repeat(treeEntry.indent)}</span>}
+                      {treeEntry.displayName}
+                    </div>
+                    {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
+                  </div>
+                  <div className="nid-deck-meta">
+                    {d.total} card{d.total!==1?"s":""}
+                    {d.newCount > 0 && <span style={{ color:C.accent }}> · {d.newCount} new</span>}
+                    {d.archived && <span> · archived</span>}
+                  </div>
+                </div>
+              )
+            })
+          })()}
         </div>
       )}
 
@@ -1158,6 +1506,9 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
 // ─── Deck View ────────────────────────────────────────────────────────────────
 function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
+  const [addMode, setAddMode]     = useState("basic") // "basic" | "cloze" | "occlusion"
+  const [clozeText, setClozeText] = useState("")
+  const [showOcclusionEditor, setShowOcclusionEditor] = useState(false)
   const [showNote, setShowNote]   = useState(false)
   const [showAnchor, setShowAnchor] = useState(false)
   const [showConnects, setShowConnects] = useState(false)
@@ -1295,8 +1646,19 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
 
       {/* Add card form */}
       <div className="rapp-card rapp-mb24">
-        <div className="rapp-sec-title" style={{ marginBottom:12 }}>Add card</div>
+        <div className="rapp-row rapp-sb" style={{ marginBottom:12, alignItems:"center" }}>
+          <div className="rapp-sec-title" style={{ marginBottom:0 }}>Add card</div>
+          <div style={{ display:"flex", gap:4 }}>
+            {["basic","cloze","occlusion"].map(m => (
+              <button key={m} onClick={()=>setAddMode(m)}
+                style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${addMode===m?C.accent:C.border}`, background:addMode===m?C.accent:"transparent", color:addMode===m?"#fff":C.textSec, fontSize:11, fontWeight:500, cursor:"pointer", fontFamily:"inherit", transition:"all 0.12s", textTransform:"capitalize" }}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
 
+        {addMode === "basic" && <>
         <div className="rapp-mb10" style={{ marginBottom:10 }}>
           <label className="rapp-label">Front</label>
           <textarea ref={frontRef} className="rapp-textarea" rows={2} value={form.front} maxLength={FRONT_MAX}
@@ -1388,11 +1750,60 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
           </>
         )}
 
-        <div className="rapp-row rapp-gap8">
-          <button className="rapp-btn rapp-btn-primary rapp-flex1" onClick={handleAdd} disabled={!canAdd}>
-            {saved ? "✓ Saved" : "Add card"}
-          </button>
-        </div>
+        </>
+        }
+        {addMode === "basic" && (
+          <div className="rapp-row rapp-gap8">
+            <button className="rapp-btn rapp-btn-primary rapp-flex1" onClick={handleAdd} disabled={!canAdd}>
+              {saved ? "✓ Saved" : "Add card"}
+            </button>
+          </div>
+        )}
+        {addMode === "cloze" && (
+          <div className="rapp-fadein">
+            <div className="rapp-mb10">
+              <label className="rapp-label">Cloze text
+                <span style={{ marginLeft:6, fontSize:11, fontWeight:400, color:C.textMut, cursor:"default" }}
+                  title="Cloze cards force retrieval of the hidden span, which improves long-term retention more than recognition-style review (Roediger and Karpicke, Psychol Sci 2006).">ⓘ</span>
+              </label>
+              <textarea className="rapp-textarea" rows={3} value={clozeText}
+                onChange={e=>setClozeText(e.target.value)}
+                placeholder="Type {{c1::answer}} to mark a deletion. Example: The heart rate is controlled by the {{c1::sinoatrial node}}." />
+            </div>
+            {clozeText.trim() && (() => {
+              const { cards: cv } = parseCloze(clozeText)
+              return (
+                <div style={{ background:C.elevated, borderRadius:10, padding:"10px 14px", marginBottom:12 }}>
+                  <div style={{ fontSize:12, color:C.textMut, marginBottom:6 }}>This note produces {cv.length} card{cv.length!==1?"s":""}. Preview of card 1:</div>
+                  {cv.length > 0 && <div style={{ fontSize:13, color:C.text, lineHeight:1.6 }}>{renderClozeFront(cv[0].front)}</div>}
+                </div>
+              )
+            })()}
+            <button className="rapp-btn rapp-btn-primary" style={{ width:"100%" }}
+              disabled={!clozeText.trim() || parseCloze(clozeText).indices.length === 0}
+              onClick={async () => {
+                const newCards = createClozeCards(clozeText, deckName)
+                if (!newCards.length) return
+                await onUpdateCards([...cards, ...newCards])
+                storage.adjustDeckCount(deckName, newCards.length).catch(()=>{})
+                setClozeText("")
+                setSaved(true); setTimeout(()=>setSaved(false), 1200)
+              }}>
+              {saved ? "✓ Saved" : `Create ${parseCloze(clozeText).indices.length} cloze card${parseCloze(clozeText).indices.length!==1?"s":""}`}
+            </button>
+          </div>
+        )}
+        {addMode === "occlusion" && (
+          <div className="rapp-fadein">
+            <ImageOcclusionEditor onSave={async (imgUrl, regions) => {
+              const newCards = createOcclusionCards(imgUrl, regions, deckName)
+              await onUpdateCards([...cards, ...newCards])
+              storage.adjustDeckCount(deckName, newCards.length).catch(()=>{})
+              setAddMode("basic")
+              setSaved(true); setTimeout(()=>setSaved(false), 1200)
+            }} />
+          </div>
+        )}
       </div>
 
       {/* Search + filter */}
@@ -1513,9 +1924,10 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
 }
 
 // ─── Study Select View ────────────────────────────────────────────────────────
-function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
+function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved }) {
   const [deck, setDeck] = useState("all")
   const [mode, setMode] = useState("srs")
+  const [interleavedDecks, setInterleavedDecks] = useState([])
   const [focused, setFocused] = useState(false)
   const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true } = settings||{}
 
@@ -1523,7 +1935,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
   const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
   const newCount  = getNew(filtered).slice(0, newCardCap).length
   const freeCount = filtered.filter(isActive).length
-  const canStart  = mode==="srs" ? (dueCount>0||newCount>0) : freeCount>0
+  const canStart  = mode==="srs" ? (dueCount>0||newCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
 
   return (
     <div className="rapp-wrap rapp-fadein">
@@ -1534,12 +1946,13 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
 
       <div className="rapp-col" style={{ gap:10, marginBottom:20 }}>
         {[
-          { id:"srs",  title:"Spaced Repetition", sub:"FSRS scheduling · records progress" },
-          { id:"free", title:"Free Study",         sub:"Browse cards freely · nothing recorded" },
+          { id:"srs",          title:"Spaced Repetition", sub:"FSRS scheduling · records progress" },
+          { id:"interleaved",  title:"Interleaved Review", sub:"Mixes decks during the session. Often harder during practice, often better for long-term retention (Rohrer and Taylor, J Educ Psychol 2007; Birnbaum et al., Mem Cognit 2013)." },
+          { id:"free",         title:"Free Study",         sub:"Browse cards freely · nothing recorded" },
         ].map(m => (
           <div key={m.id} className={`nid-mode-card${mode===m.id?" selected":""}`} onClick={()=>setMode(m.id)}>
             <div style={{ fontSize:15, fontWeight:600, color:mode===m.id?C.accent:C.text, marginBottom:4 }}>{m.title}</div>
-            <div style={{ fontSize:13, color:C.textMut }}>{m.sub}</div>
+            <div style={{ fontSize:12, color:C.textMut, lineHeight:1.55 }}>{m.sub}</div>
           </div>
         ))}
       </div>
@@ -1584,12 +1997,37 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
         </div>
       )}
 
+      {mode==="interleaved" && (
+        <div className="rapp-card rapp-mb20">
+          <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:10 }}>Decks to interleave</div>
+          <div style={{ marginBottom:8 }}>
+            <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, color:C.textSec, marginBottom:6 }}>
+              <input type="checkbox" checked={interleavedDecks.length===0}
+                onChange={() => setInterleavedDecks([])} style={{ accentColor:C.accent }} />
+              All decks
+            </label>
+            {decks.map(d => (
+              <label key={d} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, color:C.textSec, marginBottom:4 }}>
+                <input type="checkbox"
+                  checked={interleavedDecks.includes(d)}
+                  onChange={() => setInterleavedDecks(ids => ids.includes(d) ? ids.filter(x=>x!==d) : [...ids, d])}
+                  style={{ accentColor:C.accent }} />
+                {d}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
       <button className="rapp-btn rapp-btn-primary rapp-btn-full" disabled={!canStart}
-        onClick={() => mode==="srs" ? onStartSRS(deck, null, focused) : onStartFree(deck)}>
-        {mode==="srs" ? "Start session" : "Start free study"}
+        onClick={() => {
+          if (mode==="srs") onStartSRS(deck, null, focused)
+          else if (mode==="interleaved") onStartInterleaved(interleavedDecks)
+          else onStartFree(deck)
+        }}>
+        {mode==="srs" ? "Start session" : mode==="interleaved" ? "Start interleaved review" : "Start free study"}
       </button>
 
-      {mode==="srs" && !canStart && (
+      {(mode==="srs" || mode==="interleaved") && !canStart && (
         <p style={{ textAlign:"center", fontSize:13, color:C.textMut, marginTop:12 }}>
           Nothing to study. Come back tomorrow or add cards.
         </p>
@@ -1602,13 +2040,13 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null }) {
+function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
   const [fatigueScore] = useState(() => computeFatigueScore(log))
 
-  const filtered = studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
+  const filtered = interleavedCards ? interleavedCards : studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
 
   const [dueBefore] = useState(() => {
     // Due cards before prerequisite filter (for detecting allGated)
@@ -1866,13 +2304,27 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
           </div>
         )}
         <div className="nid-study-label">Question</div>
-        <p className="rapp-card-front">{card.front}</p>
+        {card.cardType === 'image_occlusion' ? (
+          <OcclusionCardRenderer card={card} revealed={false} />
+        ) : (
+          <p className="rapp-card-front">
+            {card.cardType === 'cloze' ? renderClozeFront(card.front) : card.front}
+          </p>
+        )}
 
         {side >= 1 && (
           <div className="rapp-back-reveal">
             <div className="rapp-card-sep" />
             <div className="nid-study-label">Answer</div>
-            <p className="rapp-card-back">{card.back}</p>
+            {card.cardType === 'image_occlusion' ? (
+              <OcclusionCardRenderer card={card} revealed={true} />
+            ) : (
+              <p className="rapp-card-back">
+                {card.cardType === 'cloze'
+                  ? <span className="nid-cloze-revealed">{card.back}</span>
+                  : card.back}
+              </p>
+            )}
 
             {card.elaboration && (
               <div style={{ marginTop:12 }}>
@@ -2188,6 +2640,46 @@ function StatsView({ log, cards, decks, settings }) {
         </select>
       </div>
 
+      <ReviewHeatmap log={scopeLog} />
+
+      {log.length === 0 && (
+        <>
+          <div className="rapp-card rapp-mb16">
+            <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>
+              Your stats will appear here after your first study session.
+            </div>
+            <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
+              <p style={{ marginBottom:8 }}><strong>Due today:</strong> cards whose next review date is today or earlier.</p>
+              <p style={{ marginBottom:8 }}><strong>Active cards:</strong> total cards with status Active (not archived or parked).</p>
+              <p style={{ marginBottom:8 }}><strong>Mature cards:</strong> cards with a stability value above the maturity threshold (default: 30 days). Mature cards need less frequent review.</p>
+              <p style={{ marginBottom:8 }}><strong>Recall accuracy:</strong> percentage of reviews rated Good or Easy in the last 30 days.</p>
+              <p style={{ marginBottom:16 }}><strong>Critical cards:</strong> cards with the stakes flag set. These are reviewed at higher priority.</p>
+            </div>
+          </div>
+          <div className="rapp-card rapp-mb16">
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>How the scheduling works</div>
+            <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
+              <p style={{ marginBottom:8 }}>
+                The FSRS algorithm estimates the probability you will recall a card and
+                schedules it to be reviewed just before that probability drops below a
+                target threshold (default: 90%). Cards you recall easily are shown less
+                often; cards you struggle with come back sooner.
+              </p>
+              <p>Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.</p>
+            </div>
+          </div>
+          <div className="rapp-card rapp-mb20">
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>What to expect</div>
+            <div style={{ display:'flex', gap:16, flexWrap:'wrap', fontSize:12, color:C.textSec }}>
+              <div><strong>Week 1:</strong> cards are new, intervals are short (1 to 3 days). High daily volume.</div>
+              <div><strong>Week 4:</strong> familiar cards space out to 7 to 21 days. Daily workload stabilises.</div>
+              <div><strong>Month 3:</strong> well-known cards reviewed once every few months. New cards drive most of the load.</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={{ opacity: log.length === 0 ? 0.25 : 1, filter: log.length === 0 ? 'blur(2px)' : 'none', pointerEvents: log.length === 0 ? 'none' : 'auto' }}>
       <div className="rapp-stat-row rapp-mb20">
         <div className="rapp-stat-box">
           <div className="rapp-stat-num" style={{ color:dueToday>0?C.accent:C.textMut }}>{dueToday}</div>
@@ -2288,6 +2780,8 @@ function StatsView({ log, cards, decks, settings }) {
           </div>
         )
       })()}
+
+      </div>
 
       {log.length === 0 ? (
         <div className="rapp-empty">No sessions recorded yet.</div>
@@ -2918,18 +3412,46 @@ export default function Home() {
   }
 
   const createSampleDeck = async () => {
-    const deckName = "Pain Neuroscience - Sample"
+    const deckName = "Common Pharmacology: Essentials"
     if (!decks.includes(deckName)) {
       setDecks(d => [...d, deckName])
       await storage.ensureDeck(deckName)
     }
-    const sampleCards = [
-      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body; not a measure of tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
-      { id:genId(), front:"Distinguish between nociception and pain.", back:"Nociception is a neural process. Pain is a conscious experience influenced by context, cognition, and emotion. One can occur without the other.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
-      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain; can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
-      { id:genId(), front:"Name two descending pain modulation pathways.", back:"The periaqueductal grey (PAG) to rostral ventromedial medulla (RVM) pathway, and the noradrenergic pathway from the locus coeruleus.", deck:deckName, contentType:"Anatomy", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
-      { id:genId(), front:"What does 'all pain is real' mean clinically?", back:"Pain is always a valid experience regardless of whether a structural cause is identified. It is produced by the brain as a protective output, not a readout of tissue state.", deck:deckName, contentType:"Clinical Reasoning", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+    const mk = (front, back, contentType, tags, cardType, clozeText, clozeIndex) => ({
+      id: genId(), front, back, deck: deckName, contentType: contentType || "Factual",
+      cardType: cardType || "basic", clozeText: clozeText || null, clozeIndex: clozeIndex || null,
+      status: "Active", interval: 1, reviewCount: 0, lapses: 0, ratingHistory: [],
+      connects_to: [], stability: null, difficulty: null, nextReview: null,
+      lastReview: null, elaboration: "", anchor: null, source: "BNF / standard pharmacology reference",
+      stakes_flag: false, prerequisite_card_id: null, tags: tags || [],
+      imageUrl: null, occlusionRegions: null, occlusionRegionId: null,
+      createdAt: new Date().toISOString(),
+    })
+    // Build cloze cards using parseCloze so front/back are pre-computed.
+    const mkCloze = (clozeText, tags) => createClozeCards(clozeText, deckName).map(c => ({
+      ...c, source: "BNF / standard pharmacology reference", tags: tags || [],
+    }))
+    const basicCards = [
+      mk("What is the mechanism of action of beta-blockers?", "Competitive antagonism of beta-adrenoceptors (beta-1 selective agents primarily block cardiac receptors). Reduces heart rate, contractility, and renin release.", "Mechanism", ["beta-blockers","cardiology"]),
+      mk("Name four major indications for beta-blockers.", "Hypertension, angina, heart failure with reduced ejection fraction (with up-titration), and rate control in atrial fibrillation.", "Clinical Reasoning", ["beta-blockers","cardiology"]),
+      mk("What are the key contraindications to non-selective beta-blockers?", "Severe asthma or COPD (risk of bronchospasm), second/third-degree heart block, and uncontrolled heart failure. Use with caution in peripheral arterial disease.", "Factual", ["beta-blockers","contraindications"]),
+      mk("What is the mechanism of ACE inhibitors?", "Block angiotensin-converting enzyme, preventing conversion of angiotensin I to angiotensin II. Reduces vasoconstriction, aldosterone secretion, and sodium retention.", "Mechanism", ["ACE-inhibitors","cardiology"]),
+      mk("Why do ACE inhibitors cause a dry cough?", "Inhibition of ACE reduces breakdown of bradykinin. Accumulated bradykinin stimulates pulmonary C-fibres, causing a dry persistent cough in approximately 10-15% of patients.", "Mechanism", ["ACE-inhibitors","side-effects"]),
+      mk("What is the mechanism of statins?", "Competitive inhibition of HMG-CoA reductase, the rate-limiting enzyme in hepatic cholesterol synthesis. Reduces LDL-C and has pleiotropic anti-inflammatory effects.", "Mechanism", ["statins","lipids"]),
+      mk("What are the main contraindications to statin therapy?", "Pregnancy (teratogenic), breastfeeding, and active liver disease. Caution in myopathy risk (high-dose, drug interactions including ciclosporin, macrolides, fibrates).", "Factual", ["statins","contraindications"]),
+      mk("How does warfarin work and what monitoring is required?", "Inhibits vitamin K epoxide reductase, reducing synthesis of clotting factors II, VII, IX, and X. Monitoring: INR (target 2-3 for most indications; 2.5-3.5 for mechanical heart valves).", "Mechanism", ["anticoagulants","warfarin"]),
+      mk("Name two classes of drugs that significantly increase warfarin effect.", "Enzyme inhibitors that reduce warfarin metabolism: azole antifungals (fluconazole), metronidazole. Also: amiodarone, ciprofloxacin. Enzyme inducers (rifampicin, carbamazepine) decrease effect.", "Factual", ["anticoagulants","warfarin","interactions"]),
+      mk("What is the mechanism of metformin and its primary indication?", "Activates AMPK, reducing hepatic gluconeogenesis and increasing peripheral insulin sensitivity. First-line pharmacological treatment for type 2 diabetes mellitus.", "Mechanism", ["diabetes","metformin"]),
     ]
+    const clozeText1 = "Warfarin works by inhibiting {{c1::vitamin K epoxide reductase}}, reducing synthesis of clotting factors {{c2::II, VII, IX, X}}."
+    const clozeText2 = "The commonest side effect of ACE inhibitors is {{c1::dry cough}}, caused by accumulation of {{c2::bradykinin}}."
+    const clozeText3 = "Metformin reduces hepatic {{c1::gluconeogenesis}} by activating {{c2::AMPK}}."
+    const clozeCards = [
+      ...mkCloze(clozeText1, ["warfarin","cloze"]),
+      ...mkCloze(clozeText2, ["ACE-inhibitors","cloze"]),
+      ...mkCloze(clozeText3, ["metformin","cloze"]),
+    ]
+    const sampleCards = [...basicCards, ...clozeCards]
     await updateCards([...cards, ...sampleCards])
     storage.adjustDeckCount(deckName, sampleCards.length).catch(()=>{})
   }
@@ -2972,7 +3494,25 @@ export default function Home() {
     } catch(err) { setSyncStatus("error"); onResult({ ok:false, msg:err.message }) }
   }
 
-  const startSRS  = (deck, capOverride=null, focused=false) => { setStudyDeckName(deck==="all"?null:deck); setSessionCapOverride(capOverride); setSessionFocused(focused); setView("session") }
+  const [interleavedCards, setInterleavedCards] = useState(null)
+  const startSRS  = (deck, capOverride=null, focused=false) => { setStudyDeckName(deck==="all"?null:deck); setSessionCapOverride(capOverride); setSessionFocused(focused); setInterleavedCards(null); setView("session") }
+  const startInterleaved = (deckIds) => {
+    // Fisher-Yates shuffle of all due cards from selected decks.
+    const selectedCards = deckIds.length === 0 ? cards : cards.filter(c => deckIds.includes(c.deck))
+    const { newCardCap=15, reviewCap=100, catchupDays=7 } = settings||{}
+    const due = getDueWithCatchup(selectedCards, reviewCap, catchupDays, cards)
+    const newC = deckIds.length === 0 ? getNew(cards).slice(0, newCardCap) : getNew(selectedCards).slice(0, newCardCap)
+    const combined = [...due, ...newC]
+    for (let i = combined.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [combined[i], combined[j]] = [combined[j], combined[i]]
+    }
+    setInterleavedCards(combined)
+    setStudyDeckName(null)
+    setSessionCapOverride(combined.length)
+    setSessionFocused(false)
+    setView("session")
+  }
   const startFree = deck => { setStudyDeckName(deck==="all"?null:deck); setView("free-study") }
 
   const due = useMemo(() => getDueWithCatchup(cards, settings.reviewCap||100, settings.catchupDays||7, cards), [cards, settings])
@@ -3063,8 +3603,8 @@ export default function Home() {
             : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} onCreateSampleDeck={createSampleDeck} />
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
-          {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} />}
-          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} />}
+          {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} />}
+          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
           {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} />}
