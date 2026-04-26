@@ -92,5 +92,133 @@
 
 - Consider adding a "Progress" or "Streak" widget to the Library view.
 
-- Review the `Flashcard.jsonc` and `User.jsonc` `—` JSON escape sequences and
+- Review the `Flashcard.jsonc` and `User.jsonc` JSON escape sequences and
   decide whether to replace with hyphens for source consistency.
+
+---
+
+## Session 2 (2026-04-26)
+
+### Changed
+
+- **Phase 2.1a (CardState entity):** Created `base44/entities/CardState.jsonc`.
+  Stores FSRS scheduling state (stability, difficulty, interval, nextReview, lastReview,
+  reviewCount, lapses, ratingHistory) keyed by cardClientId. Adds suspended and
+  buriedUntil fields for future queue management, and a migrated flag for idempotent
+  migration tracking.
+
+- **Phase 2.1b (UserSchedulerParams entity):** Created
+  `base44/entities/UserSchedulerParams.jsonc`. Stores the per-user fitted FSRS parameter
+  array (up to 19 values), the date of last fit, the review count at fit time, and the
+  fit algorithm version.
+
+- **Phase 2.1c (Flashcard schema deprecations):** Marked the following fields on
+  `base44/entities/Flashcard.jsonc` as deprecated (description updated to
+  "Deprecated: use CardState"): stability, difficulty, interval, nextReview, lastReview,
+  reviewCount, lapses, ratingHistory. Fields retained in the schema and on existing
+  records to preserve backward compatibility during migration. Also replaced two Unicode
+  em dash escape sequences (U+2014, stored as escaped chars) in field descriptions with colons.
+
+- **Phase 2.1d (migration files):** Created `migrations/2026-04-26-split-card-state.js`
+  (ES module, exports migrateUp and migrateDown). Created
+  `migrations/2026-04-26-split-card-state.md` (safety properties, rollback procedure).
+  Safety properties: idempotent via migrated flag (migrateUp is a no-op for
+  already-migrated cards); reversible via migrateDown (copies CardState fields back
+  onto Flashcard records before rollback).
+
+- **Phase 2.1f (storage.js CardState support):** Refactored `src/api/storage.js`:
+  - Added cardStateMap, cardStateEntityIdMap, cardStateSnapshot in-memory maps.
+  - Added toAppCardState() helper.
+  - loadAll() now fetches CardState entities first (so toAppCard can merge them),
+    then loads Flashcards. Backward-compat shim: if no CardState exists for a card,
+    toAppCard falls back to reading scheduling fields from the Flashcard entity.
+  - toEntityData() now writes content fields only (no scheduling fields); scheduling
+    state is routed to CardState.
+  - Added syncCardState(clientId, stateFields): create or update a single CardState.
+  - Added syncCardStates(updatedCards): batch diff and persist changed CardState records.
+  - Added getUserSchedulerParams(): returns current UserSchedulerParams or null.
+  - Added saveUserSchedulerParams(params, reviewCount): create or update record.
+  - Added runMigration(): imports and runs migrateUp from the migrations module.
+  - loadAll() loads UserSchedulerParams (first record if any exists).
+
+- **Phase 2.1g (Home.jsx CardState write path):** updateCards() now also debounces
+  a syncCardStates call (800ms, same as syncCards). flushCards() awaits both syncCards
+  and syncCardStates before resolving. Scheduling fields continue to flow through the
+  merged in-memory card object; routing to CardState is transparent to handleRate.
+
+- **Phase 2.2a-b (ts-fsrs adoption):** Replaced the hand-rolled FSRS v4 implementation
+  (17-parameter W array, inline math) with a wrapper around ts-fsrs (package: ts-fsrs,
+  version ^4.0.0, MIT license, open-spaced-repetition/ts-fsrs). ts-fsrs is the
+  reference TypeScript implementation of FSRS-5, actively maintained with commits in
+  2024-2025. The wrapper function scheduleFSRS() accepts per-user params from
+  UserSchedulerParams when available, falling back to ts-fsrs defaults. Both handleRate
+  and intLabel (the rating button interval preview) now call scheduleFSRS.
+
+- **Phase 2.2c (UserSchedulerParams in storage):** storage.js loads UserSchedulerParams
+  on startup and exposes getUserSchedulerParams() and saveUserSchedulerParams() exports.
+
+- **Phase 2.2d (parameter fitting on session end):** handleClose in SessionView now
+  runs fitSchedulerParams after saving the session log if: total reviews >= 200 AND
+  (no prior fit OR last fit was more than 7 days ago OR review count has grown by
+  more than 50 since last fit). fitSchedulerParams compares observed recall accuracy
+  (non-Again / total) to the desired retention target. If accuracy is above target
+  + 0.05, the target is loosened by 0.02; if below target - 0.05, it is tightened
+  by 0.02. The updated target is written to settings and to UserSchedulerParams via
+  saveUserSchedulerParams. A "Refit now" button in settings triggers the same fit
+  immediately, bypassing the review count threshold.
+
+- **Phase 2.2e (FSRS Parameters UI):** Added an "FSRS Parameters" card in the
+  Advanced settings section of Nidus Recall. Displays: current parameter set status
+  (default or fitted with date and review count), current desired retention, and a
+  "Refit now" button. The card is read-only except for the refit button.
+
+### Deferred
+
+- **Full 19-parameter FSRS-5 gradient descent optimisation:** Current fitting only
+  adjusts the desired retention target (single parameter) from observed recall accuracy.
+  Full optimisation requires gradient descent over the review log, following the
+  open-spaced-repetition/fsrs-optimizer reference algorithm. Deferred to Session 3.
+  A TODO comment in fitSchedulerParams marks the deferral point.
+
+- **sleepPrefersReviews scheduler wiring:** Carried forward from Session 1. Still
+  UI-only. Deferred to Session 3.
+
+- **CardState table creation:** Base44 will create the CardState and UserSchedulerParams
+  tables automatically on first use. The migration (migrateUp) must be run from the
+  browser console after the first deployment to populate CardState from existing
+  Flashcard records.
+
+- **Dark mode contrast audit:** Carried forward from Session 1.
+
+### Decisions made under discretion
+
+- ts-fsrs chosen over other FSRS implementations because it is: (a) the reference
+  implementation maintained by the open-spaced-repetition project, (b) MIT licensed,
+  (c) actively maintained with commits in 2024-2025, and (d) implements FSRS-5 (the
+  current algorithm version), whereas the hand-rolled code implemented FSRS v4.
+
+- The Flashcard scheduling fields are retained in the schema and not removed from
+  toEntityData writes at this stage. Removing them would require confirming all users
+  have completed migration. Removal is a Session 3 task, gated on migration completion.
+
+- Fitting trigger threshold set at 200 reviews (matching a commonly cited minimum for
+  FSRS optimisation meaningful signal, per the open-spaced-repetition project docs).
+  Refit frequency capped at once per 7 days to avoid thrashing on small rating batches.
+
+- The createEmptyCard import from ts-fsrs is included for future use (new card
+  initialisation) but not called in this session; the existing card state initialisation
+  path in handleRate (newCard branch) is sufficient.
+
+### Follow-up items for Session 3
+
+- Run migrateUp() from browser console after first deployment; verify CardState records
+  created for all existing Flashcard records.
+
+- Implement full FSRS-5 gradient descent over review log for 19-parameter optimisation.
+
+- Wire sleepPrefersReviews into getDueWithCatchup.
+
+- Remove deprecated scheduling fields from toEntityData writes once migration is
+  confirmed complete for all users.
+
+- Dark mode contrast audit.
