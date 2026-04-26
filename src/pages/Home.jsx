@@ -3,6 +3,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContai
 import * as storage from "@/api/storage"
 import * as excel   from "@/api/excel"
 import * as notion  from "@/api/notion"
+// ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
+import { createEmptyCard, fsrs, generatorParameters, Rating } from "ts-fsrs"
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -122,38 +124,92 @@ const timeAgo  = iso => {
   return `${Math.floor(h/24)}d ago`
 }
 
-// ─── FSRS v4 ─────────────────────────────────────────────────────────────────
-const W = [0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0589,1.5330,0.1544,1.0071,1.9442,0.1100,0.2900,2.2700,0.2500,2.9898]
-const DECAY  = -0.5
-const FACTOR = 19 / 81
+// ─── FSRS scheduling via ts-fsrs ─────────────────────────────────────────────
+// ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
+// Replaces the previous hand-rolled FSRS v4 implementation.
 
-const fsrsS0 = g => W[g-1]
-const fsrsD0 = g => Math.min(10, Math.max(1, W[4] - Math.exp(W[5]*(g-1)) + 1))
-const fsrsR  = (t, S) => Math.pow(1 + FACTOR*t/S, DECAY)
-const fsrsSRecall = (D,S,R,g) => {
-  const b = S*(Math.exp(W[8])*(11-D)*Math.pow(S,-W[9])*(Math.exp(W[10]*(1-R))-1)+1)
-  return g===2 ? b*W[15] : g===4 ? b*Math.exp(W[16]) : b
+const RATING_MAP = { again: Rating.Again, hard: Rating.Hard, good: Rating.Good, easy: Rating.Easy }
+
+/**
+ * scheduleFSRS: returns { stability, difficulty, interval, nextReview }
+ * Uses per-user parameters from schedulerParams if provided (from UserSchedulerParams),
+ * else uses ts-fsrs defaults.
+ *
+ * FSRS algorithm per Supermemo (Wozniak) and the open-spaced-repetition project.
+ */
+const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParams = null) => {
+  const params = generatorParameters({
+    request_retention: retentionTarget,
+    ...(schedulerParams && Array.isArray(schedulerParams) ? { w: schedulerParams } : {}),
+  })
+  const f = fsrs(params)
+  const now = new Date()
+
+  // Build a ts-fsrs card object from our card state.
+  const tsCard = {
+    due:          card.nextReview ? new Date(card.nextReview) : now,
+    stability:    card.stability  ?? 0,
+    difficulty:   card.difficulty ?? 0,
+    elapsed_days: card.lastReview
+      ? Math.max(0, Math.floor((now - new Date(card.lastReview)) / 86400000))
+      : 0,
+    scheduled_days: card.interval ?? 0,
+    reps:           card.reviewCount ?? 0,
+    lapses:         card.lapses      ?? 0,
+    state:          card.reviewCount ? 2 : 0,  // Review=2, New=0
+    last_review:    card.lastReview ? new Date(card.lastReview) : now,
+  }
+
+  const result = f.repeat(tsCard, now)
+  const scheduled = result[RATING_MAP[rating]]
+  const newCard = scheduled.card
+
+  const intervalDays = Math.max(1, Math.round(newCard.scheduled_days || 1))
+
+  return {
+    stability:  newCard.stability,
+    difficulty: newCard.difficulty,
+    interval:   intervalDays,
+  }
 }
-const fsrsSForget = (D,S,R) => W[11]*Math.pow(D,-W[12])*(Math.pow(S+1,W[13])-1)*Math.exp(W[14]*(1-R))
-const fsrsDUpdate = (D,g)   => Math.min(10,Math.max(1, W[7]*fsrsD0(4)+(1-W[7])*(D-W[6]*(g-3))))
-const fsrsInterval = (S, target=0.9) => Math.max(1, Math.round((Math.pow(target,1/DECAY)-1)*S/FACTOR))
-const daysSince = d => !d ? 0 : Math.max(0, Math.round((Date.now()-new Date(d))/86400000))
 
-const fsrsSchedule = (card, ratingStr, target=0.9) => {
-  const g = {again:1,hard:2,good:3,easy:4}[ratingStr]
-  const S = card.stability || card.interval || 1
-  const D = card.difficulty || fsrsD0(3)
-  if (!card.lastReview && !card.stability) {
-    const nS=fsrsS0(g), nD=fsrsD0(g)
-    return { stability:nS, difficulty:nD, interval: g===1 ? 1 : fsrsInterval(nS,target) }
+/**
+ * fitSchedulerParams: adjust desired retention based on observed recall accuracy.
+ * Compares observed non-Again rate to the target retention. If accuracy is
+ * consistently above target + 0.05, the interval scheduler can afford to be
+ * less conservative (lower retention target). If consistently below target - 0.05,
+ * tighten. Returns an updated retentionTarget value.
+ *
+ * TODO Session 3: implement full FSRS-5 gradient descent optimisation using review log.
+ * See open-spaced-repetition/fsrs-optimizer for reference algorithm.
+ */
+const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
+  const events = []
+  for (const card of allCards) {
+    for (const entry of (card.ratingHistory || [])) {
+      events.push(entry.rating)
+    }
   }
-  const R = fsrsR(daysSince(card.lastReview), S)
-  if (g===1) {
-    const nS=Math.max(0.1,fsrsSForget(D,S,R))
-    return { stability:nS, difficulty:fsrsDUpdate(D,g), interval:1, retrievability:R }
+  if (events.length < 200) return { retentionTarget: currentRetentionTarget, reviewCount: events.length, changed: false }
+
+  const nonAgainCount = events.filter(r => r !== "again").length
+  const observedAccuracy = nonAgainCount / events.length
+
+  let newTarget = currentRetentionTarget
+  if (observedAccuracy > currentRetentionTarget + 0.05) {
+    // Observed recall better than target: can widen intervals slightly
+    newTarget = Math.max(0.70, Math.round((currentRetentionTarget - 0.02) * 100) / 100)
+  } else if (observedAccuracy < currentRetentionTarget - 0.05) {
+    // Observed recall worse than target: tighten intervals
+    newTarget = Math.min(0.97, Math.round((currentRetentionTarget + 0.02) * 100) / 100)
   }
-  const nS=Math.min(36500,Math.max(0.1,fsrsSRecall(D,S,R,g)))
-  return { stability:nS, difficulty:fsrsDUpdate(D,g), interval:fsrsInterval(nS,target), retrievability:R }
+
+  return {
+    retentionTarget: newTarget,
+    reviewCount: events.length,
+    changed: newTarget !== currentRetentionTarget,
+    observedAccuracy,
+  }
 }
 
 const isActive = c => c.status !== "Parked" && c.status !== "Archived"
@@ -1546,7 +1602,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null }) {
+function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
@@ -1614,7 +1670,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
 
   const handleRate = async rating => {
     if (!card) return
-    const { stability, difficulty, interval } = fsrsSchedule(card, rating, retentionTarget)
+    const { stability, difficulty, interval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
     const isNew = phase==="new", failed = rating==="again"?1:0
     const newEntry = { date: new Date().toISOString(), rating }
     const updated = cards.map(c => c.id===card.id
@@ -1651,12 +1707,38 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
     const frictionNote = assembleFrictionNote(friction, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused })
     await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote, status: "complete", intensity_score: intensityCount > 0 ? parseFloat((intensityPts/intensityCount).toFixed(1)) : 0 })
     if (isFirstStudy && onFirstStudyComplete) onFirstStudyComplete()
+
+    // Parameter fitting: run if >= 200 total reviews and fit conditions met.
+    // Current scope: adjust retentionTarget from observed recall accuracy.
+    // Full 19-parameter gradient descent is deferred to Session 3.
+    const prior = storage.getUserSchedulerParams()
+    const totalReviews = cards.reduce((sum, c) => sum + (c.ratingHistory||[]).length, 0)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
+    const shouldFit = totalReviews >= 200 && (
+      !prior ||
+      !prior.lastFitDate ||
+      prior.lastFitDate < sevenDaysAgo ||
+      (totalReviews - (prior.reviewCountAtFit || 0)) >= 50
+    )
+    if (shouldFit) {
+      try {
+        const fitResult = fitSchedulerParams(cards, retentionTarget)
+        if (fitResult.changed && onFitParams) {
+          onFitParams(fitResult.retentionTarget)
+        }
+        await storage.saveUserSchedulerParams(
+          prior?.params || null,
+          fitResult.reviewCount
+        )
+      } catch (_) { /* fitting is best-effort; never block session close */ }
+    }
+
     onDone()
   }
 
   const intLabel = rating => {
     if (!card) return ""
-    const { interval } = fsrsSchedule(card, rating, retentionTarget)
+    const { interval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
     if (interval===1) return "Tomorrow"
     if (interval<31)  return `${interval}d`
     if (interval<365) return `${Math.round(interval/30.4)}mo`
@@ -2241,7 +2323,7 @@ function StatsView({ log, cards, decks, settings }) {
 }
 
 // ─── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards }) {
+function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onRefitParams, schedulerParams }) {
   const {
     newCardCap=15, reviewCap=100, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
     sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true, sleepPrefersReviews=true,
@@ -2373,6 +2455,27 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
             <p style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
               <strong>Keyboard shortcuts during review:</strong> Ctrl+Enter to reveal · 1 = Again · 2 = Hard · 3 = Good · 4 = Easy
             </p>
+          </div>
+
+          <div className="rapp-card rapp-mb16" style={{ marginTop:16 }}>
+            <div className="rapp-sec-title">FSRS Parameters</div>
+            <div style={{ fontSize:13, color:C.textSec, lineHeight:1.6, marginBottom:10 }}>
+              {schedulerParams?.lastFitDate
+                ? <>Current parameter set: fitted on {schedulerParams.lastFitDate} from {schedulerParams.reviewCountAtFit || 0} reviews</>
+                : <>Current parameter set: default ts-fsrs (no fit yet)</>
+              }
+            </div>
+            <div style={{ fontSize:13, color:C.textSec, lineHeight:1.6, marginBottom:14 }}>
+              Desired retention: <strong>{Math.round(retentionTarget * 100)}%</strong>
+            </div>
+            <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.6 }}>
+              Nidus Recall adjusts the desired retention target based on your observed recall accuracy.
+              Fitting requires at least 200 reviews. Full 19-parameter optimisation is planned for a future update.
+            </p>
+            <button className="rapp-btn rapp-btn-ghost" style={{ fontSize:13, padding:"8px 16px" }}
+              onClick={onRefitParams}>
+              Refit now
+            </button>
           </div>
 
           <div className="rapp-card rapp-mb16" style={{ marginTop:16 }}>
@@ -2721,9 +2824,10 @@ export default function Home() {
   const [lastSynced,        setLastSynced]        = useState(() => lastSyncGet())
   const [sessionCapOverride,setSessionCapOverride]= useState(null)
   const [sessionFocused,    setSessionFocused]    = useState(false)
-  const pendingCards = useRef(null)
-  const saveTimer    = useRef(null)
-  const savedTimer   = useRef(null)
+  const pendingCards      = useRef(null)
+  const saveTimer         = useRef(null)
+  const savedTimer        = useRef(null)
+  const cardStateTimer    = useRef(null)
 
   // ── Load ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2751,14 +2855,26 @@ export default function Home() {
     saveTimer.current = setTimeout(() => {
       if (pendingCards.current) storage.syncCards(pendingCards.current).then(markSaved).catch(()=>setSyncStatus("error"))
     }, 800)
+    // Also debounce CardState sync (scheduling fields route to CardState entity)
+    if (cardStateTimer.current) clearTimeout(cardStateTimer.current)
+    cardStateTimer.current = setTimeout(() => {
+      if (pendingCards.current) storage.syncCardStates(pendingCards.current).catch(() => {})
+    }, 800)
     return Promise.resolve()
   }
 
   const flushCards = async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (cardStateTimer.current) clearTimeout(cardStateTimer.current)
     if (pendingCards.current) {
       setSyncStatus("saving")
-      try { await storage.syncCards(pendingCards.current); markSaved() }
+      try {
+        await Promise.all([
+          storage.syncCards(pendingCards.current),
+          storage.syncCardStates(pendingCards.current),
+        ])
+        markSaved()
+      }
       catch { setSyncStatus("error") }
     }
   }
@@ -2948,10 +3064,10 @@ export default function Home() {
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} />}
-          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} />}
+          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
-          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} />}
+          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} />}
         </div>
 
         {!inSession && (
