@@ -12,6 +12,7 @@
     },
     "sleep_bedtime": {
       "type": "string",
+      "nullable": true,
       "description": "User's bedtime in HH:MM 24-hour format for sleep-aware scheduling."
     },
     "sleep_window_minutes": {
