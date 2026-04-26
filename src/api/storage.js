@@ -68,6 +68,7 @@ const toAppCard = (entity) => ({
   lapses:      entity.lapses       || 0,
   lastReview:  entity.lastReview   || null,
   createdAt:   entity.created_date || null,
+  ratingHistory: entity.ratingHistory || [],
 })
 
 const toEntityData = (card, deckId) => ({
@@ -85,6 +86,7 @@ const toEntityData = (card, deckId) => ({
   difficulty:  card.difficulty  ?? null,
   lapses:      card.lapses      || 0,
   lastReview:  card.lastReview  || null,
+  ratingHistory: (card.ratingHistory || []).slice(-50),
 })
 
 // ── Public API ────────────────────────────────────────────────────────────────
