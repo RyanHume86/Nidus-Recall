@@ -1,10 +1,14 @@
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+// vite-plugin-pwa: MIT, vite-pwa/vite-plugin-pwa, Workbox integration for Vite.
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
+  // assetsInclude: include .wasm so Vite handles sql.js WASM correctly.
+  assetsInclude: ['**/*.wasm'],
   plugins: [
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
@@ -16,5 +20,40 @@ export default defineConfig({
       visualEditAgent: true
     }),
     react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        // Cache all common static asset types for full offline app shell support.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            // Cache Base44 API responses stale-while-revalidate.
+            // Only GET requests are cached; mutations are always network-first.
+            urlPattern: /^https:\/\/api\.base44\.app\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'base44-api-cache',
+              expiration: { maxAgeSeconds: 86400 },
+            },
+          },
+        ],
+      },
+      // Note: vite-plugin-pwa generates its own manifest; public/manifest.json
+      // is also kept for legacy browser compatibility. Both should stay in sync.
+      manifest: {
+        name: 'Nidus Recall',
+        short_name: 'Nidus',
+        description: 'Spaced repetition for postgraduate learners.',
+        theme_color: '#2D6E52',
+        background_color: '#F5F0EB',
+        display: 'standalone',
+        start_url: '/',
+        icons: [
+          { src: '/icons/icon-192.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: '/icons/icon-512.svg', sizes: 'any', type: 'image/svg+xml' },
+        ],
+      },
+      devOptions: { enabled: true },
+    }),
   ]
 });
