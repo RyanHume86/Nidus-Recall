@@ -32,7 +32,7 @@ const C = {
   cardBackBg:  "#E4EDE8",  // dark: #142016
   // anchor blocks
   anchorBg:    "#EDE8DC",  // dark: #252018
-  // warning — error states, sync failures, overdue indicators, system warnings
+  // warning: error states, sync failures, overdue indicators, system warnings
   // (light/dark values set via CSS; use these for inline styles)
   warning:     "#B87A30",  // dark: #D4994A
   warningBg:   "#FDF0DC",  // dark: #2A1800
@@ -170,7 +170,7 @@ const getDueWithCatchup = (cs, cap, days, allCards = null) => {
   all = all.filter(card => {
     if (!card.prerequisite_card_id) return true
     const prereq = lookup.find(c => c.id === card.prerequisite_card_id)
-    if (!prereq) return true  // prerequisite not found — allow card through
+    if (!prereq) return true  // prerequisite not found - allow card through
     return prereq.stability != null && prereq.stability >= 7
   })
   if (!all.length) return []
@@ -192,7 +192,7 @@ const buildReverseIndex = (cards) => {
 
 // Compute recall accuracy (calibration) score for a set of cards.
 // Looks at pairs: good/easy entry followed by an "again" on the next review = mismatch.
-// Returns { score: number 0-100, total: number } — score is null when total < 10.
+// Returns { score: number 0-100, total: number } - score is null when total < 10.
 const computeCalibration = (cards, days = 30) => {
   const cutoff = new Date(Date.now() - days * 86400000).toISOString()
   let mismatches = 0, total = 0
@@ -271,7 +271,7 @@ const computeFatigueScore = (log) => {
 
 // Assembles the final frictionNote for a session. User-written text is
 // preserved at the front; system markers are appended, never prepended or
-// overwritten. This is the single authoritative write point — intensity,
+// overwritten. This is the single authoritative write point - intensity,
 // fatigue, and attention declaration must feed here rather than writing
 // frictionNote independently.
 const assembleFrictionNote = (userText, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused }) => {
@@ -701,7 +701,7 @@ function AnchorToggle({ value, onChange, open, onToggle }) {
   )
 }
 
-// CardPicker — searchable single or multi-card selector used for prerequisite and connects_to.
+// CardPicker: searchable single or multi-card selector used for prerequisite and connects_to.
 // mode: "single" → value is id string | null; "multi" → value is id[]
 function CardPicker({ allCards, value, onChange, mode="single", excludeId, placeholder="Search cards…" }) {
   const [query, setQuery] = useState("")
@@ -754,7 +754,7 @@ function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
   const HOW_STEPS = [
     {
       title: "Create a deck",
-      body: "Decks organise your cards by subject. You can have as many as you like — Anatomy, Pharmacology, Clinical Reasoning, whatever fits your study."
+      body: "Decks organise your cards by subject. You can have as many as you like: Anatomy, Pharmacology, Clinical Reasoning, whatever fits your study."
     },
     {
       title: "Add cards",
@@ -762,7 +762,7 @@ function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
     },
     {
       title: "Let spaced repetition do the work",
-      body: "After each review you rate how well you remembered. The FSRS algorithm schedules the next review — harder cards come back sooner, easy ones wait longer. Study what needs it, when it needs it."
+      body: "After each review you rate how well you remembered. The FSRS algorithm schedules the next review; harder cards come back sooner, easy ones wait longer. Study what needs it, when it needs it."
     },
   ]
 
@@ -1025,7 +1025,7 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
           <div className="rapp-row rapp-sb" style={{ alignItems:"flex-start" }}>
             <div>
               <div style={{ fontSize:13, fontWeight:500, color:form.stakesFlag?C.accent:C.text }}>Clinically critical</div>
-              <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card — prioritised when study time is short.</div>
+              <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card: prioritised when study time is short.</div>
             </div>
             <div role="switch" aria-checked={form.stakesFlag}
               onClick={()=>setForm(f=>({...f,stakesFlag:!f.stakesFlag}))}
@@ -1254,7 +1254,7 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
           <label className="rapp-label">Back</label>
           <textarea className="rapp-textarea nid-back-input" rows={2} value={form.back} maxLength={BACK_MAX}
             onChange={e=>setForm(f=>({...f,back:e.target.value}))}
-            placeholder="Concise answer — one idea only." />
+            placeholder="Concise answer: one idea only." />
           <CharCount current={form.back.length} max={BACK_MAX} />
         </div>
 
@@ -1282,7 +1282,7 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
           <div className="rapp-row rapp-sb" style={{ alignItems:"flex-start" }}>
             <div>
               <div style={{ fontSize:13, fontWeight:500, color:form.stakesFlag?C.accent:C.text }}>Clinically critical</div>
-              <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card — prioritised when study time is short.</div>
+              <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card: prioritised when study time is short.</div>
             </div>
             <div role="switch" aria-checked={form.stakesFlag}
               onClick={()=>setForm(f=>({...f,stakesFlag:!f.stakesFlag}))}
@@ -1549,7 +1549,7 @@ const INTENSITY_BREAK  = 40
 function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
-  // Compute once at session start — snapshot of log at that moment
+  // Compute once at session start - snapshot of log at that moment
   const [fatigueScore] = useState(() => computeFatigueScore(log))
 
   const filtered = studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
@@ -1713,7 +1713,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
         </div>
       )})()}
       <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>
-        Session intensity: {intensityCount > 0 ? <strong>{(intensityPts/intensityCount).toFixed(1)}</strong> : <span>—</span>}
+        Session intensity: {intensityCount > 0 ? <strong>{(intensityPts/intensityCount).toFixed(1)}</strong> : <span>-</span>}
       </div>
       {minInt !== null && (
         <div style={{ fontSize:13, color:C.textMut, marginBottom:16 }}>
@@ -1733,7 +1733,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
 
   return (
     <div className="rapp-wrap rapp-fadein">
-      {/* Header — no card counter per brief */}
+      {/* Header: no card counter per brief */}
       <div className="rapp-row rapp-sb rapp-mb14">
         <span className="rapp-phase-tag">{phase==="warmup"?"Review":"New card"}</span>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
@@ -1862,14 +1862,14 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
               "Pathology":         "Hallmark features...",
             }
             const base = CT_LABEL[card.contentType] || CT_LABEL["Factual"]
-            const label = isMature ? `${base} — then add anything connected to this concept.` : base
+            const label = isMature ? `${base} - then add anything connected to this concept.` : base
             const placeholder = CT_PLACEHOLDER[card.contentType] || CT_PLACEHOLDER["Factual"]
             return (
               <>
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:8 }}>{label}</p>
                 {isFirstStudy && !answerDraft && (
                   <p style={{ fontSize:12, color:C.textSec, fontStyle:"italic", marginBottom:6 }}>
-                    Type your answer before revealing — even an attempt strengthens recall.
+                    Type your answer before revealing: even an attempt strengthens recall.
                   </p>
                 )}
                 <textarea ref={inputRef} className="nid-answer-input rapp-mb12" rows={3}
@@ -2158,7 +2158,7 @@ function StatsView({ log, cards, decks, settings }) {
             </p>
             {fatigueAlertsEnabled && fatigueScore >= 2 && (
               <p style={{ fontSize:13, color:C.warning, marginTop:10, lineHeight:1.6 }}>
-                Review pace may be unsustainable — consider reducing your daily cap.
+                Review pace may be unsustainable; consider reducing your daily cap.
               </p>
             )}
           </div>
@@ -2186,7 +2186,7 @@ function StatsView({ log, cards, decks, settings }) {
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:12 }}>Good/easy ratings not followed by Again (30-day window)</p>
               </>
             ) : (
-              <p style={{ fontSize:13, color:C.textMut, marginBottom:12 }}>Tracking started — score shown after 10 qualifying reviews.</p>
+              <p style={{ fontSize:13, color:C.textMut, marginBottom:12 }}>Tracking started: score shown after 10 qualifying reviews.</p>
             )}
             {chartData.length >= 4 ? (
               <ResponsiveContainer width="100%" height={140}>
@@ -2327,7 +2327,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
             <button onClick={()=>setAdvancedOpen(o=>!o)}
               style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:C.textMut, padding:"6px 0" }}>
               {Ico.chevron(12, advancedOpen)}
-              <span style={{ fontWeight:500 }}>Advanced — adjust after you have used the app for a few weeks</span>
+              <span style={{ fontWeight:500 }}>Advanced: adjust after you have used the app for a few weeks</span>
             </button>
           </div>
 
@@ -2690,7 +2690,7 @@ function ReturnOnboardingCard({ daysSince, dueCount, onCatchUp, onReviewTen }) {
           {dueCount} card{dueCount!==1?"s":""} ready for review
         </div>
         <p style={{ fontSize:14, color:C.textSec, lineHeight:1.75 }}>
-          Your prior learning is still there — spaced repetition builds on what you've retained, not from zero.
+          Your prior learning is still there; spaced repetition builds on what you've retained, not from zero.
         </p>
       </div>
 
@@ -2802,15 +2802,15 @@ export default function Home() {
   }
 
   const createSampleDeck = async () => {
-    const deckName = "Pain Neuroscience — Sample"
+    const deckName = "Pain Neuroscience - Sample"
     if (!decks.includes(deckName)) {
       setDecks(d => [...d, deckName])
       await storage.ensureDeck(deckName)
     }
     const sampleCards = [
-      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body — not to measure tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body; not a measure of tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
       { id:genId(), front:"Distinguish between nociception and pain.", back:"Nociception is a neural process. Pain is a conscious experience influenced by context, cognition, and emotion. One can occur without the other.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
-      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain — can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain; can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
       { id:genId(), front:"Name two descending pain modulation pathways.", back:"The periaqueductal grey (PAG) to rostral ventromedial medulla (RVM) pathway, and the noradrenergic pathway from the locus coeruleus.", deck:deckName, contentType:"Anatomy", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
       { id:genId(), front:"What does 'all pain is real' mean clinically?", back:"Pain is always a valid experience regardless of whether a structural cause is identified. It is produced by the brain as a protective output, not a readout of tissue state.", deck:deckName, contentType:"Clinical Reasoning", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
     ]
