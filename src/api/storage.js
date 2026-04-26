@@ -481,3 +481,33 @@ export const recalculateDeckCount = async (deckTitle, allCards) => {
   const deckId = deckNameToId.get(deckTitle)
   await base44.entities.Deck.update(deckId, { card_count: count })
 }
+
+// ── CardHistory helpers ────────────────────────────────────────────────────────
+
+/**
+ * Save a CardHistory record for an AI-edited card.
+ * Reads existing records to compute the next sequential version number.
+ */
+export const saveCardHistory = async (cardId, snapshot, modifiedBy = 'ai', aiModel = null) => {
+  let version = 1
+  try {
+    const existing = await base44.entities.CardHistory.filter({ card_id: cardId })
+    if (existing.length) version = Math.max(...existing.map(e => e.version || 0)) + 1
+  } catch (_) { /* entity may not exist yet on first use -- version stays 1 */ }
+  return base44.entities.CardHistory.create({
+    card_id: cardId,
+    version,
+    content_snapshot: snapshot,
+    modified_by: modifiedBy,
+    modified_at: new Date().toISOString(),
+    ai_model_used: aiModel ?? null,
+  })
+}
+
+/**
+ * List all CardHistory records for a card, newest first.
+ */
+export const listCardHistory = async (cardId) => {
+  const records = await base44.entities.CardHistory.filter({ card_id: cardId })
+  return records.sort((a, b) => (b.version || 0) - (a.version || 0))
+}
