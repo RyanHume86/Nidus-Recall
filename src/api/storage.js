@@ -75,16 +75,18 @@ const idToName = () => new Map([...deckNameToId.entries()].map(([n, id]) => [id,
  * Convert a CardState entity to the scheduling fields object used in-memory.
  */
 const toAppCardState = (entity) => ({
-  stability:     entity.stability     ?? null,
-  difficulty:    entity.difficulty    ?? null,
-  interval:      entity.interval      ?? 1,
-  nextReview:    entity.nextReview     || null,
-  lastReview:    entity.lastReview     || null,
-  reviewCount:   entity.reviewCount    ?? 0,
-  lapses:        entity.lapses         ?? 0,
-  ratingHistory: entity.ratingHistory  || [],
-  suspended:     entity.suspended      || false,
-  buriedUntil:   entity.buriedUntil    || null,
+  stability:          entity.stability          ?? null,
+  difficulty:         entity.difficulty         ?? null,
+  interval:           entity.interval           ?? 1,
+  nextReview:         entity.nextReview          || null,
+  lastReview:         entity.lastReview          || null,
+  reviewCount:        entity.reviewCount         ?? 0,
+  lapses:             entity.lapses              ?? 0,
+  ratingHistory:      entity.ratingHistory       || [],
+  suspended:          entity.suspended           || false,
+  buriedUntil:        entity.buriedUntil         || null,
+  clozeIndex:         entity.clozeIndex          ?? null,
+  sourceCardClientId: entity.sourceCardClientId  || null,
 })
 
 const toAppCard = (entity) => {
@@ -106,6 +108,12 @@ const toAppCard = (entity) => {
     stakes_flag:          entity.stakes_flag          || false,
     connects_to:          entity.connects_to          || [],
     prerequisite_card_id: entity.prerequisite_card_id || null,
+    cardType:             entity.cardType             || "basic",
+    clozeText:            entity.clozeText             || null,
+    clozeIndex:           entity.clozeIndex            ?? null,
+    imageUrl:             entity.imageUrl              || null,
+    occlusionRegions:     entity.occlusionRegions      || null,
+    occlusionRegionId:    entity.occlusionRegionId     || null,
   }
 
   // Backward-compat shim: use CardState if available, else fall back to Flashcard fields.
@@ -139,6 +147,12 @@ const toEntityData = (card, deckId) => ({
   stakes_flag:          card.stakes_flag          || false,
   connects_to:          card.connects_to          || [],
   prerequisite_card_id: card.prerequisite_card_id || null,
+  cardType:             card.cardType             || "basic",
+  clozeText:            card.clozeText             || null,
+  clozeIndex:           card.clozeIndex            ?? null,
+  imageUrl:             card.imageUrl              || null,
+  occlusionRegions:     card.occlusionRegions      || null,
+  occlusionRegionId:    card.occlusionRegionId     || null,
 })
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -175,7 +189,7 @@ export const loadAll = async () => {
     base44.entities.SessionLog.list(),
   ])
 
-  // Build deck lookup maps
+  // Build deck lookup maps; parentDeckId is available on deck entities after migration.
   deckCountCache.clear()
   for (const d of deckEntities) {
     deckNameToId.set(d.title, d.id)
@@ -303,17 +317,19 @@ const _doSync = async (updatedCards) => {
 export const syncCardState = async (clientId, stateFields) => {
   const entityId = cardStateEntityIdMap.get(clientId)
   const payload = {
-    cardClientId:  clientId,
-    stability:     stateFields.stability     ?? null,
-    difficulty:    stateFields.difficulty    ?? null,
-    interval:      stateFields.interval      ?? 1,
-    nextReview:    stateFields.nextReview      || null,
-    lastReview:    stateFields.lastReview      || null,
-    reviewCount:   stateFields.reviewCount     ?? 0,
-    lapses:        stateFields.lapses          ?? 0,
-    ratingHistory: (stateFields.ratingHistory  || []).slice(-50),
-    suspended:     stateFields.suspended       || false,
-    buriedUntil:   stateFields.buriedUntil     || null,
+    cardClientId:       clientId,
+    stability:          stateFields.stability          ?? null,
+    difficulty:         stateFields.difficulty         ?? null,
+    interval:           stateFields.interval           ?? 1,
+    nextReview:         stateFields.nextReview          || null,
+    lastReview:         stateFields.lastReview          || null,
+    reviewCount:        stateFields.reviewCount         ?? 0,
+    lapses:             stateFields.lapses              ?? 0,
+    ratingHistory:      (stateFields.ratingHistory      || []).slice(-50),
+    suspended:          stateFields.suspended           || false,
+    buriedUntil:        stateFields.buriedUntil         || null,
+    clozeIndex:         stateFields.clozeIndex          ?? null,
+    sourceCardClientId: stateFields.sourceCardClientId  || null,
   }
   if (entityId) {
     await base44.entities.CardState.update(entityId, payload)
