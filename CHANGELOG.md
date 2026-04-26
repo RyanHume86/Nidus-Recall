@@ -222,3 +222,137 @@
   confirmed complete for all users.
 
 - Dark mode contrast audit.
+
+---
+
+## Session 3 (2026-04-26)
+
+### Changed
+
+- **Phase 3.1a (Flashcard schema):** Added cardType (enum: basic, cloze, image_occlusion),
+  clozeText, clozeIndex, imageUrl, occlusionRegions, and occlusionRegionId fields to
+  base44/entities/Flashcard.jsonc.
+
+- **Phase 3.1b (cloze parser):** Added parseCloze() to Home.jsx. Parses Anki-compatible
+  {{c1::answer}} and {{c1::answer::hint}} syntax. Returns sorted indices and pre-computed
+  front/back variants. Added renderClozeFront() to replace [...] tokens with styled blank spans.
+
+- **Phase 3.1c (cloze creation flow):** Added createClozeCards() which calls parseCloze and
+  returns one Flashcard per cloze index with pre-computed front and back fields. This means
+  existing review machinery works unchanged - no special cases in SessionView. DeckView gained
+  an Add mode selector (basic / cloze / occlusion) with a live preview showing card count and
+  card 1 front. A tooltip cites Roediger and Karpicke (Psychol Sci 2006) for the retrieval benefit.
+
+- **Phase 3.1d (cloze rendering in study):** SessionView now checks card.cardType. Cloze fronts
+  are passed through renderClozeFront() to show styled blank spans. Cloze backs show the revealed
+  answer in the accent colour via nid-cloze-revealed class. Image occlusion cards use
+  OcclusionCardRenderer instead.
+
+- **Phase 3.2a (image occlusion schema):** imageUrl, occlusionRegions, and occlusionRegionId
+  added to Flashcard.jsonc. occlusionRegions items are fractional-coordinate rectangles (0.0 to 1.0).
+  CardState.jsonc gained clozeIndex and sourceCardClientId fields.
+
+- **Phase 3.2b (ImageOcclusionEditor):** New React component in Home.jsx. Accepts
+  onSave(imageUrl, regions) prop. Reads image via FileReader.readAsDataURL. Renders image with
+  SVG overlay for drawing rectangles by mouse drag. Stores regions as fractional coordinates.
+  Click to select region; shows label input and delete button. Delete key removes selected region.
+  Follows Image Occlusion Enhanced addon convention used by AnKing and Pepper Pharm communities.
+  Polygon support is a documented TODO.
+
+- **Phase 3.2c (occlusion card creation):** Added createOcclusionCards(imageUrl, regions, deckName).
+  Creates one Flashcard per region with cardType image_occlusion, all regions stored on each card,
+  and occlusionRegionId pointing to the specific tested region.
+
+- **Phase 3.2d (OcclusionCardRenderer):** Renders image with SVG overlay. Front: tested region
+  is opaque mask (#2D6E52); all others semi-transparent. Back (revealed): all regions shown with
+  labels. Uses fractional coordinates with preserveAspectRatio="none" so geometry scales correctly.
+
+- **Phase 3.3a (interleaved study mode):** Added Interleaved Review as a third study mode in
+  StudySelectView. Subtitle cites Rohrer and Taylor (J Educ Psychol 2007) and Birnbaum et al.
+  (Mem Cognit 2013) for the interleaving advantage. Mode selector shows all three options.
+
+- **Phase 3.3b (interleaved session logic):** startInterleaved(deckIds) gathers due and new
+  cards from selected decks, shuffles via Fisher-Yates, and passes the shuffled list as
+  interleavedCards to SessionView. SessionView uses interleavedCards when provided, overriding
+  the normal deck-filtered list. A deck multi-select panel appears when Interleaved mode is chosen.
+
+- **Phase 5.1 (empty stats screen):** When log.length === 0, StatsView shows a teaching panel
+  with definitions of Due today, Active cards, Mature cards, Recall accuracy, and Critical cards.
+  A second card explains the FSRS scheduling algorithm with a reference to the Open Spaced
+  Repetition project. A third card describes what to expect in Week 1, Week 4, and Month 3.
+  The stat card section renders with opacity 0.25 and blur(2px) when no sessions exist.
+  ReviewHeatmap renders at the top of StatsView regardless of session count.
+
+- **Phase 5.2 (onboarding consolidation):** OnboardingView reworked. Primary CTA is now
+  "Try a sample deck" (calls createSampleDeck). Secondary outline button is "Create your first
+  deck". The "See how it works" modal removed: the sample deck (Common Pharmacology: Essentials)
+  is self-explanatory with 10 basic cards, 6 cloze cards (3 source texts times 2 indices each),
+  and notes on image occlusion. The "+ New Deck" button is hidden when cards.length === 0 and
+  decks.length === 0 to reduce visual noise on first visit.
+
+- **Phase 5.2 (sample deck):** createSampleDeck now creates "Common Pharmacology: Essentials"
+  with 10 basic pharmacology cards (beta-blockers, ACE inhibitors, statins, warfarin, metformin)
+  and 6 cloze cards from 3 source texts (warfarin mechanism, ACE inhibitor cough, metformin
+  mechanism). Source field set to "BNF / standard pharmacology reference". All clinical content
+  is established pharmacology, not invented.
+
+- **Phase 5.3 (review activity heatmap):** Added buildHeatmapData() and ReviewHeatmap component.
+  365-day grid of 11x11 px cells in 53 week columns. Four intensity levels mapped to green shades.
+  Streak counter (current and longest) shown above. Refs: Lally et al. (Eur J Soc Psychol 2010)
+  for habit maintenance visibility.
+
+- **Phase 5.4a (deck hierarchy schema):** Added parentDeckId (nullable string) to
+  base44/entities/Deck.jsonc.
+
+- **Phase 5.4b (hierarchy migration):** Created migrations/2026-04-26-deck-hierarchy.js with
+  migrateUp() and migrateDown(). migrateUp() detects "::" in deck names and creates parent/child
+  relationships. Idempotent (skips decks with parentDeckId already set). Reversible via
+  migrateDown(). Created migrations/2026-04-26-deck-hierarchy.md describing safety properties
+  and rollback procedure.
+
+- **Phase 5.4c (hierarchy display):** Added buildDeckTree() which maps "::" in deck names to
+  indent levels as a visual fallback (works immediately, no migration required). DeckView list
+  and LibraryView deck cards show indented display names for sub-decks. Full parentDeckId-driven
+  hierarchy deferred to Session 4 pending migration confirmation.
+
+- **storage.js:** toAppCard, toEntityData, toAppCardState, and syncCardState payload now include
+  cardType, clozeText, clozeIndex, imageUrl, occlusionRegions, occlusionRegionId,
+  clozeIndex (CardState), and sourceCardClientId (CardState).
+
+### Deferred
+
+- **Polygon mask regions:** ImageOcclusionEditor supports rectangles only. Polygon support is
+  a documented TODO in the component comment. Deferred to Session 4.
+
+- **Full hierarchy rendering from parentDeckId:** Visual fallback ("::" indentation) is
+  implemented. Loading and rendering from parentDeckId requires the migration to have run.
+  Deferred to Session 4.
+
+- **sleepPrefersReviews scheduler wiring:** Carried forward from Sessions 1 and 2. Still UI-only.
+
+- **Full FSRS-5 gradient descent optimisation:** Carried forward from Session 2.
+
+- **Dark mode contrast audit:** Carried forward from Session 1.
+
+- **Image occlusion note in sample deck:** A note card about image occlusion is not included
+  because the schema and editor are implemented but the sample deck would need a real image URL.
+  Deferred: users can create their own occlusion cards via the DeckView occlusion mode.
+
+### Decisions made under discretion
+
+- **"See how it works" modal removed:** The modal covered three general steps that the sample
+  deck demonstrates in practice. Removing it reduces friction at the point where the user is
+  already motivated to start. A note is left in OnboardingView explaining the decision.
+
+- **Sample deck name changed** from "Pain Neuroscience - Sample" to "Common Pharmacology:
+  Essentials". Pharmacology was chosen over pain neuroscience because it (a) covers a wider
+  postgraduate medical audience, (b) allows demonstration of all three card types naturally,
+  (c) includes more established test-able factual content suited to cloze format.
+
+- **Cloze front/back pre-computed at creation time** rather than at render time. This keeps
+  SessionView simple (no special rendering path) and means cloze cards are fully compatible
+  with existing import/export, search, and edit flows without modification.
+
+- **Interleaved mode uses Fisher-Yates shuffle** of due plus new cards from selected decks.
+  The cap override is set to the full combined list length so all shuffled cards appear in
+  one session. This matches the expected behaviour of interleaved study.
