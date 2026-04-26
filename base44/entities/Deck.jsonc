@@ -19,6 +19,11 @@
       "type": "number",
       "description": "Total number of cards in the deck",
       "default": 0
+    },
+    "parentDeckId": {
+      "type": "string",
+      "nullable": true,
+      "description": "Entity ID of the parent Deck. Null for top-level decks."
     }
   },
   "required": [
