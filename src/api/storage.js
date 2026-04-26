@@ -20,6 +20,7 @@ let entityIdMap  = new Map()  // clientId  → Base44 entity id
 let cardSnapshot = new Map()  // clientId  → last-synced card object (for diffing)
 let deckNameToId = new Map()  // deckTitle → Base44 Deck entity id
 let deckPending  = new Map()  // deckTitle → in-flight Deck.create Promise
+let deckCountCache = new Map()  // deckTitle → current card_count
 
 // Serialises concurrent syncCards calls so they never race against entityIdMap
 let syncLock = Promise.resolve()
@@ -101,6 +102,7 @@ export const loadAll = async () => {
   cardSnapshot.clear()
   deckNameToId.clear()
   deckPending.clear()
+  deckCountCache.clear()
   syncLock = Promise.resolve()
 
   const [deckEntities, cardEntities, logEntities] = await Promise.all([
@@ -110,8 +112,10 @@ export const loadAll = async () => {
   ])
 
   // Build deck lookup maps
+  deckCountCache.clear()
   for (const d of deckEntities) {
     deckNameToId.set(d.title, d.id)
+    deckCountCache.set(d.title, d.card_count || 0)
   }
 
   // Map cards
@@ -201,14 +205,47 @@ const _doSync = async (updatedCards) => {
 }
 
 /**
- * Append a completed session entry to Base44.
+ * Append a completed session entry to Base44. Returns the created entity.
  */
 export const appendLog = async (entry) => {
-  await base44.entities.SessionLog.create({
-    date:         entry.date,
-    reviewed:     entry.reviewed     || 0,
-    failed:       entry.failed       || 0,
-    newAdded:     entry.newAdded     || 0,
-    frictionNote: entry.frictionNote || "",
+  const entity = await base44.entities.SessionLog.create({
+    date:           entry.date,
+    reviewed:       entry.reviewed       || 0,
+    failed:         entry.failed         || 0,
+    newAdded:       entry.newAdded       || 0,
+    frictionNote:   entry.frictionNote   || "",
+    intensity_score: entry.intensity_score || 0,
   })
+  return entity
+}
+
+/**
+ * Update an existing session log entry.
+ */
+export const updateLog = async (entityId, updates) => {
+  await base44.entities.SessionLog.update(entityId, updates)
+}
+
+/**
+ * Adjust a deck's card_count by delta (+1 or -1). Maintains the in-memory cache
+ * and writes to the Deck entity.
+ */
+export const adjustDeckCount = async (deckTitle, delta) => {
+  if (!deckTitle || !deckNameToId.has(deckTitle)) return
+  const current = deckCountCache.get(deckTitle) || 0
+  const next = Math.max(0, current + delta)
+  deckCountCache.set(deckTitle, next)
+  const deckId = deckNameToId.get(deckTitle)
+  await base44.entities.Deck.update(deckId, { card_count: next })
+}
+
+/**
+ * Recalculate and write the exact card_count for a deck based on all Active cards.
+ */
+export const recalculateDeckCount = async (deckTitle, allCards) => {
+  if (!deckTitle || !deckNameToId.has(deckTitle)) return
+  const count = allCards.filter(c => c.deck === deckTitle && c.status === "Active").length
+  deckCountCache.set(deckTitle, count)
+  const deckId = deckNameToId.get(deckTitle)
+  await base44.entities.Deck.update(deckId, { card_count: count })
 }
