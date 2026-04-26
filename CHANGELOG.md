@@ -1,5 +1,80 @@
 # Changelog
 
+## Session 5 (2026-04-26)
+
+### Deferred items implemented
+
+All ten items deferred across Sessions 1-4 are implemented in this session.
+
+#### Item 1: sleepPrefersReviews scheduler wiring
+
+- `isInSleepWindow` (already present in Home.jsx) is now used directly in `StudySelectView`.
+- When `sleepPrefersReviews` is true AND the current time is within the sleep window, `sleepWindowActive` is set in `StudySelectView`. New cards are capped to 0 for the session (`onStartSRS` passes `0` as `capOverride`). The stats panel shows "Bedtime window: reviews only. New cards are paused until tomorrow (Diekelmann and Born, 2010)."
+- The TODO comment in SettingsView pointing at the scheduler is removed.
+
+#### Item 2: auto-run CardState migration on first load
+
+- The startup `useEffect` in the root component now calls `storage.listCardStates()` after `loadAll()`. If any cards have scheduling state (`stability != null` or `reviewCount > 0`) but no matching migrated CardState, `storage.runMigration()` is called automatically.
+- This is idempotent: the migration script checks the `migrated` flag. Migration errors are non-fatal.
+- Added `listCardStates()` export to `storage.js`.
+
+#### Item 3: dark mode contrast audit
+
+- `node scripts/check-contrast.js` run against all 23 token pairs. All pairs pass WCAG 2.2 AA 4.5:1 or 3.0:1 (UI) thresholds. No colour changes required. The `textMut` fix from Session 1 continues to hold.
+
+#### Item 4: remove deprecated scheduling field writes from toEntityData
+
+- `stability`, `difficulty`, `interval`, `nextReview`, `lastReview`, `reviewCount`, `lapses`, and `ratingHistory` removed from `toEntityData` in `storage.js`. These were causing redundant writes on every card save.
+- `toAppCard` backward-compat shim is retained: reading these fields FROM Flashcard for pre-migration cards is still supported.
+
+#### Item 5: polygon mask support in ImageOcclusionEditor
+
+- `ImageOcclusionEditor` now supports two draw modes: `rect` (default, R key) and `poly` (P key).
+- Polygon mode: click to add vertices, double-click or Enter to close and save the polygon. Escape cancels the in-progress polygon.
+- Polygon regions stored as `{ id, label, type: "polygon", points: [{x, y}, ...] }` in fractional coords.
+- Rectangle regions retain `{ id, label, type: "rect", x, y, width, height }`.
+- `OcclusionCardRenderer` handles both types: polygons rendered as SVG `<polygon>` elements.
+- `base44/entities/Flashcard.jsonc` `occlusionRegions` schema updated to include `type`, `points`.
+
+#### Item 6: full parentDeckId hierarchy rendering
+
+- `storage.js` `loadAll()` now builds `deckParentMapMemo` (Map from childTitle to parentTitle) from `parentDeckId` relationships on loaded deck entities. Returns this as `deckParentMap` in the result.
+- `getDeckParentMap()` export added to `storage.js`.
+- `buildDeckTree(deckNames, parentMap)` in `Home.jsx` updated to use `parentMap` when populated. Falls back to the `::` name convention when `parentMap` is empty (pre-migration).
+- `LibraryView` receives `deckParentMap` from root state and passes it to `buildDeckTree`.
+
+#### Item 7: Image Occlusion .apkg geometry import
+
+- `parseOcclusionSvg(svgString)` added to `src/api/anki.js`. Parses SVG `<rect>` elements from Image Occlusion Enhanced field 2, normalises to fractional coords using SVG viewBox.
+- `convertToNidusCards` for `image_occlusion` notes: if regions are parsed, creates one card per region with `cardType: "image_occlusion"`. Falls back to basic card with warning if parsing fails.
+
+#### Item 8: sample deck image occlusion card
+
+- `createSampleDeck` in Home.jsx now adds two image occlusion cards covering the Adenylyl Cyclase and cAMP labels in a self-contained SVG Beta-Blocker Pathway diagram (no external image URL dependency). Uses `createOcclusionCards` so cards are fully compatible with the review machinery.
+
+#### Item 9: FSRS-5 parameter gradient descent
+
+- New file: `src/lib/fsrs-optimizer.js`. Exports `fitParams`, `buildReviewLog`, `DEFAULT_PARAMS`.
+- `fitParams` implements stochastic gradient descent over review history to fit the FSRS-5 forgetting curve exponent (w[17]) from observed recall outcomes. Reference: open-spaced-repetition/fsrs-optimizer.
+- `buildReviewLog` extracts review events from cards' `ratingHistory`.
+- `fitSchedulerParams` in `Home.jsx` now dynamically imports `fsrs-optimizer.js` and runs gradient descent asynchronously after each session that meets the 200-review threshold. The synchronous retention-target adjustment path is retained as a fallback.
+- `fsrs-optimizer.js` is loaded lazily (dynamic import) to avoid bundling gradient descent math at startup.
+
+#### Item 10: SVG icons as proper PWA assets
+
+- `public/icons/icon-192.svg` and `public/icons/icon-512.svg` updated to production-quality design: 512x512 viewBox, rx=80 rounded background, Georgia serif N letterform, three decreasing dots representing spaced repetition cadence.
+- `public/manifest.json` already references SVG icons with `type: "image/svg+xml"` and `purpose: "maskable"`. No changes needed to manifest.
+- Note: PNG icon generation (192x192, 512x512) for iOS home screen and PWA store validators requires a build step using `sharp` or `svgexport`. SVGs are sufficient for Chrome/Android PWA and desktop installs.
+
+### Decisions made under discretion
+
+- `sleepWindowActive` caps new cards to 0 at session start rather than inside `getDueWithCatchup`. This avoids touching the scheduling core and is simpler to reason about; the user sees 0 new cards in the stats panel before starting.
+- `fsrs-optimizer.js` gradient descent is asynchronous and non-blocking. Errors are caught and logged as warnings; they never affect the UI or session flow.
+- Polygon mode in `ImageOcclusionEditor` uses SVG `onClick`/`onDoubleClick` on the SVG element rather than the surrounding div to get accurate fractional coordinates from `getBoundingClientRect`.
+- `parseOcclusionSvg` in `anki.js` uses `DOMParser` (available in all modern browsers). Server-side use would need a DOM shim, but the Anki import runs only in the browser.
+
+---
+
 ## Session 4 (2026-04-26)
 
 ### PWA Architecture: Offline Capabilities
