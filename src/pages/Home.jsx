@@ -5,6 +5,17 @@ import * as excel   from "@/api/excel"
 import * as notion  from "@/api/notion"
 // ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
 import { createEmptyCard, fsrs, generatorParameters, Rating } from "ts-fsrs"
+// dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
+// workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
+import * as offlineStore from "@/lib/offline-store"
+import { isInstallable, triggerInstallPrompt } from "@/lib/pwa"
+
+// Dynamic import so sql.js WASM does not load at app startup -- only when user opens the Anki tab.
+let ankiModule = null
+const getAnkiModule = async () => {
+  if (!ankiModule) ankiModule = await import('../api/anki.js')
+  return ankiModule
+}
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -1016,6 +1027,28 @@ const CSS = `
   }
   button,[role="button"],.rapp-nav-item,.rapp-bnav-item,.rapp-card-item,.nid-deck-card { touch-action:manipulation; }
   button:focus-visible,[tabindex]:focus-visible { outline:2px solid #2D6E52; outline-offset:2px; border-radius:8px; }
+
+  /* Offline indicator and PWA install prompt (Session 4) */
+  .nid-offline-banner {
+    display: flex; align-items: center; gap: 8px;
+    background: #FDF0DC; border-left: 3px solid #B87A30; border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: #5C3A00;
+    line-height: 1.5;
+  }
+  .nid-offline-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #B87A30;
+    flex-shrink: 0; animation: rapp-shimmer 1.5s ease infinite;
+  }
+  .nid-install-prompt {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #EBF0ED; border: 1px solid #CFDBD5; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: #3A5246;
+  }
+  @media (prefers-color-scheme: dark) {
+    .nid-offline-banner { background: #2A1800; color: #F5D4A0; border-color: #D4994A; }
+    .nid-offline-dot { background: #D4994A; }
+    .nid-install-prompt { background: #162018; border-color: #2D4A3C; color: #94C4AF; }
+  }
 
   /* Cloze and image occlusion card styles (Session 3) */
   .nid-cloze-blank {
@@ -2040,7 +2073,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onSt
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null }) {
+function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
@@ -2111,11 +2144,27 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
     const { stability, difficulty, interval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
     const isNew = phase==="new", failed = rating==="again"?1:0
     const newEntry = { date: new Date().toISOString(), rating }
-    const updated = cards.map(c => c.id===card.id
-      ? { ...c, interval, nextReview:addDays(interval), reviewCount:(c.reviewCount||0)+1,
-          stability, difficulty, lastReview:localDateStr(), lapses:rating==="again"?(c.lapses||0)+1:(c.lapses||0),
-          ratingHistory: [...(c.ratingHistory||[]), newEntry].slice(-50) }
-      : c)
+    const newReviewCount = (card.reviewCount||0)+1
+    const newLapses = rating==="again"?(card.lapses||0)+1:(card.lapses||0)
+    const newRatingHistory = [...(card.ratingHistory||[]), newEntry].slice(-50)
+    const newState = {
+      stability, difficulty, interval,
+      nextReview: addDays(interval),
+      lastReview: localDateStr(),
+      reviewCount: newReviewCount,
+      lapses: newLapses,
+      ratingHistory: newRatingHistory,
+    }
+    const updated = cards.map(c => c.id===card.id ? { ...c, ...newState } : c)
+    // If offline, queue the rating for later sync; still update local React state normally.
+    if (!navigator.onLine) {
+      offlineStore.queueRating({
+        cardClientId: card.id,
+        rating,
+        timestamp: new Date().toISOString(),
+        newState,
+      }).catch(() => {})
+    }
     await onUpdateCards(updated)
     ratedCardIds.add(card.id)
     setLastAction({ cardId:card.id, prevInterval:card.interval, prevNextReview:card.nextReview,
@@ -2171,6 +2220,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
       } catch (_) { /* fitting is best-effort; never block session close */ }
     }
 
+    if (onSessionCompleted) onSessionCompleted()
     onDone()
   }
 
@@ -2817,7 +2867,7 @@ function StatsView({ log, cards, decks, settings }) {
 }
 
 // ─── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onRefitParams, schedulerParams }) {
+function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onImportAnki, onRefitParams, schedulerParams }) {
   const {
     newCardCap=15, reviewCap=100, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
     sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true, sleepPrefersReviews=true,
@@ -3133,14 +3183,14 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
       )}
 
       {activeTab === "data" && (
-        <ImportExportPanel cards={cards} decks={decks} onExport={onExport} onImportFile={onImport} onImportCards={onImportCards} />
+        <ImportExportPanel cards={cards} decks={decks} onExport={onExport} onImportFile={onImport} onImportCards={onImportCards} onImportAnki={onImportAnki} />
       )}
     </div>
   )
 }
 
 // ─── Import / Export Panel ────────────────────────────────────────────────────
-function ImportExportPanel({ cards, onImportFile, onImportCards, onExport }) {
+function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImportAnki }) {
   const [tab,          setTab]         = useState("notion")
   const [notionToken,  setNotionToken] = useState(()=>notionGet().token||"")
   const [notionDb,     setNotionDb]    = useState(()=>notionGet().db||"")
@@ -3149,6 +3199,10 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport }) {
   const [notionPct,    setNotionPct]   = useState(0)
   const [csvResult,    setCsvResult]   = useState(null)
   const [importResult, setImportResult]= useState(null)
+  // Anki import state
+  const [apkgPreview,    setApkgPreview]    = useState(null)
+  const [apkgError,      setApkgError]      = useState(null)
+  const [apkgImporting,  setApkgImporting]  = useState(false)
   const csvRef    = useRef(null)
   const backupRef = useRef(null)
 
@@ -3190,6 +3244,34 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport }) {
       .catch(e => setCsvResult("✗ "+e.message))
   }
 
+  const handleApkgSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setApkgError(null)
+    try {
+      const { parseApkg, convertToNidusCards } = await getAnkiModule()
+      const parsed = await parseApkg(file)
+      const { cards: converted, warnings } = convertToNidusCards(parsed.notes, genId)
+      setApkgPreview({ ...parsed, convertedCards: converted, warnings })
+    } catch (err) {
+      setApkgError(`Parse failed: ${err.message}`)
+    }
+  }
+
+  const handleApkgImport = async () => {
+    if (!apkgPreview) return
+    setApkgImporting(true)
+    try {
+      await onImportAnki(apkgPreview.convertedCards)
+      setApkgPreview(null)
+      setApkgError(null)
+    } catch (err) {
+      setApkgError(`Import failed: ${err.message}`)
+    } finally {
+      setApkgImporting(false)
+    }
+  }
+
   const TAB_BTN = (id, label) => (
     <button onClick={()=>setTab(id)}
       style={{ padding:"7px 14px", borderRadius:8, border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:500,
@@ -3202,10 +3284,11 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport }) {
   return (
     <div>
       <div className="rapp-sec-title">Import &amp; Export</div>
-      <div style={{ display:"flex", gap:4, background:C.bg, borderRadius:10, padding:3, marginBottom:20 }}>
+      <div style={{ display:"flex", gap:4, background:C.bg, borderRadius:10, padding:3, marginBottom:20, flexWrap:"wrap" }}>
         {TAB_BTN("notion","Notion")}
         {TAB_BTN("excel", "Excel")}
         {TAB_BTN("backup","JSON backup")}
+        {TAB_BTN("anki",  "Anki")}
       </div>
 
       {tab==="notion" && (
@@ -3265,6 +3348,53 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport }) {
               color:importResult.ok?C.good:C.again,
               border:`1px solid ${importResult.ok?"#90D8B0":"#E8B0A0"}` }}>
               {importResult.ok?`✓ Imported ${importResult.count} cards`:`✗ ${importResult.msg}`}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="anki" && (
+        <div className="rapp-fadein">
+          {!apkgPreview ? (
+            <div className="rapp-card">
+              <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>Import from Anki</div>
+              <p style={{ fontSize:13, color:C.textSec, lineHeight:1.65, marginBottom:16 }}>
+                Upload an Anki .apkg file to import decks, notes, and card content.
+                Anki scheduling state (SM-2 intervals) is intentionally discarded:
+                all imported cards start fresh with FSRS initial values, since SM-2 and
+                FSRS parameters are not interchangeable. Tags and deck hierarchy are preserved.
+              </p>
+              <input type="file" accept=".apkg" onChange={handleApkgSelect} style={{ marginBottom:12, fontSize:13, color:C.text, fontFamily:"inherit", cursor:"pointer" }} />
+              {apkgError && <p style={{ fontSize:12, color:C.again, marginTop:8 }}>{apkgError}</p>}
+            </div>
+          ) : (
+            <div className="rapp-card">
+              <div style={{ fontSize:14, fontWeight:600, marginBottom:12 }}>Import preview</div>
+              <div style={{ fontSize:13, lineHeight:1.75, color:C.textSec }}>
+                <p>Decks: <strong>{apkgPreview.summary.decks}</strong></p>
+                <p>Basic cards: <strong>{apkgPreview.summary.basic}</strong></p>
+                <p>Cloze cards: <strong>{apkgPreview.summary.cloze}</strong></p>
+                <p>Image occlusion cards: <strong>{apkgPreview.summary.imageOcclusion}</strong> (imported as basic with warning)</p>
+                <p>Unknown note types: <strong>{apkgPreview.summary.unknown}</strong></p>
+              </div>
+              {apkgPreview.warnings?.length > 0 && (
+                <div style={{ marginTop:8, padding:"8px 12px", background:C.warningBg, borderRadius:8 }}>
+                  <strong style={{ fontSize:12, color:C.warningText }}>Warnings ({apkgPreview.warnings.length}):</strong>
+                  {apkgPreview.warnings.slice(0,5).map((w,i)=>(
+                    <p key={i} style={{ fontSize:11, color:C.warningText, marginTop:4 }}>{w}</p>
+                  ))}
+                  {apkgPreview.warnings.length > 5 && (
+                    <p style={{ fontSize:11, color:C.warningText, marginTop:4 }}>... and {apkgPreview.warnings.length - 5} more</p>
+                  )}
+                </div>
+              )}
+              {apkgError && <p style={{ fontSize:12, color:C.again, marginTop:8 }}>{apkgError}</p>}
+              <div style={{ display:"flex", gap:8, marginTop:16 }}>
+                <button className="rapp-btn rapp-btn-ghost" onClick={()=>{ setApkgPreview(null); setApkgError(null) }}>Cancel</button>
+                <button className="rapp-btn rapp-btn-primary" onClick={handleApkgImport} disabled={apkgImporting}>
+                  {apkgImporting ? "Importing..." : `Import ${apkgPreview.summary.totalNotes} notes`}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -3330,6 +3460,8 @@ export default function Home() {
         setCards(rc); setLog(rl)
         setDecks([...new Set(deckNames)])
         setReady(true)
+        // Mirror loaded data to Dexie for offline access.
+        offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})
       })
       .catch(() => setReady(true))
   }, [])
@@ -3494,6 +3626,44 @@ export default function Home() {
     } catch(err) { setSyncStatus("error"); onResult({ ok:false, msg:err.message }) }
   }
 
+  // handleApkgImportCards: called from ImportExportPanel after Anki import is confirmed.
+  // Merges newly imported cards with existing cards and syncs to Base44.
+  const handleApkgImportCards = async (newCards) => {
+    const merged = [...cards, ...newCards]
+    setSyncStatus("saving")
+    setCards(merged)
+    pendingCards.current = merged
+    await storage.syncCards(merged)
+    markSaved()
+    setSyncStatus(`Imported ${newCards.length} card${newCards.length !== 1 ? 's' : ''} from Anki`)
+  }
+
+  // ── Offline / PWA state ───────────────────────────────────────────────────────
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine)
+  const [installPromptDismissed, setInstallPromptDismissed] = useState(
+    () => localStorage.getItem('nidus-install-prompt-dismissed') === 'true'
+  )
+  const [sessionsCompleted, setSessionsCompleted] = useState(0)
+
+  useEffect(() => {
+    const handleOnline  = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    window.addEventListener('online',  handleOnline)
+    window.addEventListener('offline', handleOffline)
+    // Drain any pending offline ratings on reconnect.
+    const cleanupReconnect = offlineStore.onReconnect(async () => {
+      try {
+        const { flushed } = await offlineStore.drainQueue(storage.syncCardState)
+        if (flushed > 0) setSyncStatus(`Synced ${flushed} offline rating${flushed !== 1 ? 's' : ''}`)
+      } catch (_) {}
+    })
+    return () => {
+      window.removeEventListener('online',  handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      cleanupReconnect()
+    }
+  }, [])
+
   const [interleavedCards, setInterleavedCards] = useState(null)
   const startSRS  = (deck, capOverride=null, focused=false) => { setStudyDeckName(deck==="all"?null:deck); setSessionCapOverride(capOverride); setSessionFocused(focused); setInterleavedCards(null); setView("session") }
   const startInterleaved = (deckIds) => {
@@ -3582,6 +3752,30 @@ export default function Home() {
         )}
 
         <div className={`rapp-main${inSession?" rapp-main-full":""}`}>
+          {/* Offline indicator: shown whenever navigator.onLine is false */}
+          {isOffline && !inSession && (
+            <div className="nid-offline-banner rapp-fadein" style={{ maxWidth:520 }}>
+              <div className="nid-offline-dot" />
+              <span>Offline: reviews will sync when reconnected.</span>
+            </div>
+          )}
+          {/* PWA install prompt: shown after first completed session, once per device */}
+          {!installPromptDismissed && sessionsCompleted >= 1 && isInstallable() && !inSession && (
+            <div className="nid-install-prompt rapp-fadein" style={{ maxWidth:520 }}>
+              <span style={{ flex:1, lineHeight:1.55 }}>Add Nidus Recall to your home screen for quick daily access.</span>
+              <button className="rapp-btn rapp-btn-primary" style={{ padding:"7px 14px", fontSize:13, flexShrink:0 }}
+                onClick={async () => {
+                  await triggerInstallPrompt()
+                  setInstallPromptDismissed(true)
+                  localStorage.setItem('nidus-install-prompt-dismissed', 'true')
+                }}>Add</button>
+              <button className="rapp-btn rapp-btn-ghost" style={{ padding:"7px 12px", fontSize:13, flexShrink:0 }}
+                onClick={() => {
+                  setInstallPromptDismissed(true)
+                  localStorage.setItem('nidus-install-prompt-dismissed', 'true')
+                }}>Not now</button>
+            </div>
+          )}
           {incompleteSession && !inSession && (
             <div style={{ background:C.warningBg, border:`1px solid ${C.warning}40`, borderRadius:12, padding:"10px 14px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, maxWidth:520 }}>
               <span style={{ fontSize:13, color:C.warningText, lineHeight:1.55 }}>
@@ -3604,10 +3798,10 @@ export default function Home() {
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} />}
-          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} />}
+          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={()=>setSessionsCompleted(n=>n+1)} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
-          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} />}
+          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} onImportAnki={handleApkgImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} />}
         </div>
 
         {!inSession && (
