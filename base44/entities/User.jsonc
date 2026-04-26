@@ -54,6 +54,11 @@
       "type": "boolean",
       "default": true,
       "description": "Show focus declaration checkbox at session start."
+    },
+    "first_study_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set to true after the user completes their first ever card review."
     }
   }
 }
