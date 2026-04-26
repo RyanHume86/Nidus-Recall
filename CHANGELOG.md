@@ -1,5 +1,80 @@
 # Changelog
 
+## Session 4 (2026-04-26)
+
+### PWA Architecture: Offline Capabilities
+
+**What works offline (after first visit):**
+- App shell (HTML, JS, CSS, fonts) loads from service worker cache with no network required.
+- Review sessions can be completed offline: ratings are written to Dexie (IndexedDB) immediately and queued in `pendingActions` for later sync.
+- Local CardState in Dexie acts as the source of truth for the review UI during offline sessions.
+
+**What does not work offline:**
+- Base44 entity reads and writes require network connectivity. There is no mechanism to issue Base44 API calls without a network connection. This is a hard architectural constraint of the Base44 platform.
+- New card creation, deck management, and settings sync all require an active connection.
+
+**Offline sync guarantees:**
+- On reconnect, the `drainQueue()` function reads all queued `pendingActions` from Dexie and flushes them to Base44 via `storage.syncCardState`.
+- Conflict resolution: latest timestamp wins per cardClientId. If a card is rated on two devices while both are offline, the rating with the later ISO timestamp is used when both sync. This rule is documented in the architecture comment at the top of `src/lib/offline-store.js`.
+
+### Changed
+
+- **Phase 4.1a (dependencies):** Added `dexie` (^4.0.0, MIT, dfahlander/Dexie.js), `workbox-window` (^7.0.0, Apache-2.0, GoogleChrome/workbox), `fflate` (^0.8.0, MIT, 101arrowz/fflate), `sql.js` (^1.12.0, MIT, sql-js/sql.js), and `vite-plugin-pwa` (^0.20.0, MIT, vite-pwa/vite-plugin-pwa) to package.json. Added `postinstall` script that copies `sql-wasm.wasm` from node_modules to `public/` automatically after `npm install`.
+
+- **Phase 4.1b (offline-store.js):** Created `src/lib/offline-store.js`. Exports: `seedFromNetwork` (mirrors Base44 data to Dexie on load), `queueRating` (stores a rating in `pendingActions` and optimistically updates `cardStates`), `drainQueue` (flushes pending ratings to Base44 on reconnect with conflict resolution), `onReconnect` (registers an `online` event listener), `getQueueLength`, and `isOnline`. Dexie schema version 1 with tables: `cards`, `cardStates`, `decks`, `sessionLog`, `pendingActions`, `meta`.
+
+- **Phase 4.1c (pwa.js):** Created `src/lib/pwa.js`. Captures the `beforeinstallprompt` event and exports `deferredInstallPrompt`, `triggerInstallPrompt()`, and `isInstallable()`. The prompt is shown after the user completes at least one review session (not on first load) and is suppressed permanently once dismissed via `localStorage`.
+
+- **Phase 4.1c (Home.jsx offline wiring):** Added `isOffline` state (initialised from `navigator.onLine`). Added online/offline event listeners in a `useEffect` on mount. After `loadAll()` succeeds, `seedFromNetwork` is called to mirror data to Dexie. On reconnect, `drainQueue` flushes any queued ratings and updates `syncStatus`. In `handleRate` (SessionView), if `!navigator.onLine`, the rating is also passed to `offlineStore.queueRating` with the computed `newState`. The offline indicator (amber dot banner) is shown in the UI whenever `isOffline` is true. The PWA install prompt is shown after the first completed session if the browser has a deferred `beforeinstallprompt` and the user has not previously dismissed it.
+
+- **Phase 4.1d (vite.config.js):** Added `VitePWA` plugin. Configures `autoUpdate` service worker registration, Workbox glob patterns for static assets, and a `StaleWhileRevalidate` runtime cache for Base44 API GET requests (24-hour expiry). Added `assetsInclude: ['**/*.wasm']` so Vite handles sql.js WASM correctly. Existing `base44` and `react` plugins are unchanged.
+
+- **Phase 4.1e (icons):** Created `public/icons/icon-192.svg` and `public/icons/icon-512.svg` as branded SVGs (green rounded rectangle, "N" glyph in cream). Note: production-quality PNG icons should be generated from these SVGs before app store submission or PWA store listing. PNG icons are required for some PWA manifest validators and iOS home screen display. The postinstall step does not handle PNG generation.
+
+- **Phase 4.1f (manifest.json):** Updated `public/manifest.json`: description updated to "Spaced repetition for postgraduate learners.", `background_color` updated to `#F5F0EB`, added `icon-192.svg` and `icon-512.svg` entries alongside the existing `icon.svg` entry.
+
+- **Phase 4.2a (anki.js):** Created `src/api/anki.js`. Exports `parseApkg(fileOrBuffer)` and `convertToNidusCards(parsedNotes, genId)`. `parseApkg` uses `fflate.unzipSync` to extract the .apkg ZIP, then `sql.js` to open and query the SQLite `collection.anki2` database. Extracts decks, models (note types), notes, and card-to-deck assignments. Categorises notes as `basic`, `cloze`, or `image_occlusion` based on model type and name. `convertToNidusCards` maps each note to one or more Nidus Recall card objects. Cloze notes generate one card per cloze index using the same regex as `parseCloze` in Home.jsx. Image occlusion notes are imported as basic cards with a warning. Scheduling state (SM-2 intervals, ease factors) is intentionally discarded: see module comment for rationale. sql.js WASM is loaded lazily via dynamic import to avoid blocking app startup.
+
+- **Phase 4.2b (Anki import tab in Home.jsx):** Added an "Anki" tab to `ImportExportPanel`. State 1 (file picker): describes the import behaviour including the deliberate scheduling state discard. State 2 (preview): shows deck count, basic/cloze/image occlusion/unknown note counts, and any parse warnings (first 5 shown, remainder counted). Import button is disabled during the async import. `handleApkgSelect` dynamically imports `src/api/anki.js` on first use. `handleApkgImport` merges converted cards with existing cards and calls `handleApkgImportCards` in the root component, which syncs to Base44.
+
+- **Phase 4.2c (sql.js WASM):** `postinstall` script in `package.json` copies `node_modules/sql.js/dist/sql-wasm.wasm` to `public/sql-wasm.wasm`. `sql.js` `locateFile` callback in `anki.js` resolves to `/${file}` so the WASM is fetched from the public root at runtime.
+
+### Deferred
+
+- **PNG icon generation:** SVG icons are provided as placeholders. PNG icons (192x192 and 512x512) should be generated from the SVGs before production deployment or app store submission. Some PWA validators and iOS home screen rendering require PNG format.
+
+- **Full Image Occlusion note import (geometry parsing):** Image Occlusion Enhanced notes are imported as basic cards with a warning. Parsing the occlusion geometry JSON from the Anki note fields and mapping it to Nidus Recall's fractional-coordinate `occlusionRegions` format is non-trivial and deferred to a future session.
+
+- **Polygon mask support (carried from Session 3):** `ImageOcclusionEditor` supports rectangles only. Polygon support remains a documented TODO.
+
+- **parentDeckId hierarchy rendering (carried from Session 3):** Visual `::` indentation fallback is in place. Full hierarchy from `parentDeckId` requires the Session 3 migration to have run.
+
+- **sleepPrefersReviews scheduler wiring (carried from Sessions 1-3):** Still UI-only.
+
+- **Full FSRS-5 gradient descent optimisation (carried from Session 2):** Still retention-target-only.
+
+### Decisions made under discretion
+
+- **Library choices:** `fflate` chosen over JSZip for .apkg unzipping: smaller bundle, actively maintained, pure JS (no WASM needed for unzip, which keeps the unzip path synchronous and simple). `sql.js` chosen over `@jlongster/better-sqlite3` and similar because it runs in the browser without a server, is MIT licensed, and is the most widely used browser SQLite library.
+
+- **Anki scheduling state discard:** SM-2 and FSRS parameters have different mathematical bases. Silently converting SM-2 ease factors to FSRS stability would produce intervals that are either too short (causing over-review) or too long (causing forgotten cards). Starting all imported cards fresh is the safer choice and is explicitly disclosed to the user in the import UI.
+
+- **sql-wasm.wasm postinstall copy approach:** Copying the WASM to `public/` via a `postinstall` script is the simplest approach that works with both `vite dev` and `vite build`. The alternative (a custom Vite plugin that copies the file on each build) adds complexity without benefit since the WASM rarely changes between sql.js versions.
+
+- **Install prompt shown after first session:** Showing the prompt immediately on app load is poor UX (user has not yet decided if they like the app). Waiting for at least one completed session means the user has experienced the core loop before being asked to install.
+
+- **Offline indicator shown immediately:** The offline dot banner appears as soon as `navigator.onLine` becomes false. This gives immediate feedback that the app is in offline mode and that ratings will be queued, which is more reassuring than silent operation.
+
+### Follow-up items for Session 5
+
+- Generate PNG icons from SVGs (192x192 and 512x512) and update manifest and vite.config.js.
+- Implement full Image Occlusion geometry import from .apkg files.
+- Wire `sleepPrefersReviews` into `getDueWithCatchup`.
+- Full FSRS-5 gradient descent optimisation from review log.
+- Dark mode contrast audit (carried from Session 1).
+
+---
+
 ## Session 1 (2026-04-26)
 
 ### Changed
