@@ -30,6 +30,48 @@
       "default": "Factual",
       "description": "Card content category"
     },
+    "cardType": {
+      "type": "string",
+      "enum": ["basic", "cloze", "image_occlusion"],
+      "default": "basic",
+      "description": "Card rendering type. basic = front/back; cloze = deletion cards; image_occlusion = masked image cards."
+    },
+    "clozeText": {
+      "type": "string",
+      "nullable": true,
+      "description": "Source text for cloze cards using Anki-compatible {{c1::answer}} or {{c1::answer::hint}} syntax."
+    },
+    "clozeIndex": {
+      "type": "number",
+      "nullable": true,
+      "description": "Which cloze index this Flashcard represents (1-based). Null for basic cards."
+    },
+    "imageUrl": {
+      "type": "string",
+      "nullable": true,
+      "description": "URL or Base44 file reference for the source image (image occlusion cards)."
+    },
+    "occlusionRegions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "width": { "type": "number" },
+          "height": { "type": "number" }
+        }
+      },
+      "nullable": true,
+      "description": "Rectangular mask regions for image occlusion cards. Coordinates are fractions of image dimensions (0.0 to 1.0)."
+    },
+    "occlusionRegionId": {
+      "type": "string",
+      "nullable": true,
+      "description": "For generated image occlusion cards: which region this card tests. The front shows all other regions unmasked."
+    },
     "elaboration": {
       "type": "string",
       "description": "Third-side elaboration shown during review"
