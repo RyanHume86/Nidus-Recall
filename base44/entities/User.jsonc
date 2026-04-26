@@ -59,6 +59,11 @@
       "type": "boolean",
       "default": false,
       "description": "Set to true after the user completes their first ever card review."
+    },
+    "sleep_prefers_reviews": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, due reviews are prioritised over new cards in the pre-bedtime window."
     }
   }
 }
