@@ -859,7 +859,15 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
     onClose()
   }
   const handleDelete = async () => {
-    await onUpdateCards(cards.filter(c => c.id!==card.id)); onClose()
+    const deletedId = card.id
+    const updated = cards
+      .filter(c => c.id !== deletedId)
+      .map(c => ({
+        ...c,
+        connects_to: (c.connects_to || []).filter(id => id !== deletedId),
+        prerequisite_card_id: c.prerequisite_card_id === deletedId ? null : c.prerequisite_card_id,
+      }))
+    await onUpdateCards(updated); onClose()
   }
   const handleArchive = async () => {
     const next = card.status==="Archived" ? "Active" : "Archived"
