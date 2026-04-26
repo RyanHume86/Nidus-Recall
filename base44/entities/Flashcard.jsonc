@@ -58,14 +58,26 @@
         "properties": {
           "id": { "type": "string" },
           "label": { "type": "string" },
+          "type": { "type": "string", "enum": ["rect", "polygon"], "default": "rect" },
           "x": { "type": "number" },
           "y": { "type": "number" },
           "width": { "type": "number" },
-          "height": { "type": "number" }
+          "height": { "type": "number" },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            },
+            "description": "Polygon vertices as fractional coordinates (0.0 to 1.0). Only present when type is polygon."
+          }
         }
       },
       "nullable": true,
-      "description": "Rectangular mask regions for image occlusion cards. Coordinates are fractions of image dimensions (0.0 to 1.0)."
+      "description": "Mask regions for image occlusion cards. Each region is either rect (x,y,width,height) or polygon (points array). Coordinates are fractions of image dimensions (0.0 to 1.0)."
     },
     "occlusionRegionId": {
       "type": "string",
