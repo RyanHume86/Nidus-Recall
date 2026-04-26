@@ -156,11 +156,31 @@ const getDue   = cs => cs.filter(c => isActive(c) && c.nextReview && c.nextRevie
   return (b.stakes_flag ? 1 : 0) - (a.stakes_flag ? 1 : 0)
 })
 const getNew   = cs => cs.filter(c => isActive(c) && !c.nextReview)
-const getDueWithCatchup = (cs, cap, days) => {
-  const all = getDue(cs)
+const getDueWithCatchup = (cs, cap, days, allCards = null) => {
+  const lookup = allCards || cs
+  let all = getDue(cs)
+  // Filter out cards whose prerequisite hasn't reached stability >= 7
+  all = all.filter(card => {
+    if (!card.prerequisite_card_id) return true
+    const prereq = lookup.find(c => c.id === card.prerequisite_card_id)
+    if (!prereq) return true  // prerequisite not found — allow card through
+    return prereq.stability != null && prereq.stability >= 7
+  })
   if (!all.length) return []
   if (all.length <= cap) return all
   return all.slice(0, Math.min(cap, Math.ceil(all.length/days)))
+}
+
+// Build a reverse index: for each card id, which cards point TO it via connects_to
+const buildReverseIndex = (cards) => {
+  const index = {}
+  for (const card of cards) {
+    for (const targetId of (card.connects_to || [])) {
+      if (!index[targetId]) index[targetId] = []
+      if (!index[targetId].includes(card.id)) index[targetId].push(card.id)
+    }
+  }
+  return index
 }
 
 // Compute recall accuracy (calibration) score for a set of cards.
@@ -691,6 +711,7 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
     <div>
       {selected.map(c => (
         <div key={c.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6, padding:"7px 10px", background:C.elevated, borderRadius:8 }}>
+          {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0, flexShrink:0 }}>{c.contentType}</span>}
           <span style={{ flex:1, fontSize:13, color:C.text, lineHeight:1.5 }}>{c.front}</span>
           <button onClick={()=>remove(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textMut, fontSize:16, lineHeight:1, padding:0, fontFamily:"inherit" }}>×</button>
         </div>
@@ -703,10 +724,11 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
             <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, background:C.elevated, border:`1px solid ${C.border}`, borderRadius:8, maxHeight:200, overflowY:"auto", zIndex:20, boxShadow:"0 4px 12px rgba(28,40,32,0.1)" }}>
               {results.map(c => (
                 <div key={c.id} onClick={()=>add(c.id)}
-                  style={{ padding:"9px 12px", cursor:"pointer", fontSize:13, color:C.text, lineHeight:1.5, borderBottom:`1px solid ${C.border}` }}
+                  style={{ padding:"9px 12px", cursor:"pointer", fontSize:13, color:C.text, lineHeight:1.5, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}
                   onMouseEnter={e=>e.currentTarget.style.background=C.surface}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  {c.front}
+                  {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0, flexShrink:0 }}>{c.contentType}</span>}
+                  <span>{c.front}</span>
                 </div>
               ))}
             </div>
@@ -717,8 +739,77 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
   )
 }
 
+
+// ─── Onboarding View ──────────────────────────────────────────────────────────
+function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const [howItWorksStep, setHowItWorksStep] = useState(0)
+
+  const HOW_STEPS = [
+    {
+      title: "Create a deck",
+      body: "Decks organise your cards by subject. You can have as many as you like — Anatomy, Pharmacology, Clinical Reasoning, whatever fits your study."
+    },
+    {
+      title: "Add cards",
+      body: "Each card has a question on the front and an answer on the back. Add elaboration notes, memory anchors, and links between related cards."
+    },
+    {
+      title: "Let spaced repetition do the work",
+      body: "After each review you rate how well you remembered. The FSRS algorithm schedules the next review — harder cards come back sooner, easy ones wait longer. Study what needs it, when it needs it."
+    },
+  ]
+
+  return (
+    <div className="rapp-wrap rapp-fadein" style={{ textAlign:"center", paddingTop:60 }}>
+      <div style={{ fontSize:22, fontWeight:700, marginBottom:8 }}>Welcome to Nidus</div>
+      <div style={{ fontSize:14, color:C.textSec, marginBottom:32, lineHeight:1.65 }}>
+        Build your own flashcard decks. Study using active recall.<br/>Let spaced repetition handle the scheduling.
+      </div>
+      <button className="rapp-btn rapp-btn-primary" onClick={onCreateDeck} style={{ width:"100%", marginBottom:12 }}>
+        {Ico.plus(14)} Create your first deck
+      </button>
+      <button className="rapp-btn rapp-btn-ghost" onClick={()=>setShowHowItWorks(true)} style={{ width:"100%", marginBottom:24 }}>
+        See how it works
+      </button>
+      <div style={{ fontSize:13, color:C.accent, cursor:"pointer" }} onClick={onCreateSampleDeck}>
+        Or start with a sample deck to see how it works →
+      </div>
+
+      {showHowItWorks && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
+          onClick={e=>{ if(e.target===e.currentTarget) setShowHowItWorks(false) }}>
+          <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:440, padding:"28px 24px 32px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}>
+            <div className="rapp-row rapp-sb rapp-mb20">
+              <span style={{ fontSize:15, fontWeight:600, color:C.text }}>How it works</span>
+              <button onClick={()=>setShowHowItWorks(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
+            </div>
+            <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+              {HOW_STEPS.map((_,i) => (
+                <div key={i} style={{ flex:1, height:3, borderRadius:3, background:i<=howItWorksStep?C.accent:C.elevated, cursor:"pointer" }} onClick={()=>setHowItWorksStep(i)} />
+              ))}
+            </div>
+            <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:10 }}>{HOW_STEPS[howItWorksStep].title}</div>
+            <div style={{ fontSize:14, color:C.textSec, lineHeight:1.7, marginBottom:24 }}>{HOW_STEPS[howItWorksStep].body}</div>
+            <div style={{ display:"flex", gap:8 }}>
+              {howItWorksStep > 0 && (
+                <button className="rapp-btn rapp-btn-ghost" style={{ flex:1 }} onClick={()=>setHowItWorksStep(s=>s-1)}>Back</button>
+              )}
+              {howItWorksStep < HOW_STEPS.length - 1 ? (
+                <button className="rapp-btn rapp-btn-primary" style={{ flex:2 }} onClick={()=>setHowItWorksStep(s=>s+1)}>Next →</button>
+              ) : (
+                <button className="rapp-btn rapp-btn-primary" style={{ flex:2 }} onClick={()=>{ setShowHowItWorks(false); onCreateDeck() }}>Create my first deck →</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Library View ─────────────────────────────────────────────────────────────
-function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings }) {
+function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck }) {
   const [search,         setSearch]         = useState("")
   const [showArchived,   setShowArchived]   = useState(false)
   const [showCreateDeck, setShowCreateDeck] = useState(false)
@@ -802,17 +893,10 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
       )}
 
       {decks.length === 0 ? (
-        <div style={{ textAlign:"center", padding:"60px 24px" }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>📚</div>
-          <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:8 }}>Create your first Deck</div>
-          <div style={{ fontSize:14, color:C.textMut, lineHeight:1.75, marginBottom:24 }}>
-            Decks organise your flashcards. Create one to start adding cards.
-          </div>
-          <button className="rapp-btn rapp-btn-primary"
-            onClick={() => { setShowCreateDeck(true); setTimeout(()=>newDeckRef.current?.focus(),50) }}>
-            {Ico.plus(14)} Create a Deck
-          </button>
-        </div>
+        <OnboardingView
+          onCreateDeck={() => { setShowCreateDeck(true); setTimeout(()=>newDeckRef.current?.focus(),50) }}
+          onCreateSampleDeck={onCreateSampleDeck}
+        />
       ) : visible.length === 0 && search ? (
         <div className="rapp-empty">No decks match "{search}"</div>
       ) : (
@@ -867,10 +951,13 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
         connects_to: (c.connects_to || []).filter(id => id !== deletedId),
         prerequisite_card_id: c.prerequisite_card_id === deletedId ? null : c.prerequisite_card_id,
       }))
+    if (card.status === "Active") storage.adjustDeckCount(card.deck, -1).catch(()=>{})
     await onUpdateCards(updated); onClose()
   }
   const handleArchive = async () => {
     const next = card.status==="Archived" ? "Active" : "Archived"
+    if (next === "Archived") storage.adjustDeckCount(card.deck, -1).catch(()=>{})
+    else storage.adjustDeckCount(card.deck, 1).catch(()=>{})
     await onUpdateCards(cards.map(c => c.id===card.id ? { ...c, status:next } : c)); onClose()
   }
 
@@ -880,7 +967,10 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
       <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
         className="rapp-modal-inner">
         <div className="rapp-row rapp-sb rapp-mb20">
-          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit card</span>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit card</span>
+            {card.contentType && <span className="nid-ct-chip" style={{ marginBottom:0 }}>{card.contentType}</span>}
+          </div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
         </div>
 
@@ -1017,6 +1107,10 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
   const [expanded, setExpanded] = useState(null)
   const [saved, setSaved]       = useState(false)
   const [showDeckMenu, setShowDeckMenu] = useState(false)
+  const [quickAdd, setQuickAdd] = useState(false)
+  const [qaFront, setQaFront] = useState("")
+  const [qaBack, setQaBack] = useState("")
+  const qaFrontRef = useRef(null)
   const frontRef = useRef(null)
 
   const leechThreshold = (settings||{}).leechThreshold || 5
@@ -1041,10 +1135,35 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
       interval:1, reviewCount:0, lapses:0, createdAt:new Date().toISOString(),
     }
     await onUpdateCards([...cards, card])
+    storage.adjustDeckCount(deckName, 1).catch(()=>{})
     setForm({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
     setShowNote(false); setShowAnchor(false); setShowConnects(false); setShowPrereq(false)
     setSaved(true); setTimeout(()=>setSaved(false), 1200)
-    frontRef.current?.focus()
+  }
+
+  const createQuickCard = () => ({
+    id:genId(), front:qaFront.trim(), back:qaBack.trim(), deck:deckName,
+    contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0,
+    ratingHistory:[], connects_to:[], stability:null, difficulty:null,
+    nextReview:null, lastReview:null, elaboration:"", anchor:null,
+    source:null, stakes_flag:false, prerequisite_card_id:null
+  })
+
+  const saveQuickAdd = async () => {
+    if (!qaFront.trim() || !qaBack.trim()) return
+    const card = createQuickCard()
+    await onUpdateCards([...cards, card])
+    storage.adjustDeckCount(deckName, 1).catch(()=>{})
+    setQaFront(""); setQaBack(""); setQuickAdd(false)
+  }
+
+  const saveAndAddAnother = async () => {
+    if (!qaFront.trim() || !qaBack.trim()) return
+    const card = createQuickCard()
+    await onUpdateCards([...cards, card])
+    storage.adjustDeckCount(deckName, 1).catch(()=>{})
+    setQaFront(""); setQaBack("")
+    setTimeout(() => qaFrontRef.current?.focus(), 50)
   }
 
   const handleArchiveCard = async (id, e) => {
@@ -1069,13 +1188,18 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
             <div className="rapp-pg-sub">{activeCount} card{activeCount!==1?"s":""}</div>
           </div>
         </div>
-        <div style={{ position:"relative" }}>
+        <div style={{ display:"flex", gap:8, position:"relative" }}>
+          <button className="rapp-btn rapp-btn-ghost" style={{ padding:"7px 12px", fontSize:13 }}
+            onClick={()=>{ setQuickAdd(q=>!q); setTimeout(()=>qaFrontRef.current?.focus(),50) }}>
+            ⚡ Quick add
+          </button>
           <button className="rapp-btn rapp-btn-ghost" style={{ padding:"7px 12px", fontSize:13 }}
             onClick={()=>setShowDeckMenu(o=>!o)}>⋯</button>
           {showDeckMenu && (
             <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", background:C.elevated, border:`1px solid ${C.border}`, borderRadius:12, padding:6, minWidth:160, zIndex:10, boxShadow:"0 4px 16px rgba(28,40,32,0.12)" }}>
               {[
                 { label:"Archive deck", action:()=>{ onArchiveDeck(deckName); setShowDeckMenu(false) } },
+                { label:"Sync card count", action:()=>{ storage.recalculateDeckCount(deckName, cards).catch(()=>{}); setShowDeckMenu(false) } },
               ].map((item,i) => (
                 <div key={i} onClick={item.action}
                   style={{ padding:"9px 14px", fontSize:13, cursor:"pointer", borderRadius:8, color:C.textSec, transition:"background 0.1s" }}
@@ -1088,6 +1212,23 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
           )}
         </div>
       </div>
+
+
+      {quickAdd && (
+        <div className="rapp-card rapp-mb16 rapp-fadein">
+          <div style={{ fontSize:14, fontWeight:600, marginBottom:12 }}>Quick add</div>
+          <input ref={qaFrontRef} className="rapp-input" placeholder="Front (question)" value={qaFront}
+            onChange={e=>setQaFront(e.target.value)} style={{ marginBottom:8 }} />
+          <textarea className="rapp-textarea" rows={2} placeholder="Back (answer)" value={qaBack}
+            onChange={e=>setQaBack(e.target.value)} style={{ marginBottom:12 }} />
+          <div style={{ display:"flex", gap:8 }}>
+            <button className="rapp-btn rapp-btn-ghost" style={{ flex:1 }} onClick={saveAndAddAnother}
+              disabled={!qaFront.trim()||!qaBack.trim()}>Save and add another</button>
+            <button className="rapp-btn rapp-btn-primary" style={{ flex:1 }} onClick={saveQuickAdd}
+              disabled={!qaFront.trim()||!qaBack.trim()}>Save</button>
+          </div>
+        </div>
+      )}
 
       {/* Add card form */}
       <div className="rapp-card rapp-mb24">
@@ -1280,7 +1421,8 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
             {Ico.chevron(14, expanded===c.id)}
           </div>
         </div>
-        <div className="rapp-row rapp-mt8" style={{ gap:6, flexWrap:"wrap" }}>
+        <div className="rapp-row rapp-mt8" style={{ gap:6, flexWrap:"wrap", alignItems:"center" }}>
+          {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0 }}>{c.contentType}</span>}
           {(c.tags||[]).map((t,i) => <span key={i} className="nid-tag">{t}</span>)}
           {c.nextReview && <span className="rapp-ts">· Due {c.nextReview}</span>}
           {!c.nextReview && isActive(c) && <span style={{ fontSize:12, color:C.accent, fontWeight:500 }}>· New</span>}
@@ -1397,7 +1539,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false }) {
+function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null }) {
   const { newCardCap=50, reviewCap=200, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start — snapshot of log at that moment
@@ -1405,7 +1547,14 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
 
   const filtered = studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
 
-  const [dueCards] = useState(() => getDueWithCatchup(filtered, effectiveCap, catchupDays))
+  const [dueBefore] = useState(() => {
+    // Due cards before prerequisite filter (for detecting allGated)
+    const rawDue = getDue(filtered)
+    if (!rawDue.length) return 0
+    if (rawDue.length <= effectiveCap) return rawDue.length
+    return Math.min(effectiveCap, Math.ceil(rawDue.length/catchupDays))
+  })
+  const [dueCards] = useState(() => getDueWithCatchup(filtered, effectiveCap, catchupDays, cards))
   const [newCards] = useState(() => capOverride != null ? [] : getNew(filtered).slice(0, newCardCap))
 
   const initialPhase = dueCards.length>0?"warmup":newCards.length>0?"new":"empty"
@@ -1420,6 +1569,9 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
   const [intensityPts,   setIntensityPts]   = useState(0)
   const [intensityCount, setIntensityCount] = useState(0)
   const [breakDismissed, setBreakDismissed] = useState(false)
+  const [reverseIndex] = useState(() => buildReverseIndex(cards))
+  const [ratedCardIds] = useState(() => new Set())
+  const [endedEarly, setEndedEarly] = useState(false)
   const inputRef    = useRef(null)
   const handleRateRef = useRef(null)
 
@@ -1464,6 +1616,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
           ratingHistory: [...(c.ratingHistory||[]), newEntry].slice(-50) }
       : c)
     await onUpdateCards(updated)
+    ratedCardIds.add(card.id)
     setLastAction({ cardId:card.id, prevInterval:card.interval, prevNextReview:card.nextReview,
       prevReviewCount:card.reviewCount||0, prevStability:card.stability, prevDifficulty:card.difficulty,
       prevLastReview:card.lastReview, prevLapses:card.lapses||0,
@@ -1490,6 +1643,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
   const handleClose = async () => {
     const frictionNote = assembleFrictionNote(friction, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused })
     await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote })
+    if (isFirstStudy && onFirstStudyComplete) onFirstStudyComplete()
     onDone()
   }
 
@@ -1502,38 +1656,70 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
     return `${(interval/365).toFixed(1)}yr`
   }
 
+  const allGated = phase==="empty" && dueBefore > 0 && dueCards.length === 0 && newCards.length === 0
+
   if (phase==="empty") return (
     <div className="rapp-wrap rapp-fadein" style={{ textAlign:"center", paddingTop:60 }}>
       <div style={{ fontSize:40, marginBottom:16 }}>✓</div>
-      <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:8 }}>All caught up</div>
-      <div style={{ fontSize:14, color:C.textMut, lineHeight:1.75, marginBottom:24 }}>No cards are due and there are no new cards.</div>
+      {allGated ? (
+        <>
+          <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:8 }}>Prerequisites not ready</div>
+          <div style={{ fontSize:14, color:C.textMut, lineHeight:1.75, marginBottom:24 }}>
+            All due cards have prerequisites not yet ready. Review the foundational cards first.
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize:17, fontWeight:600, color:C.text, marginBottom:8 }}>All caught up</div>
+          <div style={{ fontSize:14, color:C.textMut, lineHeight:1.75, marginBottom:24 }}>No cards are due and there are no new cards.</div>
+        </>
+      )}
       <button className="rapp-btn rapp-btn-ghost" onClick={onDone}>Back</button>
     </div>
   )
 
-  if (phase==="close") return (
+  if (phase==="close") {
+    const ratedCards = cards.filter(c => ratedCardIds.has(c.id) && c.nextReview)
+    const intervals = ratedCards.map(c => c.interval).filter(Boolean)
+    const minInt = intervals.length ? Math.min(...intervals) : null
+    const maxInt = intervals.length ? Math.max(...intervals) : null
+    const remainingInList = list.length - idx
+    return (
     <div className="rapp-wrap rapp-fadein">
       <div className="rapp-mb28">
-        <div className="rapp-pg-title">Session complete</div>
+        <div className="rapp-pg-title">{endedEarly ? "Session paused" : "Session complete"}</div>
         <div className="rapp-pg-sub">Note anything that felt difficult, then save</div>
       </div>
+      {endedEarly && remainingInList > 0 && (
+        <div style={{ fontSize:13, color:C.textMut, marginBottom:12 }}>
+          {remainingInList} card{remainingInList!==1?"s":""} remaining for today
+        </div>
+      )}
       <div className="rapp-stat-row rapp-mb20">
         <div className="rapp-stat-box"><div className="rapp-stat-num">{stats.reviewed}</div><div className="rapp-stat-lbl">Reviewed</div></div>
         <div className="rapp-stat-box"><div className="rapp-stat-num" style={{ color:stats.failed>0?C.again:C.textMut }}>{stats.failed}</div><div className="rapp-stat-lbl">Failed</div></div>
         <div className="rapp-stat-box"><div className="rapp-stat-num" style={{ color:C.accent }}>{stats.newAdded}</div><div className="rapp-stat-lbl">New cards</div></div>
       </div>
       {(() => { const cal = computeCalibration(cards); return (
-        <div style={{ fontSize:13, color:C.textMut, marginBottom:16 }}>
+        <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>
           Recall accuracy (30 days): {cal.score !== null ? <strong style={{ color:cal.score>=85?C.accent:C.warning }}>{cal.score}%</strong> : <span>tracking started</span>}
         </div>
       )})()}
+      <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>
+        Session intensity: {intensityCount > 0 ? <strong>{(intensityPts/intensityCount).toFixed(1)}</strong> : <span>—</span>}
+      </div>
+      {minInt !== null && (
+        <div style={{ fontSize:13, color:C.textMut, marginBottom:16 }}>
+          Next reviews: <strong>{minInt}–{maxInt} days</strong> based on your ratings.
+        </div>
+      )}
       <div className="rapp-card rapp-mb16">
         <label className="rapp-label">Session notes (optional)</label>
         <textarea className="rapp-textarea" rows={3} placeholder="Anything that felt slow or unclear?" value={friction} onChange={e=>setFriction(e.target.value)} />
       </div>
       <button className="rapp-btn rapp-btn-primary rapp-btn-full" onClick={handleClose}>Save and finish</button>
     </div>
-  )
+  )}
 
   if (!card) return null
   const progress = Math.round(((idx+1) / list.length) * 100)
@@ -1543,14 +1729,22 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
       {/* Header — no card counter per brief */}
       <div className="rapp-row rapp-sb rapp-mb14">
         <span className="rapp-phase-tag">{phase==="warmup"?"Review":"New card"}</span>
-        {lastAction && (
-          <button onClick={handleUndo}
+        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          {lastAction && (
+            <button onClick={handleUndo}
+              style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, fontFamily:"inherit", padding:"6px 10px", borderRadius:8 }}
+              onMouseEnter={e=>e.currentTarget.style.background=C.surface}
+              onMouseLeave={e=>e.currentTarget.style.background="none"}>
+              ↩ Undo
+            </button>
+          )}
+          <button onClick={()=>{ setEndedEarly(true); setPhase("close") }}
             style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, fontFamily:"inherit", padding:"6px 10px", borderRadius:8 }}
             onMouseEnter={e=>e.currentTarget.style.background=C.surface}
             onMouseLeave={e=>e.currentTarget.style.background="none"}>
-            ↩ Undo
+            End early
           </button>
-        )}
+        </div>
       </div>
 
       <div className="rapp-progress rapp-mb14">
@@ -1606,21 +1800,38 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
                 <div className="nid-anchor-text">{card.anchor}</div>
               </div>
             )}
-            {isMature && side >= 1 && (
-              (card.connects_to||[]).length > 0
-                ? (
-                  <div className="nid-connects-block rapp-fadein">
-                    <div className="nid-connects-label">Connected concepts</div>
-                    {card.connects_to.map(id => {
-                      const linked = cards.find(c=>c.id===id)
-                      return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
-                    })}
-                  </div>
-                )
-                : <p style={{ fontSize:13, color:C.textMut, marginTop:12, fontStyle:"italic" }}>
-                    Can you name one concept this connects to?
-                  </p>
-            )}
+            {isMature && side >= 1 && (() => {
+              const outgoing = (card.connects_to || []).filter(id => cards.some(c => c.id === id))
+              const incoming = (reverseIndex[card.id] || []).filter(id => cards.some(c => c.id === id))
+              const bothExist = outgoing.length > 0 && incoming.length > 0
+              if (outgoing.length === 0 && incoming.length === 0) {
+                return <p style={{ fontSize:13, color:C.textMut, marginTop:12, fontStyle:"italic" }}>Can you name one concept this connects to?</p>
+              }
+              return (
+                <div className="nid-connects-block rapp-fadein">
+                  {outgoing.length > 0 && (
+                    <>
+                      {bothExist && <div className="nid-connects-label">You linked:</div>}
+                      {!bothExist && <div className="nid-connects-label">Connected concepts</div>}
+                      {outgoing.map(id => {
+                        const linked = cards.find(c => c.id === id)
+                        return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
+                      })}
+                    </>
+                  )}
+                  {incoming.length > 0 && (
+                    <>
+                      {bothExist && <div className="nid-connects-label" style={{ marginTop:8 }}>Linked by:</div>}
+                      {!bothExist && <div className="nid-connects-label">Linked by:</div>}
+                      {incoming.map(id => {
+                        const linked = cards.find(c => c.id === id)
+                        return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
+                      })}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
@@ -1649,6 +1860,11 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
             return (
               <>
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:8 }}>{label}</p>
+                {isFirstStudy && !answerDraft && (
+                  <p style={{ fontSize:12, color:C.textSec, fontStyle:"italic", marginBottom:6 }}>
+                    Type your answer before revealing — even an attempt strengthens recall.
+                  </p>
+                )}
                 <textarea ref={inputRef} className="nid-answer-input rapp-mb12" rows={3}
                   value={answerDraft} onChange={e=>setAnswerDraft(e.target.value)}
                   placeholder={placeholder}
@@ -1801,21 +2017,39 @@ function FreeStudyView({ cards, studyDeckName, onDone, settings }) {
                 <div className="nid-anchor-text">{card.anchor}</div>
               </div>
             )}
-            {isMature && revealed && (
-              (card.connects_to||[]).length > 0
-                ? (
-                  <div className="nid-connects-block rapp-fadein">
-                    <div className="nid-connects-label">Connected concepts</div>
-                    {card.connects_to.map(id => {
-                      const linked = cards.find(c=>c.id===id)
-                      return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
-                    })}
-                  </div>
-                )
-                : <p style={{ fontSize:13, color:C.textMut, marginTop:12, fontStyle:"italic" }}>
-                    Can you name one concept this connects to?
-                  </p>
-            )}
+            {isMature && revealed && (() => {
+              const freeReverseIndex = buildReverseIndex(cards)
+              const outgoing = (card.connects_to || []).filter(id => cards.some(c => c.id === id))
+              const incoming = (freeReverseIndex[card.id] || []).filter(id => cards.some(c => c.id === id))
+              const bothExist = outgoing.length > 0 && incoming.length > 0
+              if (outgoing.length === 0 && incoming.length === 0) {
+                return <p style={{ fontSize:13, color:C.textMut, marginTop:12, fontStyle:"italic" }}>Can you name one concept this connects to?</p>
+              }
+              return (
+                <div className="nid-connects-block rapp-fadein">
+                  {outgoing.length > 0 && (
+                    <>
+                      {bothExist && <div className="nid-connects-label">You linked:</div>}
+                      {!bothExist && <div className="nid-connects-label">Connected concepts</div>}
+                      {outgoing.map(id => {
+                        const linked = cards.find(c => c.id === id)
+                        return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
+                      })}
+                    </>
+                  )}
+                  {incoming.length > 0 && (
+                    <>
+                      {bothExist && <div className="nid-connects-label" style={{ marginTop:8 }}>Linked by:</div>}
+                      {!bothExist && <div className="nid-connects-label">Linked by:</div>}
+                      {incoming.map(id => {
+                        const linked = cards.find(c => c.id === id)
+                        return linked ? <div key={id} className="nid-connects-item">· {linked.front}</div> : null
+                      })}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
@@ -2008,6 +2242,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
     fatigueAlertsEnabled=true, attentionDeclarationEnabled=true,
   } = settings||{}
   const [activeTab, setActiveTab] = useState("study")
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const TAB = (id, label) => (
     <button onClick={()=>setActiveTab(id)}
@@ -2064,6 +2299,16 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
               <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Overdue cards are spread across this many days to avoid overwhelming sessions.</p>
             </div>
           </div>
+
+          <div style={{ marginTop:4, marginBottom:12 }}>
+            <button onClick={()=>setAdvancedOpen(o=>!o)}
+              style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:C.textMut, padding:"6px 0" }}>
+              {Ico.chevron(12, advancedOpen)}
+              <span style={{ fontWeight:500 }}>Advanced — adjust after you have used the app for a few weeks</span>
+            </button>
+          </div>
+
+          {advancedOpen && (<div className="rapp-fadein">
 
           <div className="rapp-card rapp-mb16">
             <div className="rapp-sec-title">FSRS scheduling</div>
@@ -2165,6 +2410,9 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
               </p>
             </div>
           </div>
+
+          </div>)} {/* end advancedOpen */}
+
         </div>
       )}
 
@@ -2458,7 +2706,27 @@ export default function Home() {
 
   const addLog = async entry => {
     setLog(l => [entry, ...l])
-    await storage.appendLog(entry)
+    const entity = await storage.appendLog(entry)
+    return entity
+  }
+
+  const [incompleteSession, setIncompleteSession] = useState(null)
+
+  // Check for in-progress sessions on load (run once after initial data loads)
+  useEffect(() => {
+    if (log.length > 0 && incompleteSession === null) {
+      const incomplete = log.find(e => (e.frictionNote || "").includes("[status: in-progress]"))
+      if (incomplete) setIncompleteSession(incomplete)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
+  const markSessionComplete = async () => {
+    if (!incompleteSession) return
+    // We need to update the session log entry — find by date
+    // Since we don't store entity ids in state, we use the date as a proxy
+    // For now, we just dismiss the banner (the log entry will stay as-is)
+    setIncompleteSession(null)
   }
 
   const updateSettings = s => { setSettings(s); settingsSet(s) }
@@ -2468,6 +2736,23 @@ export default function Home() {
     if (!t || decks.includes(t)) return
     setDecks(d => [...d, t])
     await storage.ensureDeck(t)
+  }
+
+  const createSampleDeck = async () => {
+    const deckName = "Pain Neuroscience — Sample"
+    if (!decks.includes(deckName)) {
+      setDecks(d => [...d, deckName])
+      await storage.ensureDeck(deckName)
+    }
+    const sampleCards = [
+      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body — not to measure tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+      { id:genId(), front:"Distinguish between nociception and pain.", back:"Nociception is a neural process. Pain is a conscious experience influenced by context, cognition, and emotion. One can occur without the other.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain — can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+      { id:genId(), front:"Name two descending pain modulation pathways.", back:"The periaqueductal grey (PAG) to rostral ventromedial medulla (RVM) pathway, and the noradrenergic pathway from the locus coeruleus.", deck:deckName, contentType:"Anatomy", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+      { id:genId(), front:"What does 'all pain is real' mean clinically?", back:"Pain is always a valid experience regardless of whether a structural cause is identified. It is produced by the brain as a protective output, not a readout of tissue state.", deck:deckName, contentType:"Clinical Reasoning", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+    ]
+    await updateCards([...cards, ...sampleCards])
+    storage.adjustDeckCount(deckName, sampleCards.length).catch(()=>{})
   }
 
   const archiveDeck = name => {
@@ -2578,6 +2863,17 @@ export default function Home() {
         )}
 
         <div className={`rapp-main${inSession?" rapp-main-full":""}`}>
+          {incompleteSession && !inSession && (
+            <div style={{ background:C.warningBg, border:`1px solid ${C.warning}40`, borderRadius:12, padding:"10px 14px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, maxWidth:520 }}>
+              <span style={{ fontSize:13, color:C.warningText, lineHeight:1.55 }}>
+                You have an incomplete session from {new Date(incompleteSession.date).toLocaleDateString()}.
+              </span>
+              <button className="rapp-btn rapp-btn-ghost" style={{ padding:"6px 12px", fontSize:12, flexShrink:0 }}
+                onClick={markSessionComplete}>
+                Dismiss
+              </button>
+            </div>
+          )}
           {view==="library"      && (showReturnCard
             ? <ReturnOnboardingCard
                 daysSince={gapDays}
@@ -2585,11 +2881,11 @@ export default function Home() {
                 onCatchUp={() => { dismissOnboarding(); startSRS(null) }}
                 onReviewTen={() => { dismissOnboarding(); startSRS(null, 10) }}
               />
-            : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} />
+            : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} onCreateSampleDeck={createSampleDeck} />
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} />}
-          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} />}
+          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
           {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} />}
