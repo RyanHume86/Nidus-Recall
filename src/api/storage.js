@@ -1,26 +1,44 @@
 /**
- * Remote storage adapter — wraps Base44 entities with the flat card/deck/log
+ * Remote storage adapter: wraps Base44 entities with the flat card/deck/log
  * interface used by the app.
  *
  * ID management:
  *   The app generates its own stable clientIds (genId). Base44 assigns its own
  *   entity IDs on create. We store clientId as a field in the entity and keep
- *   an in-memory map (clientId → entityId) so the two ID spaces stay decoupled.
+ *   an in-memory map (clientId to entityId) so the two ID spaces stay decoupled.
  *
  * Concurrency:
  *   syncCards is serialised via syncLock so concurrent calls never race against
  *   entityIdMap. ensureDeck caches the in-flight promise so two simultaneous
  *   calls for the same deck name only fire one create.
+ *
+ * CardState:
+ *   FSRS scheduling state (stability, difficulty, interval, nextReview, etc.)
+ *   is stored in the CardState entity, keyed by cardClientId. On load, CardState
+ *   records are merged into the in-memory card objects. If no CardState exists
+ *   for a card (pre-migration), the app falls back to reading scheduling fields
+ *   directly from the Flashcard entity (backward compatibility shim).
+ *   Use syncCardState(clientId, stateFields) to persist scheduling changes.
+ *   Use syncCardStates(updatedCards) to batch-persist all scheduling fields.
  */
 
 import { base44 } from "@/api/base44Client"
 
 // ── In-memory state (rebuilt on each loadAll call) ────────────────────────────
-let entityIdMap  = new Map()  // clientId  → Base44 entity id
-let cardSnapshot = new Map()  // clientId  → last-synced card object (for diffing)
-let deckNameToId = new Map()  // deckTitle → Base44 Deck entity id
-let deckPending  = new Map()  // deckTitle → in-flight Deck.create Promise
-let deckCountCache = new Map()  // deckTitle → current card_count
+let entityIdMap  = new Map()  // clientId  to Base44 entity id
+let cardSnapshot = new Map()  // clientId  to last-synced card object (for diffing)
+let deckNameToId = new Map()  // deckTitle to Base44 Deck entity id
+let deckPending  = new Map()  // deckTitle to in-flight Deck.create Promise
+let deckCountCache = new Map()  // deckTitle to current card_count
+
+// CardState maps (populated in loadAll from CardState entity)
+let cardStateMap         = new Map()  // clientId to CardState app object
+let cardStateEntityIdMap = new Map()  // clientId to CardState entity id
+let cardStateSnapshot    = new Map()  // clientId to last-synced CardState (for diffing)
+
+// UserSchedulerParams (at most one record per user)
+let userSchedulerParams   = null  // the params object or null
+let userSchedulerParamsId = null  // Base44 entity id for updates
 
 // Serialises concurrent syncCards calls so they never race against entityIdMap
 let syncLock = Promise.resolve()
@@ -49,34 +67,63 @@ export const ensureDeck = async (name) => {
   return p
 }
 
-// ── Entity ↔ app object mapping ───────────────────────────────────────────────
+// ── Entity to app object mapping ───────────────────────────────────────────────
 
 const idToName = () => new Map([...deckNameToId.entries()].map(([n, id]) => [id, n]))
 
-const toAppCard = (entity) => ({
-  id:          entity.clientId || entity.id,
-  front:       entity.front        || "",
-  back:        entity.back         || "",
-  contentType: entity.contentType  || "Factual",
-  deck:        idToName().get(entity.deckId) || "General",
-  elaboration: entity.elaboration  || "",
-  status:      entity.status       || "Active",
-  nextReview:  entity.nextReview   || null,
-  interval:    entity.interval     || 1,
-  reviewCount: entity.reviewCount  ?? 0,
-  stability:   entity.stability    ?? null,
-  difficulty:  entity.difficulty   ?? null,
-  lapses:      entity.lapses       ?? 0,
-  lastReview:  entity.lastReview   || null,
-  createdAt:   entity.created_date || null,
-  ratingHistory: entity.ratingHistory || [],
-  tags:                 entity.tags                 || [],
-  anchor:               entity.anchor               || null,
-  source:               entity.source               || null,
-  stakes_flag:          entity.stakes_flag          || false,
-  connects_to:          entity.connects_to          || [],
-  prerequisite_card_id: entity.prerequisite_card_id || null,
+/**
+ * Convert a CardState entity to the scheduling fields object used in-memory.
+ */
+const toAppCardState = (entity) => ({
+  stability:     entity.stability     ?? null,
+  difficulty:    entity.difficulty    ?? null,
+  interval:      entity.interval      ?? 1,
+  nextReview:    entity.nextReview     || null,
+  lastReview:    entity.lastReview     || null,
+  reviewCount:   entity.reviewCount    ?? 0,
+  lapses:        entity.lapses         ?? 0,
+  ratingHistory: entity.ratingHistory  || [],
+  suspended:     entity.suspended      || false,
+  buriedUntil:   entity.buriedUntil    || null,
 })
+
+const toAppCard = (entity) => {
+  const clientId = entity.clientId || entity.id
+
+  // Content fields only: scheduling state is merged from CardState below.
+  const cardFields = {
+    id:          clientId,
+    front:       entity.front        || "",
+    back:        entity.back         || "",
+    contentType: entity.contentType  || "Factual",
+    deck:        idToName().get(entity.deckId) || "General",
+    elaboration: entity.elaboration  || "",
+    status:      entity.status       || "Active",
+    createdAt:   entity.created_date || null,
+    tags:                 entity.tags                 || [],
+    anchor:               entity.anchor               || null,
+    source:               entity.source               || null,
+    stakes_flag:          entity.stakes_flag          || false,
+    connects_to:          entity.connects_to          || [],
+    prerequisite_card_id: entity.prerequisite_card_id || null,
+  }
+
+  // Backward-compat shim: use CardState if available, else fall back to Flashcard fields.
+  const state = cardStateMap.get(clientId) || {
+    stability:    entity.stability    ?? null,
+    difficulty:   entity.difficulty   ?? null,
+    interval:     entity.interval     ?? 1,
+    nextReview:   entity.nextReview    || null,
+    lastReview:   entity.lastReview    || null,
+    reviewCount:  entity.reviewCount   ?? 0,
+    lapses:       entity.lapses        ?? 0,
+    ratingHistory: entity.ratingHistory || [],
+    suspended:    false,
+    buriedUntil:  null,
+  }
+
+  return { ...cardFields, ...state }
+}
 
 const toEntityData = (card, deckId) => ({
   clientId:    card.id,
@@ -86,14 +133,6 @@ const toEntityData = (card, deckId) => ({
   contentType: card.contentType || "Factual",
   elaboration: card.elaboration || "",
   status:      card.status      || "Active",
-  nextReview:  card.nextReview  || null,
-  interval:    card.interval    ?? 1,
-  reviewCount: card.reviewCount ?? 0,
-  stability:   card.stability   ?? null,
-  difficulty:  card.difficulty  ?? null,
-  lapses:      card.lapses      ?? 0,
-  lastReview:  card.lastReview  || null,
-  ratingHistory: (card.ratingHistory || []).slice(-50),
   tags:                 card.tags                 || [],
   anchor:               card.anchor               || null,
   source:               card.source               || null,
@@ -115,7 +154,20 @@ export const loadAll = async () => {
   deckNameToId.clear()
   deckPending.clear()
   deckCountCache.clear()
+  cardStateMap.clear()
+  cardStateEntityIdMap.clear()
+  cardStateSnapshot.clear()
+  userSchedulerParams = null
+  userSchedulerParamsId = null
   syncLock = Promise.resolve()
+
+  // Load CardState first so toAppCard can merge it
+  const cardStateEntities = await base44.entities.CardState.list().catch(() => [])
+  for (const cs of cardStateEntities) {
+    cardStateMap.set(cs.cardClientId, toAppCardState(cs))
+    cardStateEntityIdMap.set(cs.cardClientId, cs.id)
+    cardStateSnapshot.set(cs.cardClientId, toAppCardState(cs))
+  }
 
   const [deckEntities, cardEntities, logEntities] = await Promise.all([
     base44.entities.Deck.list(),
@@ -130,7 +182,7 @@ export const loadAll = async () => {
     deckCountCache.set(d.title, d.card_count || 0)
   }
 
-  // Map cards
+  // Map cards (CardState already loaded so toAppCard will merge it)
   const cards = cardEntities.map(e => {
     const card = toAppCard(e)
     entityIdMap.set(card.id, e.id)
@@ -138,7 +190,7 @@ export const loadAll = async () => {
     return card
   })
 
-  // Map log — sort by session date descending in JS (safer than relying on
+  // Map log: sort by session date descending in JS (safer than relying on
   // created_date which mis-sorts batch-imported entries with old date values)
   const log = logEntities
     .map(e => ({
@@ -155,12 +207,20 @@ export const loadAll = async () => {
 
   const deckNames = deckEntities.map(d => d.title)
 
+  // Load UserSchedulerParams (at most one record)
+  const paramRecords = await base44.entities.UserSchedulerParams.list().catch(() => [])
+  if (paramRecords.length > 0) {
+    userSchedulerParams   = paramRecords[0]
+    userSchedulerParamsId = paramRecords[0].id
+  }
+
   return { cards, deckNames, log }
 }
 
 /**
  * Diff updatedCards against the last-synced snapshot and push only the
- * changes (creates / updates / deletes) to Base44.
+ * content-field changes (creates / updates / deletes) to Base44.
+ * Scheduling fields are handled by syncCardState / syncCardStates.
  *
  * Calls are serialised via syncLock so a rapid sequence of calls (e.g. rating
  * several cards quickly) won't race against entityIdMap.
@@ -191,7 +251,10 @@ const _doSync = async (updatedCards) => {
       createOps.push({ card, deckId })
     } else {
       const snap = cardSnapshot.get(clientId)
-      if (JSON.stringify(snap) !== JSON.stringify(card)) {
+      // Compare content fields only (exclude scheduling fields handled by CardState)
+      const snapContent = snap ? toEntityData(snap, snap._deckId) : null
+      const cardContent = toEntityData(card, deckId)
+      if (!snapContent || JSON.stringify(snapContent) !== JSON.stringify(cardContent)) {
         updateOps.push({ entityId: entityIdMap.get(clientId), card, deckId })
       }
     }
@@ -222,7 +285,7 @@ const _doSync = async (updatedCards) => {
   const affectedDecks = new Set([
     ...createOps.map(({card}) => card.deck),
     ...deleteOps.map(({ clientId }) => {
-      const snap = cardSnapshot.get(clientId) || cardSnapshot.get(clientId)
+      const snap = cardSnapshot.get(clientId)
       return snap ? idToName().get(snap.deckId || "") : null
     }).filter(Boolean)
   ])
@@ -230,6 +293,100 @@ const _doSync = async (updatedCards) => {
     const count = updatedCards.filter(c => c.deck === deckName && c.status !== 'Archived' && c.status !== 'Parked').length
     deckCountCache.set(deckName, count)
   }
+}
+
+/**
+ * Persist scheduling fields for a single card to the CardState entity.
+ * Creates a new CardState record if one does not exist yet (e.g. for a newly
+ * created card that has not been migrated). Skips write if nothing changed.
+ */
+export const syncCardState = async (clientId, stateFields) => {
+  const entityId = cardStateEntityIdMap.get(clientId)
+  const payload = {
+    cardClientId:  clientId,
+    stability:     stateFields.stability     ?? null,
+    difficulty:    stateFields.difficulty    ?? null,
+    interval:      stateFields.interval      ?? 1,
+    nextReview:    stateFields.nextReview      || null,
+    lastReview:    stateFields.lastReview      || null,
+    reviewCount:   stateFields.reviewCount     ?? 0,
+    lapses:        stateFields.lapses          ?? 0,
+    ratingHistory: (stateFields.ratingHistory  || []).slice(-50),
+    suspended:     stateFields.suspended       || false,
+    buriedUntil:   stateFields.buriedUntil     || null,
+  }
+  if (entityId) {
+    await base44.entities.CardState.update(entityId, payload)
+  } else {
+    const created = await base44.entities.CardState.create({ ...payload, migrated: false })
+    cardStateEntityIdMap.set(clientId, created.id)
+  }
+  cardStateMap.set(clientId, toAppCardState(payload))
+  cardStateSnapshot.set(clientId, toAppCardState(payload))
+}
+
+/**
+ * Batch-persist scheduling fields for all cards in updatedCards whose
+ * CardState has changed since last sync. Called by Home.jsx after each
+ * handleRate (via the debounced syncCardStates timer).
+ */
+export const syncCardStates = async (updatedCards) => {
+  const ops = []
+  for (const card of updatedCards) {
+    const clientId = card.id
+    const snap = cardStateSnapshot.get(clientId)
+    const current = {
+      stability:    card.stability    ?? null,
+      difficulty:   card.difficulty   ?? null,
+      interval:     card.interval     ?? 1,
+      nextReview:   card.nextReview    || null,
+      lastReview:   card.lastReview    || null,
+      reviewCount:  card.reviewCount   ?? 0,
+      lapses:       card.lapses        ?? 0,
+      ratingHistory: (card.ratingHistory || []).slice(-50),
+      suspended:    card.suspended     || false,
+      buriedUntil:  card.buriedUntil   || null,
+    }
+    if (!snap || JSON.stringify(snap) !== JSON.stringify(current)) {
+      ops.push(syncCardState(clientId, card))
+    }
+  }
+  await Promise.all(ops)
+}
+
+/**
+ * Returns the current UserSchedulerParams record, or null if none exists.
+ */
+export const getUserSchedulerParams = () => userSchedulerParams
+
+/**
+ * Create or update the UserSchedulerParams record.
+ * params: array of FSRS parameter values (up to 19)
+ * reviewCount: total review count at time of fit
+ */
+export const saveUserSchedulerParams = async (params, reviewCount) => {
+  const payload = {
+    params,
+    lastFitDate:      new Date().toISOString().split('T')[0],
+    reviewCountAtFit: reviewCount || 0,
+    fitVersion:       'v1-retention-only',
+  }
+  if (userSchedulerParamsId) {
+    await base44.entities.UserSchedulerParams.update(userSchedulerParamsId, payload)
+  } else {
+    const created = await base44.entities.UserSchedulerParams.create(payload)
+    userSchedulerParamsId = created.id
+  }
+  userSchedulerParams = { ...payload, id: userSchedulerParamsId }
+}
+
+/**
+ * Run the card-state split migration (migrateUp).
+ * Idempotent: safe to call multiple times.
+ */
+export const runMigration = async () => {
+  const { migrateUp } = await import('../../migrations/2026-04-26-split-card-state.js')
+  return migrateUp(base44)
 }
 
 /**
