@@ -29,6 +29,12 @@
     "intensity_score": {
       "type": "number",
       "description": "Cumulative cognitive load score for the session."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["in-progress", "complete"],
+      "default": "complete",
+      "description": "Session completion status."
     }
   },
   "required": [
