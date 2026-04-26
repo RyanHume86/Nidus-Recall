@@ -49,8 +49,8 @@ const TAG_MAX_LEN   = 50
 const TAG_MAX_COUNT = 5
 
 const DEFAULT_SETTINGS = {
-  newCardCap:          50,
-  reviewCap:           200,
+  newCardCap:          15,
+  reviewCap:           100,
   leechThreshold:      5,
   retentionTarget:     0.90,
   catchupDays:         7,
@@ -61,6 +61,7 @@ const DEFAULT_SETTINGS = {
   matureCardThreshold: 30,
   fatigueAlertsEnabled:        true,
   attentionDeclarationEnabled: true,
+  sleepPrefersReviews:         true,
 }
 
 // ─── Local storage helpers ────────────────────────────────────────────────────
@@ -88,7 +89,13 @@ const RETURN_ONBOARD_KEY  = "nidus-return-onboarding"
 const sleepBannerIsDismissed = () => localStorage.getItem(SLEEP_DISMISS_KEY) === new Date().toISOString().slice(0,10)
 const sleepBannerDismiss     = () => localStorage.setItem(SLEEP_DISMISS_KEY, new Date().toISOString().slice(0,10))
 
-const settingsGet  = ()  => ({ ...DEFAULT_SETTINGS, ...lsGet(SK.settings, {}) })
+const settingsGet  = ()  => {
+  // Migrate old defaults to new defaults on first load.
+  const stored = lsGet(SK.settings, {})
+  if (stored.newCardCap === 50) stored.newCardCap = 15
+  if (stored.reviewCap === 200) stored.reviewCap = 100
+  return { ...DEFAULT_SETTINGS, ...stored }
+}
 const settingsSet  = (v) => lsSet(SK.settings, v)
 const notionGet    = ()  => lsGet(SK.notion, {})
 const notionSet    = (v) => lsSet(SK.notion, v)
@@ -761,7 +768,7 @@ function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
 
   return (
     <div className="rapp-wrap rapp-fadein" style={{ textAlign:"center", paddingTop:60 }}>
-      <div style={{ fontSize:22, fontWeight:700, marginBottom:8 }}>Welcome to Nidus</div>
+      <div style={{ fontSize:22, fontWeight:700, marginBottom:8 }}>Welcome to Nidus Recall</div>
       <div style={{ fontSize:14, color:C.textSec, marginBottom:32, lineHeight:1.65 }}>
         Build your own flashcard decks. Study using active recall.<br/>Let spaced repetition handle the scheduling.
       </div>
@@ -1454,7 +1461,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
   const [deck, setDeck] = useState("all")
   const [mode, setMode] = useState("srs")
   const [focused, setFocused] = useState(false)
-  const { newCardCap=50, reviewCap=200, catchupDays=7, attentionDeclarationEnabled=true } = settings||{}
+  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true } = settings||{}
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
   const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
@@ -1540,7 +1547,7 @@ const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
 function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null }) {
-  const { newCardCap=50, reviewCap=200, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
+  const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start — snapshot of log at that moment
   const [fatigueScore] = useState(() => computeFatigueScore(log))
@@ -2236,8 +2243,8 @@ function StatsView({ log, cards, decks, settings }) {
 // ─── Settings View ────────────────────────────────────────────────────────────
 function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards }) {
   const {
-    newCardCap=50, reviewCap=200, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
-    sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true,
+    newCardCap=15, reviewCap=100, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
+    sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true, sleepPrefersReviews=true,
     matureModeEnabled=true, matureCardThreshold=30,
     fatigueAlertsEnabled=true, attentionDeclarationEnabled=true,
   } = settings||{}
@@ -2277,7 +2284,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
               </div>
               <input type="range" className="rapp-slider" min={5} max={100} step={5} value={newCardCap}
                 onChange={e=>onUpdateSettings({...settings, newCardCap:Number(e.target.value)})} />
-              <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Recommended: 10–20 for steady learning.</p>
+              <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>Start at 15 and raise once a sustainable routine is established. Reference: Wozniak, supermemo.com graduated introduction guidelines.</p>
             </div>
 
             <div className="rapp-mb20">
@@ -2287,6 +2294,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
               </div>
               <input type="range" className="rapp-slider" min={20} max={500} step={10} value={reviewCap}
                 onChange={e=>onUpdateSettings({...settings, reviewCap:Number(e.target.value)})} />
+              <p style={{ fontSize:12, color:C.textMut, marginTop:6, lineHeight:1.6 }}>100 reviews per day supports a manageable workload. Reference: Anki community defaults.</p>
             </div>
 
             <div>
@@ -2450,7 +2458,7 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
               </p>
             </div>
 
-            <div>
+            <div className="rapp-mb20">
               <div className="rapp-row rapp-sb">
                 <label className="rapp-label" style={{ marginBottom:0 }}>Sleep review reminder</label>
                 <div role="switch" aria-checked={sleepBannerEnabled}
@@ -2466,11 +2474,32 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
                 Shows a banner on the Library screen and a hint on the Study screen during the review window.
               </p>
             </div>
+
+            <div>
+              <div className="rapp-row rapp-sb">
+                <div>
+                  <label className="rapp-label" style={{ marginBottom:0 }}>Bedtime window prefers reviews over new cards</label>
+                  <p style={{ fontSize:12, color:C.textMut, marginTop:4, lineHeight:1.6 }}>
+                    The evidence for sleep-enhanced consolidation is strongest for material already partially learned (Diekelmann and Born, 2010). When on, due reviews are prioritised over new cards in the pre-bedtime window.
+                  </p>
+                </div>
+                <div role="switch" aria-checked={sleepPrefersReviews}
+                  onClick={() => onUpdateSettings({...settings, sleepPrefersReviews:!sleepPrefersReviews})}
+                  style={{ width:40, height:22, borderRadius:11, cursor:"pointer", flexShrink:0, marginLeft:16,
+                    background:sleepPrefersReviews?C.accent:C.elevated, position:"relative", transition:"background 0.2s" }}>
+                  <div style={{ position:"absolute", top:3,
+                    left:sleepPrefersReviews?21:3, width:16, height:16, borderRadius:8,
+                    background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
+                </div>
+              </div>
+              {/* TODO: wire sleepPrefersReviews into getDueWithCatchup or fsrsSchedule to actually
+                  reorder the session queue during sleep windows. Currently UI-only. */}
+            </div>
           </div>
 
           <div className="rapp-card" style={{ background:C.bg }}>
             <p style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
-              Reviewing cards in the hour or two before sleep has been shown to improve overnight memory consolidation during slow-wave sleep. No scheduling changes are made — this is a reminder only.
+              Sleep after study supports memory consolidation (Diekelmann and Born, 2010). Reviewing close to bedtime may help retention, though most direct evidence is for new learning rather than review of familiar material. This is a reminder only. No scheduling changes are made.
             </p>
           </div>
         </div>
@@ -2800,7 +2829,7 @@ export default function Home() {
   const startSRS  = (deck, capOverride=null, focused=false) => { setStudyDeckName(deck==="all"?null:deck); setSessionCapOverride(capOverride); setSessionFocused(focused); setView("session") }
   const startFree = deck => { setStudyDeckName(deck==="all"?null:deck); setView("free-study") }
 
-  const due = useMemo(() => getDueWithCatchup(cards, settings.reviewCap||200, settings.catchupDays||7, cards), [cards, settings])
+  const due = useMemo(() => getDueWithCatchup(cards, settings.reviewCap||100, settings.catchupDays||7, cards), [cards, settings])
 
   // ── Return-after-gap re-onboarding ──────────────────────────────────────────
   const lastSessionDate = useMemo(() => log.reduce((latest, e) => (!latest || e.date > latest) ? e.date : latest, null), [log])
