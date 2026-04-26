@@ -146,6 +146,44 @@ export const parseApkg = async (fileOrBuffer) => {
   }
 }
 
+// parseOcclusionSvg: extracts rectangular mask regions from Image Occlusion Enhanced SVG masks.
+// Image Occlusion Enhanced stores geometry in field index 2 of the note as inline SVG.
+// Returns array of { id, label, type:"rect", x, y, width, height } in fractional coords.
+// Falls back to empty array if the SVG cannot be parsed or contains no rects.
+const parseOcclusionSvg = (svgString) => {
+  if (!svgString || !svgString.includes('<svg')) return []
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(svgString, 'image/svg+xml')
+    const rects = Array.from(doc.querySelectorAll('rect'))
+    const regions = []
+    // Determine SVG coordinate space from viewBox or width/height attributes.
+    const svgEl = doc.querySelector('svg')
+    const vb = svgEl?.getAttribute('viewBox')?.split(/[,\s]+/).map(Number)
+    const svgW = (vb && vb.length >= 4 ? vb[2] : null)
+      || parseFloat(svgEl?.getAttribute('width') || '800') || 800
+    const svgH = (vb && vb.length >= 4 ? vb[3] : null)
+      || parseFloat(svgEl?.getAttribute('height') || '600') || 600
+    for (const rect of rects) {
+      const id = rect.getAttribute('id') || `region-${regions.length + 1}`
+      const label = rect.getAttribute('title') || rect.getAttribute('data-title') || id
+      const x = parseFloat(rect.getAttribute('x') || '0')
+      const y = parseFloat(rect.getAttribute('y') || '0')
+      const w = parseFloat(rect.getAttribute('width') || '0')
+      const h = parseFloat(rect.getAttribute('height') || '0')
+      if (w <= 0 || h <= 0) continue
+      regions.push({
+        id, label, type: 'rect',
+        x: x / svgW, y: y / svgH,
+        width: w / svgW, height: h / svgH,
+      })
+    }
+    return regions
+  } catch (_) {
+    return []
+  }
+}
+
 // convertToNidusCards: converts parsed Anki notes to Nidus Recall card objects.
 // Scheduling state is intentionally discarded. See module comment above.
 export const convertToNidusCards = (parsedNotes, genId) => {
@@ -213,19 +251,52 @@ export const convertToNidusCards = (parsedNotes, genId) => {
         }
       }
     } else if (cardType === 'image_occlusion') {
-      // Image Occlusion Enhanced format is complex; import as basic with warning.
-      warnings.push(`Note ${note.noteId}: image occlusion note type detected. Imported as basic card with image reference. Full occlusion geometry is not supported in this import version.`)
-      cards.push({
-        id: genId(), front: fields[0] || '(Image Occlusion card -- edit to add regions)',
-        back: fields[1] || '', deck: deckName,
-        cardType: 'basic', contentType: 'Factual',
-        tags, status: 'Active', interval: 1, reviewCount: 0, lapses: 0,
-        ratingHistory: [], connects_to: [], stakes_flag: false,
-        stability: null, difficulty: null, nextReview: null, lastReview: null,
-        elaboration: '', anchor: null, source: 'Anki import', prerequisite_card_id: null,
-        clozeText: null, clozeIndex: null, imageUrl: null,
-        occlusionRegions: null, occlusionRegionId: null,
-      })
+      // Image Occlusion Enhanced format:
+      // fields[0] = header/title, fields[1] = image HTML, fields[2] = SVG masks
+      // fields[3] = footer (optional), fields[4] = back extra (optional).
+      const svgMasks = fields[2] || ''
+      const regions = parseOcclusionSvg(svgMasks)
+
+      // Extract image src from the image HTML field.
+      let imageUrl = null
+      const imgMatch = (fields[1] || '').match(/<img[^>]+src=["']([^"']+)["']/i)
+      if (imgMatch) imageUrl = imgMatch[1]
+
+      if (regions.length > 0) {
+        // Successfully parsed geometry: create one card per region.
+        for (const region of regions) {
+          cards.push({
+            id: genId(),
+            front: region.label,
+            back: region.label,
+            deck: deckName,
+            cardType: 'image_occlusion',
+            imageUrl,
+            occlusionRegions: regions,
+            occlusionRegionId: region.id,
+            contentType: 'Factual',
+            tags, status: 'Active', interval: 1, reviewCount: 0, lapses: 0,
+            ratingHistory: [], connects_to: [], stakes_flag: false,
+            stability: null, difficulty: null, nextReview: null, lastReview: null,
+            elaboration: '', anchor: null, source: 'Anki import', prerequisite_card_id: null,
+            clozeText: null, clozeIndex: null,
+          })
+        }
+      } else {
+        // Fallback: SVG parse failed or no regions found; import as basic with warning.
+        warnings.push(`Note ${note.noteId}: image occlusion note detected but SVG geometry could not be parsed. Imported as basic card.`)
+        cards.push({
+          id: genId(), front: fields[0] || '(Image Occlusion card -- edit to add regions)',
+          back: fields[3] || fields[1] || '', deck: deckName,
+          cardType: 'basic', contentType: 'Factual',
+          tags, status: 'Active', interval: 1, reviewCount: 0, lapses: 0,
+          ratingHistory: [], connects_to: [], stakes_flag: false,
+          stability: null, difficulty: null, nextReview: null, lastReview: null,
+          elaboration: '', anchor: null, source: 'Anki import', prerequisite_card_id: null,
+          clozeText: null, clozeIndex: null, imageUrl,
+          occlusionRegions: null, occlusionRegionId: null,
+        })
+      }
     }
   }
 
