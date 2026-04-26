@@ -242,6 +242,20 @@ const computeFatigueScore = (log) => {
   return flags
 }
 
+// Assembles the final frictionNote for a session. User-written text is
+// preserved at the front; system markers are appended, never prepended or
+// overwritten. This is the single authoritative write point — intensity,
+// fatigue, and attention declaration must feed here rather than writing
+// frictionNote independently.
+const assembleFrictionNote = (userText, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused }) => {
+  const markers = []
+  if (intensityCount > 0) markers.push(`[Intensity: ${(intensityPts / intensityCount).toFixed(1)}]`)
+  if (fatigueAlertsEnabled && fatigueScore >= 2) markers.push("[Fatigue risk: elevated]")
+  if (focused) markers.push("[Focused: yes]")
+  return [userText.trim(), ...markers].filter(Boolean).join(" ")
+}
+
+
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
   :root { --sage: #5C7A6A; }
@@ -1466,12 +1480,8 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
   }
 
   const handleClose = async () => {
-    const markers = []
-    if (intensityCount > 0) markers.push(`[Intensity: ${(intensityPts/intensityCount).toFixed(1)}]`)
-    if (fatigueAlertsEnabled && fatigueScore >= 2) markers.push("[Fatigue risk: elevated]")
-    if (focused) markers.push("[Focused: yes]")
-    const note = [friction.trim(), ...markers].filter(Boolean).join(" ")
-    await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote:note })
+    const frictionNote = assembleFrictionNote(friction, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused })
+    await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote })
     onDone()
   }
 
