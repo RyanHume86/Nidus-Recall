@@ -275,7 +275,6 @@ const assembleFrictionNote = (userText, { intensityPts, intensityCount, fatigueS
   return [userText.trim(), ...markers].filter(Boolean).join(" ")
 }
 
-
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
   :root { --sage: #5C7A6A; }
@@ -701,8 +700,8 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
   const [query, setQuery] = useState("")
   const inputRef = useRef(null)
   const selectedIds = mode==="single" ? (value ? [value] : []) : (value||[])
-  const selected = selectedIds.map(id => allCards.find(c=>c.id===id)).filter(Boolean)
-  const results = query.length < 1 ? [] : allCards
+  const selected = selectedIds.map(id => (allCards||[]).find(c=>c.id===id)).filter(Boolean)
+  const results = query.length < 1 ? [] : (allCards||[])
     .filter(c => !selectedIds.includes(c.id) && c.id !== excludeId && c.front.toLowerCase().includes(query.toLowerCase()))
     .slice(0, 6)
   const add = id => { onChange(mode==="single" ? id : [...selectedIds, id]); setQuery(""); setTimeout(()=>inputRef.current?.focus(), 0) }
@@ -1146,7 +1145,8 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
     contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0,
     ratingHistory:[], connects_to:[], stability:null, difficulty:null,
     nextReview:null, lastReview:null, elaboration:"", anchor:null,
-    source:null, stakes_flag:false, prerequisite_card_id:null
+    source:null, stakes_flag:false, prerequisite_card_id:null,
+    tags:[], createdAt:new Date().toISOString()
   })
 
   const saveQuickAdd = async () => {
@@ -1457,7 +1457,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree }) {
   const { newCardCap=50, reviewCap=200, catchupDays=7, attentionDeclarationEnabled=true } = settings||{}
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
-  const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays).length
+  const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
   const newCount  = getNew(filtered).slice(0, newCardCap).length
   const freeCount = filtered.filter(isActive).length
   const canStart  = mode==="srs" ? (dueCount>0||newCount>0) : freeCount>0
@@ -1642,7 +1642,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
 
   const handleClose = async () => {
     const frictionNote = assembleFrictionNote(friction, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused })
-    await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote })
+    await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote, status: "complete", intensity_score: intensityCount > 0 ? parseFloat((intensityPts/intensityCount).toFixed(1)) : 0 })
     if (isFirstStudy && onFirstStudyComplete) onFirstStudyComplete()
     onDone()
   }
@@ -2715,7 +2715,7 @@ export default function Home() {
   // Check for in-progress sessions on load (run once after initial data loads)
   useEffect(() => {
     if (log.length > 0 && incompleteSession === null) {
-      const incomplete = log.find(e => (e.frictionNote || "").includes("[status: in-progress]"))
+      const incomplete = log.find(e => e.status === "in-progress")
       if (incomplete) setIncompleteSession(incomplete)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2723,9 +2723,13 @@ export default function Home() {
 
   const markSessionComplete = async () => {
     if (!incompleteSession) return
-    // We need to update the session log entry — find by date
-    // Since we don't store entity ids in state, we use the date as a proxy
-    // For now, we just dismiss the banner (the log entry will stay as-is)
+    // Update local state to mark the session complete
+    const updatedEntry = { ...incompleteSession, status: "complete" }
+    setLog(l => l.map(e => e.date === incompleteSession.date ? updatedEntry : e))
+    // If we have an entity id, persist to Base44
+    if (incompleteSession.id) {
+      storage.updateLog(incompleteSession.id, { status: "complete" }).catch(() => {})
+    }
     setIncompleteSession(null)
   }
 
@@ -2745,11 +2749,11 @@ export default function Home() {
       await storage.ensureDeck(deckName)
     }
     const sampleCards = [
-      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body — not to measure tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
-      { id:genId(), front:"Distinguish between nociception and pain.", back:"Nociception is a neural process. Pain is a conscious experience influenced by context, cognition, and emotion. One can occur without the other.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
-      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain — can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
-      { id:genId(), front:"Name two descending pain modulation pathways.", back:"The periaqueductal grey (PAG) to rostral ventromedial medulla (RVM) pathway, and the noradrenergic pathway from the locus coeruleus.", deck:deckName, contentType:"Anatomy", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
-      { id:genId(), front:"What does 'all pain is real' mean clinically?", back:"Pain is always a valid experience regardless of whether a structural cause is identified. It is produced by the brain as a protective output, not a readout of tissue state.", deck:deckName, contentType:"Clinical Reasoning", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null },
+      { id:genId(), front:"What is the primary purpose of nociception?", back:"To detect potentially damaging stimuli and signal threat to the body — not to measure tissue damage.", deck:deckName, contentType:"Factual", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"Distinguish between nociception and pain.", back:"Nociception is a neural process. Pain is a conscious experience influenced by context, cognition, and emotion. One can occur without the other.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"What is central sensitization?", back:"Amplification of neural signalling within the central nervous system that produces hypersensitivity to pain — can persist beyond initial tissue injury.", deck:deckName, contentType:"Mechanism", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"Name two descending pain modulation pathways.", back:"The periaqueductal grey (PAG) to rostral ventromedial medulla (RVM) pathway, and the noradrenergic pathway from the locus coeruleus.", deck:deckName, contentType:"Anatomy", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
+      { id:genId(), front:"What does 'all pain is real' mean clinically?", back:"Pain is always a valid experience regardless of whether a structural cause is identified. It is produced by the brain as a protective output, not a readout of tissue state.", deck:deckName, contentType:"Clinical Reasoning", status:"Active", interval:1, reviewCount:0, lapses:0, ratingHistory:[], connects_to:[], stability:null, difficulty:null, nextReview:null, lastReview:null, elaboration:"", anchor:null, source:null, stakes_flag:false, prerequisite_card_id:null , tags:[], createdAt:new Date().toISOString() },
     ]
     await updateCards([...cards, ...sampleCards])
     storage.adjustDeckCount(deckName, sampleCards.length).catch(()=>{})
@@ -2796,7 +2800,7 @@ export default function Home() {
   const startSRS  = (deck, capOverride=null, focused=false) => { setStudyDeckName(deck==="all"?null:deck); setSessionCapOverride(capOverride); setSessionFocused(focused); setView("session") }
   const startFree = deck => { setStudyDeckName(deck==="all"?null:deck); setView("free-study") }
 
-  const due = useMemo(() => getDueWithCatchup(cards, settings.reviewCap||200, settings.catchupDays||7), [cards, settings])
+  const due = useMemo(() => getDueWithCatchup(cards, settings.reviewCap||200, settings.catchupDays||7, cards), [cards, settings])
 
   // ── Return-after-gap re-onboarding ──────────────────────────────────────────
   const lastSessionDate = useMemo(() => log.reduce((latest, e) => (!latest || e.date > latest) ? e.date : latest, null), [log])
