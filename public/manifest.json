@@ -1,12 +1,12 @@
 {
-  "name": "MemoryDeck",
-  "short_name": "MemoryDeck",
+  "name": "Nidus",
+  "short_name": "Nidus",
   "description": "Spaced repetition flashcards with FSRS v4 scheduling",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F4EFE8",
-  "theme_color": "#6A9D79",
+  "background_color": "#F4F7F5",
+  "theme_color": "#2D6E52",
   "icons": [
     {
       "src": "/icons/icon.svg",

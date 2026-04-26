@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Background -->
-  <rect width="512" height="512" rx="108" fill="#F4EFE8"/>
+  <rect width="512" height="512" rx="108" fill="#F4F7F5"/>
   <!-- Card shadow -->
-  <rect x="108" y="176" width="296" height="192" rx="22" fill="#C4DFCA"/>
+  <rect x="108" y="176" width="296" height="192" rx="22" fill="#CFDBD5"/>
   <!-- Card body -->
-  <rect x="96" y="152" width="296" height="192" rx="22" fill="#FDFAF5" stroke="#E6DDD2" stroke-width="3"/>
+  <rect x="96" y="152" width="296" height="192" rx="22" fill="#EBF0ED" stroke="#CFDBD5" stroke-width="3"/>
   <!-- Green accent bar -->
-  <rect x="96" y="152" width="296" height="44" rx="22" fill="#6A9D79"/>
-  <rect x="96" y="174" width="296" height="22" fill="#6A9D79"/>
+  <rect x="96" y="152" width="296" height="44" rx="22" fill="#2D6E52"/>
+  <rect x="96" y="174" width="296" height="22" fill="#2D6E52"/>
   <!-- Card lines -->
-  <rect x="130" y="226" width="160" height="12" rx="6" fill="#E6DDD2"/>
-  <rect x="130" y="252" width="220" height="10" rx="5" fill="#E6DDD2"/>
-  <rect x="130" y="274" width="180" height="10" rx="5" fill="#E6DDD2"/>
+  <rect x="130" y="226" width="160" height="12" rx="6" fill="#CFDBD5"/>
+  <rect x="130" y="252" width="220" height="10" rx="5" fill="#CFDBD5"/>
+  <rect x="130" y="274" width="180" height="10" rx="5" fill="#CFDBD5"/>
   <!-- Dot indicator -->
-  <circle cx="340" cy="322" r="14" fill="#6A9D79" opacity="0.35"/>
-  <circle cx="340" cy="322" r="8" fill="#6A9D79"/>
+  <circle cx="340" cy="322" r="14" fill="#2D6E52" opacity="0.35"/>
+  <circle cx="340" cy="322" r="8" fill="#2D6E52"/>
 </svg>

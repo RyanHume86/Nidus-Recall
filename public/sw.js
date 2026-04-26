@@ -1,5 +1,5 @@
 /**
- * MemoryDeck Service Worker
+ * Nidus Service Worker
  *
  * Strategy:
  *   - App shell (HTML, JS, CSS, fonts): cache-first with background refresh

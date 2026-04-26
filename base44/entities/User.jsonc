@@ -1,0 +1,19 @@
+{
+  "name": "User",
+  "type": "object",
+  "description": "Per-user preferences stored in localStorage under nidus-settings",
+  "properties": {
+    "newCardCap":          { "type": "number",  "description": "Max new cards per day",                        "default": 50 },
+    "reviewCap":           { "type": "number",  "description": "Max review cards per day",                     "default": 200 },
+    "leechThreshold":      { "type": "number",  "description": "Lapse count before a card is flagged leech",   "default": 5 },
+    "retentionTarget":     { "type": "number",  "description": "FSRS target retention 0.70–0.97",              "default": 0.90 },
+    "catchupDays":         { "type": "number",  "description": "Days over which to spread overdue backlog",    "default": 7 },
+    "sleepBedtime":           { "type": "string",  "description": "Bedtime in HH:MM 24-hour format",                    "default": null, "nullable": true },
+    "sleepWindowMinutes":     { "type": "number",  "description": "Minutes before bedtime to show sleep banner",        "default": 90 },
+    "sleepBannerEnabled":     { "type": "boolean", "description": "Show sleep review banner and session hint",          "default": true },
+    "matureModeEnabled":      { "type": "boolean", "description": "Enable mature card mode (expanded recall prompt)",   "default": true },
+    "matureCardThreshold":    { "type": "number",  "description": "Stability (days) at which a card enters Mature mode; range 14-90", "default": 30 },
+    "fatigueAlertsEnabled":          { "type": "boolean", "description": "Show sustainable pace alert when fatigue risk score >= 2", "default": true },
+    "attentionDeclarationEnabled":   { "type": "boolean", "description": "Show focused-session checkbox on session start screen", "default": true }
+  }
+}

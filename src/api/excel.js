@@ -20,9 +20,11 @@ const COLUMNS = [
   { key: 'difficulty',  header: 'Difficulty'      },
   { key: 'lapses',      header: 'Lapses'          },
   { key: 'lastReview',  header: 'Last Review'     },
+  { key: 'anchor',      header: 'Anchor'          },
+  { key: 'source',      header: 'Source'          },
 ]
 
-const COL_WIDTHS = [16, 52, 52, 18, 20, 52, 10, 12, 14, 12, 10, 10, 8, 12]
+const COL_WIDTHS = [16, 52, 52, 18, 20, 52, 10, 12, 14, 12, 10, 10, 8, 12, 52, 40]
 
 export const exportToExcel = async (cards, filename = 'memorydeck-cards') => {
   const XLSX = await import('xlsx')
