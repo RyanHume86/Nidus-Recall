@@ -93,6 +93,12 @@
       "maxItems": 5,
       "description": "clientId values of related cards in the same deck."
     },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "maxItems": 5,
+      "description": "User-defined topic tags for card organisation."
+    },
     "ratingHistory": {
       "type": "array",
       "items": {
