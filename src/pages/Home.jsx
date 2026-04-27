@@ -9,6 +9,7 @@ import { Ico } from "@/lib/icons"
 import * as offlineStore from "@/lib/offline-store"
 import { isInstallable, triggerInstallPrompt } from "@/lib/pwa"
 import { useAppStore } from "@/store/appStore"
+import NidusLogo from "@/components/NidusLogo"
 import { LibraryView } from "@/views/LibraryView"
 import { DeckView } from "@/views/DeckView"
 import { StudySelectView } from "@/views/StudySelectView"
@@ -184,7 +185,7 @@ export default function Home() {
     <>
       <div className="rapp">
         <div className="rapp-sidebar">
-          <div className="rapp-logo"><div className="rapp-logo-dot"/>Nidus Recall</div>
+          <div className="rapp-logo"><NidusLogo size={28} withWordmark /></div>
         </div>
         <div className="rapp-main">
           <div className="rapp-wrap">
@@ -204,7 +205,7 @@ export default function Home() {
       <div className="rapp">
         {!inSession && (
           <div className="rapp-sidebar">
-            <div className="rapp-logo"><div className="rapp-logo-dot"/>Nidus Recall</div>
+            <div className="rapp-logo"><NidusLogo size={28} withWordmark /></div>
             {NAV.map(n => (
               <div key={n.id} className={`rapp-nav-item${n.active?" active":""}`} onClick={()=>navClick(n.id)}>
                 {n.icon(17)}<span>{n.label}</span>

@@ -1,11 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Background with rounded corners, safe zone for maskable icons -->
-  <rect width="512" height="512" rx="80" fill="#2D6E52"/>
-  <!-- Stylised N letterform in cream -->
-  <text x="256" y="345" font-family="Georgia,serif" font-size="300" font-weight="700"
-        fill="#F5F0EB" text-anchor="middle" letter-spacing="-10">N</text>
-  <!-- Dots suggesting spaced repetition cadence (decreasing size and opacity) -->
-  <circle cx="380" cy="140" r="28" fill="#F5F0EB" opacity="0.6"/>
-  <circle cx="380" cy="200" r="18" fill="#F5F0EB" opacity="0.4"/>
-  <circle cx="380" cy="248" r="12" fill="#F5F0EB" opacity="0.25"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="113" fill="#101F12"/>
+  <!-- Neuron mark scaled to 512x512 canvas, centered, icon theme -->
+  <!-- Scale factor: viewBox 4 6 158 104 → fits in ~420px centered with ~46px padding -->
+  <g transform="translate(46, 96) scale(2.658)">
+    <!-- Dendrites -->
+    <path d="M 54,60 C 46,50 38,38 32,28" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M 32,28 C 24,20 16,14 10,10" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M 32,28 C 30,22 24,24 18,30" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M 49,68 C 40,64 30,62 20,58" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M 54,77 C 46,84 38,90 30,96" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <!-- Soma -->
+    <circle cx="60" cy="68" r="14" stroke="#8AAD91" stroke-width="2.5" fill="none"/>
+    <!-- Axon -->
+    <path d="M 72,68 C 86,64 102,56 118,48 C 126,44 136,42 146,38" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <!-- Myelin sheaths -->
+    <ellipse cx="77" cy="63.4" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 77 63.4)"/>
+    <ellipse cx="87" cy="61.2" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 87 61.2)"/>
+    <ellipse cx="98" cy="58.8" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 98 58.8)"/>
+    <ellipse cx="108" cy="56.6" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 108 56.6)"/>
+    <ellipse cx="119" cy="54.2" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 119 54.2)"/>
+    <ellipse cx="130" cy="51.8" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 130 51.8)"/>
+    <ellipse cx="141" cy="49.4" rx="5" ry="8" fill="#101F12" stroke="#8AAD91" stroke-width="1.5" transform="rotate(-24 141 49.4)"/>
+    <!-- Collateral -->
+    <path d="M 93,60 C 97,67 99,75 97,83" stroke="#8AAD91" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <!-- Terminal fork -->
+    <path d="M 146,38 C 150,34 155,30 158,26" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M 146,38 C 150,40 154,44 156,48" stroke="#8AAD91" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <!-- Vesicle dots -->
+    <circle cx="158" cy="24" r="2.2" fill="#8AAD91" opacity="0.85"/>
+    <circle cx="160" cy="30" r="1.8" fill="#8AAD91" opacity="0.75"/>
+    <circle cx="157" cy="50" r="2.2" fill="#8AAD91" opacity="0.65"/>
+    <circle cx="160" cy="57" r="1.5" fill="#8AAD91" opacity="0.45"/>
+    <circle cx="99" cy="86" r="1.8" fill="#8AAD91" opacity="0.40"/>
+  </g>
 </svg>
