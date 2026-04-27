@@ -1,3 +1,141 @@
+## Session 6 (2026-04-26)
+
+### Phase 6: AI assist safety
+
+Five mandatory safety features added to the AI card-editing flow.
+
+#### 6.1 Diff view before commit
+
+- `AIDiffModal` component added to `Home.jsx`. When a user requests an AI edit and the AI
+  responds, a side-by-side diff is shown (Original | Proposed) before any card data is changed.
+- Word-level highlighting: words removed from the original appear in red, words added in the
+  proposal appear in green. Token comparison uses set membership; word boundaries are whitespace.
+- Three action buttons: **Accept** (applies proposal and saves history), **Edit before accepting**
+  (drops into a textarea pre-filled with the proposal for manual revision), **Reject** (discards).
+- The AI can never overwrite a card without explicit user approval of the diff.
+
+#### 6.2 Original-version log (CardHistory)
+
+- New immutable entity `CardHistory` (`base44/entities/CardHistory.jsonc`). Fields: `card_id`,
+  `version` (sequential integer), `content_snapshot` (object: front/back/elaboration/source/tags),
+  `modified_by` (enum: user|ai), `modified_at` (ISO 8601), `ai_model_used` (nullable string).
+- `saveCardHistory(cardId, snapshot, modifiedBy, aiModel)` and `listCardHistory(cardId)` helpers
+  added to `src/api/storage.js`.
+- `handleApplyAiProposal` in `EditCardModal` calls `saveCardHistory` before updating form fields.
+- **CardHistoryModal**: clicking History on an AI-edited card opens a modal listing all
+  versions with version number, modifier, timestamp, and a snapshot of front/back. Revert is
+  available from any historical version.
+
+#### 6.3 Visual marker
+
+- Cards with `ai_edited: true` display a small AI edited badge (`nid-ai-badge` CSS class) in:
+  - `EditCardModal` header row (next to deck name and a History button)
+  - `SessionView` review screen (alongside the existing stakes_flag badge)
+- Badge hover text: AI-edited. View history. (in EditCardModal) or AI-edited. Open card to view history. (in SessionView).
+- `ai_edited: true` is written to the card entity on `handleApplyAiProposal`.
+
+#### 6.4 Citation rule (hard, enforced in code)
+
+- `CITATION_INTENT_REGEX` in `src/api/aiAssist.js` matches prompts that request citation
+  insertion: verb within 40 chars of citation|reference|source|evidence|study|paper|pmid|doi|url|link.
+- `hasCitationIntent(prompt)` returns true if the regex matches.
+- In `requestAIEdit`, the regex is checked BEFORE the API call is made. If matched, the function
+  throws `CITATION_REFUSED: ...` immediately -- no LLM request is sent.
+- In `EditCardModal.handleAiRequest`, the `CITATION_REFUSED:` prefix is caught and the UI shows:
+  Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.
+- The AI system prompt also instructs the model not to add citations, as a second layer.
+
+#### 6.5 Clinical content warning
+
+- `CLINICAL_REGEX` matches deck names or tags containing:
+  clinical|medic|pharm|drug|dose|anatomy|surg|neuro|cardio|onco|paed|obstet|infect
+- `isClinicalContent(deckName, tags)` tests both the deck name and each tag string.
+- `requestAIEdit` returns `isClinical: true` when the source card is in a clinical context.
+- `AIDiffModal` renders an additional amber warning banner when `isClinical` is true:
+  AI-suggested changes to clinical content can contain subtle factual errors. Verify against
+  a primary source before accepting. (citing Alkaissi and McFarlane, Am J Case Rep 2023;
+  Thirunavukarasu et al., Lancet Digit Health 2023; Omiye et al., npj Digit Med 2023.)
+- The banner appears between the diff view and the action buttons.
+
+### Phase 7.1: Static landing page
+
+- `public/landing.html`: self-contained static page requiring no build step.
+- Title: Nidus Recall: spaced repetition for serious learners
+- Full Open Graph meta set: og:title, og:description, og:image (icon-512.svg), og:url,
+  og:type (website), og:site_name.
+- Full Twitter Card meta set: twitter:card (summary_large_image), twitter:title,
+  twitter:description, twitter:image.
+- Content: product description, target audience, six differentiator feature cards,
+  two CTAs linking to the app.
+- Dark-mode support via @media (prefers-color-scheme: dark).
+- Footer: version label + references to Cepeda et al. (Psychol Sci 2006) and Ebbinghaus (1885).
+- Deploy: serve the `public/` directory as static assets alongside the built app.
+
+### Phase 7.2: Versioning
+
+- `package.json` version bumped from `0.0.0` to `0.6.0`.
+- Settings page footer shows Nidus Recall v0.6.0.
+
+### Verification
+
+- **Em dash grep:** 0 hits in user-facing strings across `src/` and `public/landing.html`.
+  (notion.js comment hit is pre-existing third-party boilerplate; test file hit is an
+  intentional literal in the assertion string.)
+- **Contrast:** All 23 token pairs remain WCAG 2.2 AA compliant (audit carried from Session 5;
+  no colour tokens changed in Session 6).
+- **Build:** `aiAssist.js` is dynamically imported only when user opens the AI panel,
+  keeping the main chunk unaffected.
+- **Tests:** `src/__tests__/aiAssist.test.js` covers citation refusal (5 cases), clinical
+  detection (6 cases), `requestAIEdit` safe/unsafe/clinical paths (4 cases), CardHistory write
+  and version increment (2 cases), and landing page HTML structure (10 assertions).
+
+---
+
+## Upgrade complete
+
+All six sessions of the upgrade plan for Nidus Recall are now closed.
+
+### Session summary
+
+| Session | Focus | Key deliverables |
+|---------|-------|------------------|
+| 1 | Foundation | FSRS-5 scheduling, CardState entity, dark mode, basic review flow |
+| 2 | Study experience | Interleaved mode, sleep window scheduler, cloze card type |
+| 3 | Content tools | Image occlusion editor, bulk import (Anki/Excel/Notion), sample deck |
+| 4 | Architecture | Deck hierarchy, CardState migration, FSRS parameter optimiser |
+| 5 | Deferred backlog | All 10 deferred items from Sessions 1-4 implemented |
+| 6 | AI safety + launch | AI diff view, CardHistory, visual marker, citation rule, clinical warning, landing page, versioning |
+
+### Architectural decisions
+
+- **FSRS-5 over SM-2:** ts-fsrs library; CardState entity holds all scheduling state separately
+  from the Flashcard entity. Scheduling parameters can evolve without card migrations.
+- **Base44 entity SDK:** All persistence through `base44.entities.*`. No direct REST calls.
+  Dynamic imports gate heavy modules (aiAssist, FSRS optimiser, image occlusion) to keep the
+  main bundle lean.
+- **AI gateway:** `base44.functions.callFunction(invokeLLM, {...})` -- AI calls are proxied
+  through Base44, never from the browser directly. API key is server-side only.
+- **Citation hard block at call site:** Regex is checked before the LLM call fires. The
+  model's instruction-following is not a sufficient sole guardrail for a hard constraint.
+- **CardHistory is append-only:** No updates or deletes exposed in the UI. Versions are
+  sequential integers (not UUIDs) for human readability in the history modal.
+- **No external CSS framework:** All styles are inline JSX objects or a single style block
+  in Home.jsx. Avoids bundle size concerns and class name collisions.
+
+### Known deferred items
+
+- Full Lighthouse PWA audit with service worker and manifest verification (requires deployed
+  environment; local dev server does not trigger the installable prompt).
+- Automated WCAG contrast regression test in CI (currently a manual script).
+- CardHistory revert confirmation prompt: history is viewable and revert writes a new card
+  version, but a confirmation step before revert is not yet implemented.
+- Anki .apkg export (import-only today; export would require writing SQLite in the browser).
+- Deck sharing via public URL (architecture supports it via Base44 entity permissions, but the
+  UI flow is not built).
+- Performance profiling on large decks (1000+ cards): batch loading and virtual scrolling in
+  LibraryView and DeckView are not implemented.
+
+
 # Changelog
 
 ## Session 5 (2026-04-26)
