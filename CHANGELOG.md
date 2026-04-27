@@ -1,3 +1,79 @@
+## Session 8 (2026-04-27)
+
+### Post-upgrade Session 2: security and hygiene (Phases 1-3)
+
+All 154 tests pass. No em/en dashes in user-facing strings.
+
+#### Phase 1: Notion token moved from localStorage to User entity
+
+Notion credentials were stored in localStorage under `nidus-notion`, making them
+visible in JSON exports and developer tools. They are now stored server-side in
+the Base44 User entity.
+
+**New files**
+- `src/api/notionSettings.js` -- `getNotionCredentials`, `setNotionCredentials`,
+  `clearNotionCredentials`, `migrateNotionCredentials`. Falls back to localStorage
+  for unauthenticated/offline sessions. Migration runs once on app init and clears
+  the localStorage copy after a successful write to the User entity.
+- `src/__tests__/notionSettings.test.js` -- 14 tests covering round-trip, migration
+  idempotence, fallback on auth failure, and export redaction (localStorage cleared).
+
+**Modified files**
+- `base44/entities/User.jsonc` -- added `notion_integration_token` (sensitive) and
+  `notion_database_id` fields.
+- `src/views/SettingsView.jsx` -- `ImportExportPanel` now loads credentials via async
+  effect (server-first, localStorage fallback); saves via `setNotionCredentials` on
+  change; new "Disconnect Notion" button calls `clearNotionCredentials`.
+- `src/store/appStore.js` -- `init` action calls `migrateNotionCredentials` (non-fatal).
+
+#### Phase 2: PNG icon generation
+
+Added `sharp`-based build script to generate raster icons required by iOS Safari
+and Android Chrome (SVG-only manifests are not universally installable as PWAs).
+
+**New files**
+- `scripts/generate-icons.js` -- reads `public/icons/icon-512.svg`; outputs
+  `icon-512.png` (512x512), `icon-192.png` (192x192), `apple-touch-icon.png` (180x180).
+- `scripts/__tests__/generate-icons.test.js` -- 6 tests validating PNG existence and
+  exact pixel dimensions via sharp metadata.
+- `public/icons/icon-192.png`, `public/icons/icon-512.png`, `public/apple-touch-icon.png`
+  -- generated PNG icons committed to the repository.
+
+**Modified files**
+- `package.json` -- added `build:icons` script; `postinstall` now also runs
+  `generate-icons.js`; `sharp@^0.33.0` added as devDependency.
+- `public/manifest.json` -- added PNG icon entries (192x192 any, 512x512 any+maskable);
+  SVG entry retained as fallback.
+- `index.html` -- `apple-touch-icon` link updated from SVG to
+  `/apple-touch-icon.png` with `sizes="180x180"`.
+
+#### Phase 3: CardHistory revert confirmation modal with diff
+
+Previously the History modal was read-only. Revert was not implemented.
+
+**Modified files**
+- `src/modals/CardHistoryModal.jsx` -- each history entry now shows a "Revert to this
+  version" button (only when `onRevert` prop is supplied). Clicking it shows a
+  confirmation pane with a side-by-side diff: current content on the left in red,
+  target content on the right in green, per field (front/back). Confirming the revert
+  writes a new append-only CardHistory entry (`modified_by = 'user'`) then calls
+  `onRevert(snapshot)`. Cancelling returns to the history list. An identical-content
+  guard shows a no-diff message rather than presenting an empty confirmation.
+- `src/modals/EditCardModal.jsx` -- passes `card` and `onRevert` to `CardHistoryModal`;
+  `onRevert` updates the editor form state with the reverted snapshot.
+
+**New files**
+- `src/modals/__tests__/CardHistoryModal.test.jsx` -- 7 tests: revert button does not
+  mutate immediately, diff pane renders correctly, cancel returns to list, confirm calls
+  `onRevert` and `saveCardHistory`, no-diff guard, buttons hidden without `onRevert` prop.
+
+#### Phase 4: Repo metadata (manual GitHub steps)
+
+The following changes require the GitHub repository settings UI and cannot be committed:
+- Repository description: "Nidus Recall: spaced repetition for postgraduate learners"
+- Homepage URL: the deployed app URL
+- Topics: `spaced-repetition`, `flashcards`, `fsrs`, `medical-education`, `pwa`
+
 ## Session 7 (2026-04-27)
 
 ### Home.jsx decomposition (Phases 1-6)
