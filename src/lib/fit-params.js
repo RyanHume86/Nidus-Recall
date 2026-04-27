@@ -1,11 +1,14 @@
 import * as storage from "@/api/storage"
 
-// fitSchedulerParams: retention target adjustment + background FSRS-5 gradient
-// descent. Synchronous part mirrors src/lib/fsrs.fitSchedulerParams; the async
-// gradient-descent path stays here because it writes to storage and requires the
-// dynamic fsrs-optimizer import.
+// fitSchedulerParams: retention target adjustment from observed recall accuracy,
+// with a background pass that tunes the forgetting-curve exponent (w[17]).
 //
-// Reference: open-spaced-repetition/fsrs-optimizer (gradient descent algorithm).
+// The synchronous return value adjusts settings.retentionTarget up or down by
+// 0.02 when observed recall diverges from target by more than 5 percentage points.
+//
+// The async background pass calls tuneRetentionTarget from fsrs-optimizer.js,
+// which fits only w[17] (theta) via gradient descent. All other FSRS-5 parameters
+// stay at published defaults. Full 19-parameter optimisation is a planned feature.
 let fsrsOptimizerModule = null
 const getFsrsOptimizer = async () => {
   if (!fsrsOptimizerModule) fsrsOptimizerModule = await import('./fsrs-optimizer.js')
@@ -26,19 +29,19 @@ export const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
   else if (observedAccuracy < currentRetentionTarget - 0.05)
     newTarget = Math.min(0.97, Math.round((currentRetentionTarget + 0.02) * 100) / 100)
 
-  // Run gradient descent in background. Does not block return value.
+  // Tune w[17] in background; does not block return value.
   if (events.length >= 200) {
-    getFsrsOptimizer().then(async ({ fitParams, buildReviewLog, DEFAULT_PARAMS }) => {
+    getFsrsOptimizer().then(async ({ tuneRetentionTarget, buildReviewLog, DEFAULT_PARAMS }) => {
       try {
         const reviewLog = buildReviewLog(allCards)
         const currentParams = storage.getUserSchedulerParams()?.params || DEFAULT_PARAMS
-        const { params, loss, fitted } = fitParams(reviewLog, currentParams)
+        const { params, loss, fitted } = tuneRetentionTarget(reviewLog, currentParams)
         if (fitted) {
           await storage.saveUserSchedulerParams(params, events.length)
-          console.log('[Nidus Recall] FSRS-5 gradient descent complete. Loss:', loss)
+          console.log('[Nidus Recall] Retention curve tuning complete. Loss:', loss)
         }
       } catch (err) {
-        console.warn('[Nidus Recall] FSRS gradient descent failed (non-fatal):', err)
+        console.warn('[Nidus Recall] Retention curve tuning failed (non-fatal):', err)
       }
     }).catch(() => {})
   }

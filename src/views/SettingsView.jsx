@@ -378,23 +378,22 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
           </div>
 
           <div className="rapp-card rapp-mb16" style={{ marginTop:16 }}>
-            <div className="rapp-sec-title">FSRS Parameters</div>
+            <div className="rapp-sec-title">Retention target tuning</div>
             <div style={{ fontSize:13, color:C.textSec, lineHeight:1.6, marginBottom:10 }}>
               {schedulerParams?.lastFitDate
-                ? <>Current parameter set: fitted on {schedulerParams.lastFitDate} from {schedulerParams.reviewCountAtFit || 0} reviews</>
-                : <>Current parameter set: default ts-fsrs (no fit yet)</>
+                ? <>Retention target last adjusted on {schedulerParams.lastFitDate} from {schedulerParams.reviewCountAtFit || 0} reviews</>
+                : <>Retention target: not yet adjusted (requires 200 reviews)</>
               }
             </div>
             <div style={{ fontSize:13, color:C.textSec, lineHeight:1.6, marginBottom:14 }}>
-              Desired retention: <strong>{Math.round(retentionTarget * 100)}%</strong>
+              Current target: <strong>{Math.round(retentionTarget * 100)}%</strong>
             </div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.6 }}>
-              Nidus Recall adjusts the desired retention target based on your observed recall accuracy.
-              Fitting requires at least 200 reviews. Full 19-parameter optimisation is planned for a future update.
+              The desired retention target is adjusted based on observed recall accuracy, while leaving FSRS-5 parameters at their published defaults. True per-user parameter optimisation is a planned future feature.
             </p>
             <button className="rapp-btn rapp-btn-ghost" style={{ fontSize:13, padding:"8px 16px" }}
               onClick={onRefitParams}>
-              Refit now
+              Retune now
             </button>
           </div>
 

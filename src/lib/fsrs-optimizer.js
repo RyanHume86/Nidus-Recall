@@ -1,16 +1,11 @@
-// fsrs-optimizer.js: Simplified FSRS-5 parameter fitting for Nidus Recall.
+// fsrs-optimizer.js: Single-parameter retention-curve tuner for Nidus Recall.
 //
-// Implements stochastic gradient descent over a user's review history to
-// fit the 19 FSRS-5 parameters to their actual recall performance.
+// Fits w[17] (the forgetting curve decay exponent, theta) via stochastic
+// gradient descent over a user's review history.
 //
-// Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.
-// Full optimizer reference: github.com/open-spaced-repetition/fsrs-optimizer
-//
-// This implementation fits the core stability-recall relationship parameters
-// using the observed recall outcomes from ratingHistory. It is a faithful but
-// simplified port targeting the forgetting curve exponent (w[17]) and initial
-// stability values (w[0]-w[3]). Production-grade fitting should use the
-// reference optimizer for full 19-parameter descent.
+// This is NOT a full FSRS-5 optimiser. The 19-parameter joint optimisation
+// described in open-spaced-repetition/fsrs-optimizer (Python) is a planned
+// future feature. See OPTIMISER_ASSESSMENT.md for the feasibility note.
 //
 // License: Same as project (see package.json). No external dependencies.
 
@@ -21,7 +16,7 @@ export const DEFAULT_PARAMS = [
   0.5316, 1.0651, 0.0589, 1.5330,   // w[5]-w[8]: stability after successful recall
   0.1544, 1.0057, 1.9395, 0.1100,   // w[9]-w[12]: stability after lapse
   0.2900, 0.3600, 2.9898, 0.5100,   // w[13]-w[16]: short-term stability multipliers
-  0.14,                              // w[17]: forgetting curve exponent (theta)
+  0.14,                              // w[17]: forgetting curve exponent (theta) -- the fitted parameter
   4.00,                              // w[18]: difficulty target mean
 ]
 
@@ -45,11 +40,11 @@ const computeLoss = (reviewLog, params) => {
   return n > 0 ? totalLoss / n : 0
 }
 
-// fitParams: gradient descent over reviewLog to fit FSRS-5 parameters.
-// Currently fits w[17] (forgetting curve exponent) from observed recall data.
-// Full 19-parameter descent requires the reference fsrs-optimizer algorithm.
+// tuneRetentionTarget: gradient descent over reviewLog to adjust w[17]
+// (the forgetting curve exponent). w[0]-w[16] and w[18] remain at their
+// published FSRS-5 defaults. Full 19-parameter fitting is a planned feature.
 // Returns { params, loss, fitted } where fitted=false if insufficient data.
-export const fitParams = (reviewLog, currentParams = DEFAULT_PARAMS, iterations = 200) => {
+export const tuneRetentionTarget = (reviewLog, currentParams = DEFAULT_PARAMS, iterations = 200) => {
   if (!reviewLog || reviewLog.length < 50) {
     return { params: currentParams, loss: null, fitted: false }
   }

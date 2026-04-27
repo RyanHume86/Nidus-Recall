@@ -1,3 +1,49 @@
+## Session 9 (2026-04-27)
+
+### Post-upgrade Session 3: FSRS optimiser rename (Path B)
+
+**Path B taken.** See `OPTIMISER_ASSESSMENT.md` for the full feasibility note.
+
+#### Problem
+
+CHANGELOG Session 5 item 9 claimed "FSRS-5 parameter gradient descent". The actual
+implementation in `src/lib/fsrs-optimizer.js` fit a single parameter -- w[17], the
+forgetting curve decay exponent -- via stochastic gradient descent, while holding all
+other 18 parameters at published FSRS-5 defaults. This was labelled misleadingly.
+
+#### Why not Path A (true 19-parameter optimisation)?
+
+`fsrs-browser` v5.2.0 (npm, BSD-3-Clause, WASM) exists but is maintained by a
+third-party author (`alexerrant`/Pentive) rather than the official
+`open-spaced-repetition` org, uses 21 parameters (FSRS-5.2, not FSRS-5), and adds
+1.7 MB of WASM to the PWA bundle. Integrating WASM with the existing Vite build,
+Web Worker wiring, and Vitest test coverage in one session was deemed higher risk
+than the label fix warranted. True 19-parameter optimisation is deferred as a
+planned future feature.
+
+#### Changes
+
+**Modified files**
+- `src/lib/fsrs-optimizer.js` -- renamed `fitParams` -> `tuneRetentionTarget`;
+  rewrote file-level and function-level comments to state plainly that only w[17]
+  is fitted and that full 19-parameter descent is a planned feature.
+- `src/lib/fit-params.js` -- updated import to `tuneRetentionTarget`; updated
+  console log from "FSRS-5 gradient descent" to "Retention curve tuning".
+- `src/views/SettingsView.jsx` -- "FSRS Parameters" section renamed to
+  "Retention target tuning"; description updated to: "The desired retention target
+  is adjusted based on observed recall accuracy, while leaving FSRS-5 parameters at
+  their published defaults. True per-user parameter optimisation is a planned future
+  feature."; "Refit now" -> "Retune now"; status line updated.
+
+**New files**
+- `OPTIMISER_ASSESSMENT.md` -- one-paragraph feasibility note explaining why Path B
+  was chosen.
+- `src/lib/__tests__/fsrs-optimizer.test.js` -- 19 tests: API shape (`tuneRetentionTarget`
+  exported, `fitParams` absent), tuner behaviour (threshold, w[17] only changes,
+  clamping), `buildReviewLog` shape, and rename consistency checks across source files.
+
+**Total tests:** 173 (all passing). No em/en dashes.
+
 ## Session 8 (2026-04-27)
 
 ### Post-upgrade Session 2: security and hygiene (Phases 1-3)
