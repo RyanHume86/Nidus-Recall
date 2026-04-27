@@ -13,6 +13,12 @@ import { parseCloze, renderClozeFront, createClozeCards } from "@/lib/cloze"
 import { createOcclusionCards } from "@/lib/occlusion"
 // src/lib/heatmap.js: review-log aggregation for heatmap display.
 import { buildHeatmapData } from "@/lib/heatmap"
+// src/lib/deck-tree.js: hierarchical deck list builder.
+import { buildDeckTree } from "@/lib/deck-tree"
+// src/lib/settings.js: DEFAULT_SETTINGS, SK, lsGet/Set, settingsGet/Set, sleep window helpers.
+import { DEFAULT_SETTINGS, SK, lsGet, lsSet, settingsGet, settingsSet, notionGet, notionSet, deckMetaGet, deckMetaSet, lastSyncGet, lastSyncSet, isInSleepWindow, SLEEP_DISMISS_KEY, RETURN_ONBOARD_KEY, sleepBannerIsDismissed, sleepBannerDismiss } from "@/lib/settings"
+// src/lib/stats.js: computeCalibration, buildCalibrationChart, computeFatigueScore, assembleFrictionNote.
+import { computeCalibration, buildCalibrationChart, computeFatigueScore, assembleFrictionNote } from "@/lib/stats"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -85,61 +91,6 @@ const SOURCE_MAX    = 200
 const TAG_MAX_LEN   = 50
 const TAG_MAX_COUNT = 5
 
-const DEFAULT_SETTINGS = {
-  newCardCap:          15,
-  reviewCap:           100,
-  leechThreshold:      5,
-  retentionTarget:     0.90,
-  catchupDays:         7,
-  sleepBedtime:        null,
-  sleepWindowMinutes:  90,
-  sleepBannerEnabled:  true,
-  matureModeEnabled:   true,
-  matureCardThreshold: 30,
-  fatigueAlertsEnabled:        true,
-  attentionDeclarationEnabled: true,
-  sleepPrefersReviews:         true,
-}
-
-// ─── Local storage helpers ────────────────────────────────────────────────────
-const SK = { settings: "nidus-settings", notion: "nidus-notion", deckMeta: "nidus-deck-meta", lastSync: "nidus-last-sync" }
-const lsGet = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def } catch { return def } }
-const lsSet = (k, v)   => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
-
-// Returns true when local time is within sleepWindowMinutes before sleepBedtime.
-// Handles windows that cross midnight (e.g. bedtime 00:30, window 90 min → active from 23:00).
-const isInSleepWindow = (settings) => {
-  const { sleepBedtime, sleepWindowMinutes=90, sleepBannerEnabled=true } = settings||{}
-  if (!sleepBedtime || !sleepBannerEnabled) return false
-  const now   = new Date()
-  const [h,m] = sleepBedtime.split(":").map(Number)
-  const nowMins = now.getHours()*60 + now.getMinutes()
-  const bedMins = h*60 + m
-  const start   = bedMins - sleepWindowMinutes
-  if (start >= 0) return nowMins >= start && nowMins < bedMins
-  // Window crosses midnight: active from (start+1440) to end of day OR before bedtime
-  return nowMins >= (start + 1440) || nowMins < bedMins
-}
-
-const SLEEP_DISMISS_KEY   = "nidus-sleep-banner-dismissed"
-const RETURN_ONBOARD_KEY  = "nidus-return-onboarding"
-const sleepBannerIsDismissed = () => localStorage.getItem(SLEEP_DISMISS_KEY) === new Date().toISOString().slice(0,10)
-const sleepBannerDismiss     = () => localStorage.setItem(SLEEP_DISMISS_KEY, new Date().toISOString().slice(0,10))
-
-const settingsGet  = ()  => {
-  // Migrate old defaults to new defaults on first load.
-  const stored = lsGet(SK.settings, {})
-  if (stored.newCardCap === 50) stored.newCardCap = 15
-  if (stored.reviewCap === 200) stored.reviewCap = 100
-  return { ...DEFAULT_SETTINGS, ...stored }
-}
-const settingsSet  = (v) => lsSet(SK.settings, v)
-const notionGet    = ()  => lsGet(SK.notion, {})
-const notionSet    = (v) => lsSet(SK.notion, v)
-const deckMetaGet  = ()  => lsGet(SK.deckMeta, {})
-const deckMetaSet  = (v) => lsSet(SK.deckMeta, v)
-const lastSyncGet  = ()  => { try { return localStorage.getItem(SK.lastSync) || null } catch { return null } }
-const lastSyncSet  = ()  => { try { localStorage.setItem(SK.lastSync, new Date().toISOString()) } catch {} }
 
 // Utilities: localDateStr, addDays, todayStr, genId, timeAgo
 // imported from @/lib/dates at top of file.
@@ -517,128 +468,8 @@ export function ReviewHeatmap({ log }) {
   )
 }
 
-// buildDeckTree: builds hierarchical deck list from parentMap (from storage.getDeckParentMap()).
-// Falls back to "::" name convention when parentMap has no entries.
-// After the 2026-04-26-deck-hierarchy migration runs, parentDeckId populates parentMap.
-const buildDeckTree = (deckNames, parentMap = new Map()) => {
-  // If parentMap is populated, use parent/child relationships.
-  if (parentMap && parentMap.size > 0) {
-    const result = []
-    const roots = deckNames.filter(n => !parentMap.has(n)).sort()
-    const addNode = (name, depth) => {
-      result.push({ name, displayName: name.split('::').pop().trim(), indent: depth })
-      const children = deckNames.filter(n => parentMap.get(n) === name).sort()
-      for (const child of children) addNode(child, depth + 1)
-    }
-    for (const root of roots) addNode(root, 0)
-    // Include orphans (parentMap references non-existent parent).
-    const seen = new Set(result.map(r => r.name))
-    for (const name of deckNames) {
-      if (!seen.has(name)) result.push({ name, displayName: name.split('::').pop().trim(), indent: 0 })
-    }
-    return result
-  }
-  // Fallback: derive hierarchy from "::" in name.
-  return deckNames.map(name => ({
-    name,
-    displayName: name.includes('::') ? name.split('::').pop().trim() : name,
-    indent: name.includes('::') ? (name.split('::').length - 1) : 0,
-  }))
-}
 
 
-
-// Compute recall accuracy (calibration) score for a set of cards.
-// Looks at pairs: good/easy entry followed by an "again" on the next review = mismatch.
-// Returns { score: number 0-100, total: number } - score is null when total < 10.
-const computeCalibration = (cards, days = 30) => {
-  const cutoff = new Date(Date.now() - days * 86400000).toISOString()
-  let mismatches = 0, total = 0
-  for (const card of cards) {
-    const hist = card.ratingHistory
-    if (!hist || hist.length < 2) continue
-    for (let i = 0; i < hist.length - 1; i++) {
-      const entry = hist[i]
-      if (entry.date < cutoff) continue
-      if (entry.rating === "good" || entry.rating === "easy") {
-        total++
-        if (hist[i + 1].rating === "again") mismatches++
-      }
-    }
-  }
-  return { score: total >= 10 ? Math.round((1 - mismatches / total) * 100) : null, total }
-}
-
-// Build 90-day weekly calibration chart data from ratingHistory across cards.
-// Returns array of { week: "Apr 14", score: number } sorted oldest-first.
-// Weeks with fewer than 4 reviewable pairs are excluded.
-const buildCalibrationChart = (cards) => {
-  const now = Date.now()
-  const weeks = []
-  for (let w = 12; w >= 0; w--) {
-    const start = new Date(now - (w + 1) * 7 * 86400000).toISOString()
-    const end   = new Date(now - w * 7 * 86400000).toISOString()
-    let mismatches = 0, total = 0
-    for (const card of cards) {
-      const hist = card.ratingHistory
-      if (!hist || hist.length < 2) continue
-      for (let i = 0; i < hist.length - 1; i++) {
-        const entry = hist[i]
-        if (entry.date < start || entry.date >= end) continue
-        if (entry.rating === "good" || entry.rating === "easy") {
-          total++
-          if (hist[i + 1].rating === "again") mismatches++
-        }
-      }
-    }
-    if (total >= 4) {
-      const d = new Date(now - w * 7 * 86400000)
-      weeks.push({ week: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }), score: Math.round((1 - mismatches / total) * 100) })
-    }
-  }
-  return weeks
-}
-
-// Fatigue risk score based on session log from the last 14 days.
-// Returns 0 when fewer than 5 sessions exist. Otherwise sums up to 3 flags.
-const computeFatigueScore = (log) => {
-  const now = Date.now()
-  const cut14 = new Date(now - 14 * 86400000).toISOString()
-  const cut7  = new Date(now -  7 * 86400000).toISOString()
-  const recent = log.filter(e => e.date >= cut14)
-  if (recent.length < 5) return 0
-  const last7  = recent.filter(e => e.date >= cut7)
-  const prior7 = recent.filter(e => e.date <  cut7)
-  let flags = 0
-  // Signal 1: session frequency decline > 30%
-  if (prior7.length > 0 && last7.length / prior7.length < 0.7) flags++
-  // Signal 2: again rate increase > 20pp
-  const againRate = arr => {
-    const total = arr.reduce((s,e) => s+(e.reviewed||0)+(e.newAdded||0), 0)
-    if (!total) return null
-    return arr.reduce((s,e) => s+(e.failed||0), 0) / total
-  }
-  const r7 = againRate(last7), rP = againRate(prior7)
-  if (r7 !== null && rP !== null && r7 - rP > 0.20) flags++
-  // Signal 3: average session size decline > 25%
-  const avgSize = arr => arr.length === 0 ? null : arr.reduce((s,e) => s+(e.reviewed||0)+(e.newAdded||0), 0) / arr.length
-  const s7 = avgSize(last7), sP = avgSize(prior7)
-  if (s7 !== null && sP !== null && sP > 0 && s7 / sP < 0.75) flags++
-  return flags
-}
-
-// Assembles the final frictionNote for a session. User-written text is
-// preserved at the front; system markers are appended, never prepended or
-// overwritten. This is the single authoritative write point - intensity,
-// fatigue, and attention declaration must feed here rather than writing
-// frictionNote independently.
-const assembleFrictionNote = (userText, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused }) => {
-  const markers = []
-  if (intensityCount > 0) markers.push(`[Intensity: ${(intensityPts / intensityCount).toFixed(1)}]`)
-  if (fatigueAlertsEnabled && fatigueScore >= 2) markers.push("[Fatigue risk: elevated]")
-  if (focused) markers.push("[Focused: yes]")
-  return [userText.trim(), ...markers].filter(Boolean).join(" ")
-}
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
