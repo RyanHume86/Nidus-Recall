@@ -1,11 +1,22 @@
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import path from 'path'
 // vite-plugin-pwa: MIT, vite-pwa/vite-plugin-pwa, Workbox integration for Vite.
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: { '@': path.resolve(__dirname, './src') },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    globals: true,
+    reporters: process.env.CI ? ['junit'] : ['default'],
+    outputFile: process.env.CI ? 'test-results/junit.xml' : undefined,
+  },
   logLevel: 'error', // Suppress warnings, only show errors
   // assetsInclude: include .wasm so Vite handles sql.js WASM correctly.
   assetsInclude: ['**/*.wasm'],

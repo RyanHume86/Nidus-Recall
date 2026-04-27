@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../integrations/base44client', () => ({
+vi.mock('@/api/base44Client', () => ({
   base44: {
     functions: { callFunction: vi.fn() },
     entities: {
@@ -16,7 +16,7 @@ vi.mock('../integrations/base44client', () => ({
   },
 }))
 
-import { base44 } from '../integrations/base44client'
+import { base44 } from '@/api/base44Client'
 import { hasCitationIntent, isClinicalContent, requestAIEdit } from '../api/aiAssist'
 import { saveCardHistory, listCardHistory } from '../api/storage'
 

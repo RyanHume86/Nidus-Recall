@@ -406,7 +406,7 @@ const createOcclusionCards = (imageUrl, regions, deckName) => {
 // OcclusionCardRenderer: renders image with region overlays.
 // Front: tested region is opaque mask; all others semi-transparent.
 // Back (revealed=true): all regions shown with labels.
-function OcclusionCardRenderer({ card, revealed }) {
+export function OcclusionCardRenderer({ card, revealed }) {
   const { imageUrl, occlusionRegions, occlusionRegionId } = card
   if (!imageUrl || !occlusionRegions) return null
   return (
@@ -459,7 +459,7 @@ function OcclusionCardRenderer({ card, revealed }) {
 // Design follows Image Occlusion Enhanced addon convention (AnKing, Pepper Pharm).
 // Keyboard: R = rectangle mode, P = polygon mode.
 // Rectangle: drag to draw. Polygon: click to add vertices, double-click or Enter to close.
-function ImageOcclusionEditor({ onSave }) {
+export function ImageOcclusionEditor({ onSave }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [regions, setRegions] = useState([])
   const [drawing, setDrawing] = useState(null)
@@ -676,7 +676,7 @@ const buildHeatmapData = (log) => {
   return map
 }
 
-function ReviewHeatmap({ log }) {
+export function ReviewHeatmap({ log }) {
   const data = buildHeatmapData(log)
   const today = new Date()
   const days = []
@@ -1381,7 +1381,7 @@ function CardPicker({ allCards, value, onChange, mode="single", excludeId, place
 
 
 // ─── Onboarding View ──────────────────────────────────────────────────────────
-function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
+export function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
   // "See how it works" modal removed in Session 3: the sample deck (Common Pharmacology: Essentials)
   // demonstrates all card types in context, making the modal redundant. Users learn by doing.
   // The secondary action is kept as an outline button for users who prefer to build from scratch.
@@ -1405,7 +1405,7 @@ function OnboardingView({ onCreateDeck, onCreateSampleDeck }) {
 }
 
 // ─── Library View ─────────────────────────────────────────────────────────────
-function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap }) {
+export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap }) {
   const [search,         setSearch]         = useState("")
   const [showArchived,   setShowArchived]   = useState(false)
   const [showCreateDeck, setShowCreateDeck] = useState(false)
@@ -1537,7 +1537,7 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
 }
 
 // ─── Edit Card Modal ──────────────────────────────────────────────────────────
-function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
+export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
   const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
   const [showNote, setShowNote]   = useState(!!(card.elaboration))
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
@@ -1794,7 +1794,7 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHisto
 // â”€â”€â”€ AI Diff Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Displays original vs AI-proposed content side by side. User must click Accept,
 // Edit before accepting, or Reject. No card is modified until Accept is clicked.
-function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit, onReject }) {
+export function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit, onReject }) {
   const [editMode, setEditMode] = useState(false)
   const [editedFront, setEditedFront] = useState(proposed.front)
   const [editedBack,  setEditedBack]  = useState(proposed.back)
@@ -1840,13 +1840,13 @@ function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit, onReje
           {!editMode ? (
             <>
               <button onClick={onApprove} style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:C.accent, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Accept</button>
-              <button onClick={()=>setEditMode(true)} style={{ flex:1, padding:"10px", borderRadius:10, border:`+"`"+`1px solid ${C.border}`+"`"+`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Edit before accepting</button>
+              <button onClick={()=>setEditMode(true)} style={{ flex:1, padding:"10px", borderRadius:10, border:`1px solid ${C.border}`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Edit before accepting</button>
               <button onClick={onReject} style={{ flex:1, padding:"10px", borderRadius:10, border:"1px solid #E8B0A0", background:"transparent", color:C.again, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Reject</button>
             </>
           ) : (
             <>
               <button onClick={()=>onEdit({ front:editedFront, back:editedBack })} style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:C.accent, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Accept edited version</button>
-              <button onClick={()=>setEditMode(false)} style={{ flex:1, padding:"10px", borderRadius:10, border:`+"`"+`1px solid ${C.border}`+"`"+`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Back to diff</button>
+              <button onClick={()=>setEditMode(false)} style={{ flex:1, padding:"10px", borderRadius:10, border:`1px solid ${C.border}`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Back to diff</button>
             </>
           )}
         </div>
@@ -1858,7 +1858,7 @@ function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit, onReje
 // â”€â”€â”€ Card History Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Shows all CardHistory records for a card, newest first.
 // The original content before the first AI change is always preserved and visible.
-function CardHistoryModal({ cardId, onClose }) {
+export function CardHistoryModal({ cardId, onClose }) {
   const [history, setHistory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
@@ -1904,7 +1904,7 @@ function CardHistoryModal({ cardId, onClose }) {
 }
 
 // ─── Deck View ────────────────────────────────────────────────────────────────
-function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
+export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic") // "basic" | "cloze" | "occlusion"
   const [clozeText, setClozeText] = useState("")
@@ -2324,7 +2324,7 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
 }
 
 // ─── Study Select View ────────────────────────────────────────────────────────
-function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved }) {
+export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved }) {
   const [deck, setDeck] = useState("all")
   const [mode, setMode] = useState("srs")
   const [interleavedDecks, setInterleavedDecks] = useState([])
@@ -2449,7 +2449,7 @@ function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onSt
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
+export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
@@ -2883,7 +2883,7 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
 }
 
 // ─── Free Study View ──────────────────────────────────────────────────────────
-function FreeStudyView({ cards, studyDeckName, onDone, settings }) {
+export function FreeStudyView({ cards, studyDeckName, onDone, settings }) {
   const [order,      setOrder]     = useState("sequential")
   const [started,    setStarted]   = useState(false)
   const [studyList,  setStudyList] = useState([])
@@ -3039,7 +3039,7 @@ function FreeStudyView({ cards, studyDeckName, onDone, settings }) {
 }
 
 // ─── Stats View ───────────────────────────────────────────────────────────────
-function StatsView({ log, cards, decks, settings }) {
+export function StatsView({ log, cards, decks, settings }) {
   const [selectedDeck, setSelectedDeck] = useState("all")
   const { leechThreshold=5, fatigueAlertsEnabled=true } = settings||{}
 
@@ -3246,7 +3246,7 @@ function StatsView({ log, cards, decks, settings }) {
 }
 
 // ─── Settings View ────────────────────────────────────────────────────────────
-function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onImportAnki, onRefitParams, schedulerParams }) {
+export function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onImportAnki, onRefitParams, schedulerParams }) {
   const {
     newCardCap=15, reviewCap=100, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
     sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true, sleepPrefersReviews=true,
@@ -3786,7 +3786,7 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
 }
 
 // ─── Return Onboarding Card ───────────────────────────────────────────────────
-function ReturnOnboardingCard({ daysSince, dueCount, onCatchUp, onReviewTen }) {
+export function ReturnOnboardingCard({ daysSince, dueCount, onCatchUp, onReviewTen }) {
   return (
     <div className="rapp-wrap rapp-fadein" style={{ paddingTop:32 }}>
       <div style={{ textAlign:"center", marginBottom:32 }}>
