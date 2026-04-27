@@ -15,6 +15,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import { cwd } from 'process'
 import initSqlJs from 'sql.js'
 import { buildApkg, parseApkg, convertToNidusCards, _setSqlJs } from '@/api/anki.js'
 import { genId } from '@/lib/dates.js'
@@ -22,7 +23,7 @@ import { genId } from '@/lib/dates.js'
 // ── sql.js WASM bootstrap ──────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  const wasmBinary = readFileSync(resolve(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm'))
+  const wasmBinary = readFileSync(resolve(cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm'))
   const SqlJs = await initSqlJs({ wasmBinary })
   _setSqlJs(SqlJs)
 })
