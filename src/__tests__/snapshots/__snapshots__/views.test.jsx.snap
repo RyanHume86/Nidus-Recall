@@ -4769,7 +4769,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
     >
       <input
         class="rapp-input"
-        placeholder="Search cards…"
+        placeholder="Search cards..."
         value=""
       />
     </div>

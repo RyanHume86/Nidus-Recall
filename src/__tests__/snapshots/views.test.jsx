@@ -111,16 +111,14 @@ const LOG = [
 
 // ── Imports (after mocks) ─────────────────────────────────────────────────────
 
-import {
-  LibraryView,
-  OnboardingView,
-  DeckView,
-  StudySelectView,
-  SessionView,
-  FreeStudyView,
-  StatsView,
-  SettingsView,
-} from '@/pages/Home'
+import { OnboardingView } from '@/views/OnboardingView'
+import { LibraryView } from '@/views/LibraryView'
+import { DeckView } from '@/views/DeckView'
+import { StudySelectView } from '@/views/StudySelectView'
+import { SessionView } from '@/views/SessionView'
+import { FreeStudyView } from '@/views/FreeStudyView'
+import { StatsView } from '@/views/StatsView'
+import { SettingsView } from '@/views/SettingsView'
 import { EditCardModal } from '@/modals/EditCardModal'
 import { AIDiffModal } from '@/modals/AIDiffModal'
 import { CardHistoryModal } from '@/modals/CardHistoryModal'
