@@ -234,7 +234,15 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
           />
         )}
         {showHistory && (
-          <CardHistoryModal cardId={card.id} onClose={()=>setShowHistory(false)} />
+          <CardHistoryModal
+            cardId={card.id}
+            card={{ front: form.front, back: form.back }}
+            onClose={() => setShowHistory(false)}
+            onRevert={(snap) => {
+              setForm(prev => ({ ...prev, front: snap.front || prev.front, back: snap.back || prev.back }))
+              setShowHistory(false)
+            }}
+          />
         )}
         <button className="rapp-btn rapp-btn-primary rapp-mb12" style={{ width:"100%" }}
           onClick={handleSave} disabled={!form.front.trim()||!form.back.trim()}>
