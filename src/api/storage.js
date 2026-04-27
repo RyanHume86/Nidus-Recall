@@ -189,11 +189,13 @@ export const loadAll = async () => {
     cardStateSnapshot.set(cs.cardClientId, toAppCardState(cs))
   }
 
+  const INIT_LIMIT = 200
   const [deckEntities, cardEntities, logEntities] = await Promise.all([
     base44.entities.Deck.list(),
-    base44.entities.Flashcard.list(),
+    base44.entities.Flashcard.list(undefined, INIT_LIMIT, 0),
     base44.entities.SessionLog.list(),
   ])
+  const hasMore = cardEntities.length >= INIT_LIMIT
 
   // Build deck lookup maps; parentDeckId is available on deck entities after migration.
   deckCountCache.clear()
@@ -244,7 +246,22 @@ export const loadAll = async () => {
     userSchedulerParamsId = paramRecords[0].id
   }
 
-  return { cards, deckNames, log, deckParentMap: new Map(deckParentMapMemo) }
+  return { cards, deckNames, log, deckParentMap: new Map(deckParentMapMemo), hasMore }
+}
+
+/**
+ * Fetch a page of cards for background progressive loading.
+ * CardState is already populated from loadAll; toAppCard will merge it.
+ */
+export const loadCardsPage = async (skip, limit = 500) => {
+  const entities = await base44.entities.Flashcard.list(undefined, limit, skip)
+  const cards = entities.map(e => {
+    const card = toAppCard(e)
+    entityIdMap.set(card.id, e.id)
+    cardSnapshot.set(card.id, { ...card })
+    return card
+  })
+  return { cards, hasMore: entities.length >= limit }
 }
 
 /**

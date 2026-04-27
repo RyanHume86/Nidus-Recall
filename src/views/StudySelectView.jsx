@@ -3,7 +3,7 @@ import { C } from "@/lib/theme"
 import { getDueWithCatchup, getNew, isActive } from "@/lib/fsrs"
 import { isInSleepWindow } from "@/lib/settings"
 
-export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved }) {
+export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved, cardsLoading }) {
   const [deck, setDeck] = useState("all")
   const [mode, setMode] = useState("srs")
   const [interleavedDecks, setInterleavedDecks] = useState([])
@@ -106,16 +106,21 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
           </div>
         </div>
       )}
-      <button className="rapp-btn rapp-btn-primary rapp-btn-full" disabled={!canStart}
+      {cardsLoading && (
+        <p style={{ textAlign:"center", fontSize:12, color:C.textMut, marginBottom:10 }}>
+          Loading cards… counts may be incomplete.
+        </p>
+      )}
+      <button className="rapp-btn rapp-btn-primary rapp-btn-full" disabled={!canStart || cardsLoading}
         onClick={() => {
           if (mode==="srs") onStartSRS(deck, sleepWindowActive ? 0 : null, focused)
           else if (mode==="interleaved") onStartInterleaved(interleavedDecks)
           else onStartFree(deck)
         }}>
-        {mode==="srs" ? "Start session" : mode==="interleaved" ? "Start interleaved review" : "Start free study"}
+        {cardsLoading ? "Loading cards…" : mode==="srs" ? "Start session" : mode==="interleaved" ? "Start interleaved review" : "Start free study"}
       </button>
 
-      {(mode==="srs" || mode==="interleaved") && !canStart && (
+      {(mode==="srs" || mode==="interleaved") && !canStart && !cardsLoading && (
         <p style={{ textAlign:"center", fontSize:13, color:C.textMut, marginTop:12 }}>
           Nothing to study. Come back tomorrow or add cards.
         </p>

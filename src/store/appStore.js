@@ -19,6 +19,7 @@ export const useAppStore = create((set, get) => ({
   deckMeta: deckMetaGet(),
   settings: settingsGet(),
   ready: false,
+  cardsFullyLoaded: true,
 
   // ── Sync ─────────────────────────────────────────────────────────────────────
   syncStatus: 'idle',
@@ -225,11 +226,12 @@ export const useAppStore = create((set, get) => ({
 
   init: async () => {
     try {
-      const { cards: rc, deckNames, log: rl, deckParentMap: dpm } = await storage.loadAll()
+      const { cards: rc, deckNames, log: rl, deckParentMap: dpm, hasMore } = await storage.loadAll()
       set({
         cards: rc,
         log: rl,
         decks: [...new Set(deckNames)],
+        cardsFullyLoaded: !hasMore,
         ...(dpm ? { deckParentMap: dpm } : {}),
       })
       try {
@@ -249,8 +251,26 @@ export const useAppStore = create((set, get) => ({
       set({ ready: true })
       offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})
       migrateNotionCredentials().catch(() => {})
+      // Background: fetch remaining cards in 500-card chunks after ready.
+      if (hasMore) {
+        ;(async () => {
+          let skip = rc.length
+          for (;;) {
+            try {
+              const { cards: page, hasMore: more } = await storage.loadCardsPage(skip)
+              if (page.length === 0) break
+              set(state => ({ cards: [...state.cards, ...page] }))
+              skip += page.length
+              if (!more) break
+            } catch {
+              break
+            }
+          }
+          set({ cardsFullyLoaded: true })
+        })()
+      }
     } catch {
-      set({ ready: true })
+      set({ ready: true, cardsFullyLoaded: true })
     }
   },
 }))

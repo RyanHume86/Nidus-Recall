@@ -4804,76 +4804,78 @@ exports[`view snapshots > DeckView: with cards 1`] = `
       class="rapp-col"
       style="gap: 10px;"
     >
-      <div
-        class="rapp-card-item"
-      >
+      <div>
         <div
-          class="rapp-row rapp-sb"
-          style="gap: 10px;"
+          class="rapp-card-item"
         >
-          <p
-            class="rapp-card-item-q"
-            style="flex: 1 1 0%;"
-          >
-            What is the mechanism of metformin?
-          </p>
           <div
-            class="rapp-row rapp-gap8"
-            style="flex-shrink: 0;"
+            class="rapp-row rapp-sb"
+            style="gap: 10px;"
           >
-            <button
-              style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+            <p
+              class="rapp-card-item-q"
+              style="flex: 1 1 0%;"
             >
-              Edit
-            </button>
-            <button
-              style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+              What is the mechanism of metformin?
+            </p>
+            <div
+              class="rapp-row rapp-gap8"
+              style="flex-shrink: 0;"
             >
-              Archive
-            </button>
-            <svg
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-              viewBox="0 0 24 24"
-              width="14"
-            >
-              <polyline
-                points="6 9 12 15 18 9"
-              />
-            </svg>
+              <button
+                style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+              >
+                Edit
+              </button>
+              <button
+                style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+              >
+                Archive
+              </button>
+              <svg
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+                viewBox="0 0 24 24"
+                width="14"
+              >
+                <polyline
+                  points="6 9 12 15 18 9"
+                />
+              </svg>
+            </div>
           </div>
-        </div>
-        <div
-          class="rapp-row rapp-mt8"
-          style="gap: 6px; flex-wrap: wrap; align-items: center;"
-        >
-          <span
-            class="nid-ct-chip"
-            style="margin-bottom: 0px;"
+          <div
+            class="rapp-row rapp-mt8"
+            style="gap: 6px; flex-wrap: wrap; align-items: center;"
           >
-            Mechanism
-          </span>
-          <span
-            class="nid-tag"
-          >
-            pharm
-          </span>
-          <span
-            class="nid-tag"
-          >
-            diabetes
-          </span>
-          <span
-            class="rapp-ts"
-          >
-            · Due 
-            2026-01-15
-          </span>
+            <span
+              class="nid-ct-chip"
+              style="margin-bottom: 0px;"
+            >
+              Mechanism
+            </span>
+            <span
+              class="nid-tag"
+            >
+              pharm
+            </span>
+            <span
+              class="nid-tag"
+            >
+              diabetes
+            </span>
+            <span
+              class="rapp-ts"
+            >
+              · Due 
+              2026-01-15
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -9427,121 +9429,125 @@ exports[`view snapshots > StatsView: with log and cards 1`] = `
       class="rapp-col"
       style="gap: 10px;"
     >
-      <div
-        class="rapp-card"
-      >
+      <div>
         <div
-          class="rapp-row rapp-sb rapp-mb12"
+          class="rapp-card"
         >
-          <span
-            style="font-size: 14px; font-weight: 600;"
+          <div
+            class="rapp-row rapp-sb rapp-mb12"
           >
-            Wed 14 Jan
-          </span>
-          <span
-            class="rapp-ts"
-          >
-            02:00
-          </span>
-        </div>
-        <div
-          class="rapp-row"
-          style="gap: 22px;"
-        >
-          <div>
             <span
-              style="font-size: 20px; font-weight: 700;"
+              style="font-size: 14px; font-weight: 600;"
             >
-              10
+              Wed 14 Jan
             </span>
             <span
               class="rapp-ts"
             >
-               reviewed
+              02:00
             </span>
           </div>
-          <div>
-            <span
-              style="font-size: 20px; font-weight: 700; color: rgb(61, 20, 8);"
-            >
-              1
-            </span>
-            <span
-              class="rapp-ts"
-            >
-               failed
-            </span>
-          </div>
-          <div>
-            <span
-              style="font-size: 20px; font-weight: 700; color: rgb(45, 110, 82);"
-            >
-              3
-            </span>
-            <span
-              class="rapp-ts"
-            >
-               new
-            </span>
+          <div
+            class="rapp-row"
+            style="gap: 22px;"
+          >
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700;"
+              >
+                10
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 reviewed
+              </span>
+            </div>
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700; color: rgb(61, 20, 8);"
+              >
+                1
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 failed
+              </span>
+            </div>
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700; color: rgb(45, 110, 82);"
+              >
+                3
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 new
+              </span>
+            </div>
           </div>
         </div>
       </div>
-      <div
-        class="rapp-card"
-      >
+      <div>
         <div
-          class="rapp-row rapp-sb rapp-mb12"
+          class="rapp-card"
         >
-          <span
-            style="font-size: 14px; font-weight: 600;"
+          <div
+            class="rapp-row rapp-sb rapp-mb12"
           >
-            Tue 13 Jan
-          </span>
-          <span
-            class="rapp-ts"
-          >
-            02:00
-          </span>
-        </div>
-        <div
-          class="rapp-row"
-          style="gap: 22px;"
-        >
-          <div>
             <span
-              style="font-size: 20px; font-weight: 700;"
+              style="font-size: 14px; font-weight: 600;"
             >
-              15
+              Tue 13 Jan
             </span>
             <span
               class="rapp-ts"
             >
-               reviewed
+              02:00
             </span>
           </div>
-          <div>
-            <span
-              style="font-size: 20px; font-weight: 700; color: rgb(61, 20, 8);"
-            >
-              2
-            </span>
-            <span
-              class="rapp-ts"
-            >
-               failed
-            </span>
-          </div>
-          <div>
-            <span
-              style="font-size: 20px; font-weight: 700; color: rgb(45, 110, 82);"
-            >
-              0
-            </span>
-            <span
-              class="rapp-ts"
-            >
-               new
-            </span>
+          <div
+            class="rapp-row"
+            style="gap: 22px;"
+          >
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700;"
+              >
+                15
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 reviewed
+              </span>
+            </div>
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700; color: rgb(61, 20, 8);"
+              >
+                2
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 failed
+              </span>
+            </div>
+            <div>
+              <span
+                style="font-size: 20px; font-weight: 700; color: rgb(45, 110, 82);"
+              >
+                0
+              </span>
+              <span
+                class="rapp-ts"
+              >
+                 new
+              </span>
+            </div>
           </div>
         </div>
       </div>

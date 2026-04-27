@@ -37,6 +37,7 @@ export default function Home() {
   const deckMeta                 = useAppStore(s => s.deckMeta)
   const settings                 = useAppStore(s => s.settings)
   const ready                    = useAppStore(s => s.ready)
+  const cardsFullyLoaded         = useAppStore(s => s.cardsFullyLoaded)
   const syncStatus               = useAppStore(s => s.syncStatus)
   const lastSynced               = useAppStore(s => s.lastSynced)
   const incompleteSession        = useAppStore(s => s.incompleteSession)
@@ -263,7 +264,7 @@ export default function Home() {
             : <LibraryView cards={cards} decks={decks} deckMeta={deckMeta} onSelectDeck={d=>{setSelectedDeck(d);setView("deck")}} onCreateDeck={addDeck} syncStatus={syncStatus} lastSynced={lastSynced} settings={settings} onCreateSampleDeck={createSampleDeck} deckParentMap={deckParentMap} />
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} />}
-          {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} />}
+          {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} cardsLoading={!cardsFullyLoaded} />}
           {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={incrementSessionsCompleted} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}

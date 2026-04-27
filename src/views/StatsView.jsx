@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts"
 import { C } from "@/lib/theme"
 import { getDue, getNew, isActive } from "@/lib/fsrs"
@@ -183,30 +184,69 @@ export function StatsView({ log, cards, decks, settings }) {
       ) : (
         <>
           <div className="rapp-sec-title">Session history</div>
-          <div className="rapp-col" style={{ gap:10 }}>
-            {log.map((entry,i) => (
-              <div key={i} className="rapp-card">
-                <div className="rapp-row rapp-sb rapp-mb12">
-                  <span style={{ fontSize:14, fontWeight:600 }}>
-                    {new Date(entry.date).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}
-                  </span>
-                  <span className="rapp-ts">{new Date(entry.date).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</span>
-                </div>
-                <div className="rapp-row" style={{ gap:22 }}>
-                  <div><span style={{ fontSize:20, fontWeight:700 }}>{entry.reviewed}</span><span className="rapp-ts"> reviewed</span></div>
-                  <div><span style={{ fontSize:20, fontWeight:700, color:entry.failed>0?C.again:C.textMut }}>{entry.failed}</span><span className="rapp-ts"> failed</span></div>
-                  <div><span style={{ fontSize:20, fontWeight:700, color:C.accent }}>{entry.newAdded}</span><span className="rapp-ts"> new</span></div>
-                </div>
-                {entry.frictionNote && (
-                  <p style={{ marginTop:12, fontSize:13, color:C.textMut, fontStyle:"italic", lineHeight:1.65, borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
-                    "{entry.frictionNote}"
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
+          <SessionLog log={log} />
         </>
       )}
+    </div>
+  )
+}
+
+const LOG_VIRTUAL_THRESHOLD = 200
+
+function SessionLog({ log }) {
+  const listRef = useRef(null)
+
+  const virtualizer = useVirtualizer({
+    count: log.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 110,
+    overscan: 6,
+    enabled: log.length > LOG_VIRTUAL_THRESHOLD,
+  })
+
+  const renderEntry = (entry) => (
+    <div className="rapp-card">
+      <div className="rapp-row rapp-sb rapp-mb12">
+        <span style={{ fontSize:14, fontWeight:600 }}>
+          {new Date(entry.date).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}
+        </span>
+        <span className="rapp-ts">{new Date(entry.date).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</span>
+      </div>
+      <div className="rapp-row" style={{ gap:22 }}>
+        <div><span style={{ fontSize:20, fontWeight:700 }}>{entry.reviewed}</span><span className="rapp-ts"> reviewed</span></div>
+        <div><span style={{ fontSize:20, fontWeight:700, color:entry.failed>0?C.again:C.textMut }}>{entry.failed}</span><span className="rapp-ts"> failed</span></div>
+        <div><span style={{ fontSize:20, fontWeight:700, color:C.accent }}>{entry.newAdded}</span><span className="rapp-ts"> new</span></div>
+      </div>
+      {entry.frictionNote && (
+        <p style={{ marginTop:12, fontSize:13, color:C.textMut, fontStyle:"italic", lineHeight:1.65, borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
+          "{entry.frictionNote}"
+        </p>
+      )}
+    </div>
+  )
+
+  if (log.length <= LOG_VIRTUAL_THRESHOLD) {
+    return (
+      <div className="rapp-col" style={{ gap:10 }}>
+        {log.map((entry, i) => <div key={i}>{renderEntry(entry)}</div>)}
+      </div>
+    )
+  }
+
+  return (
+    <div ref={listRef} style={{ height: "min(600px, calc(100vh - 400px))", overflowY: "auto" }}>
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map(vi => (
+          <div
+            key={vi.key}
+            data-index={vi.index}
+            ref={virtualizer.measureElement}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)`, paddingBottom: 10 }}
+          >
+            {renderEntry(log[vi.index])}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

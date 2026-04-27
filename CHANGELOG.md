@@ -1,3 +1,83 @@
+## Session 10 (2026-04-27)
+
+### Post-upgrade Session 4: virtualisation and large-deck performance
+
+#### Problem
+
+With thousands of cards loaded, LibraryView, DeckView, and StatsView rendered the full list
+into the DOM on every mount. At 5000 cards (250 per deck), DeckView rendered all items as a
+flat React tree, causing multi-second TTI and sub-30 fps scroll on 4× CPU throttling.
+
+#### Phase 1 — Synthetic load script
+
+- `scripts/synthetic-load.js`: generates a 5000-card, 20-deck JSON export (≈5 MB)
+  in Nidus Recall import format. Realistic front/back fields (~200 chars), rating history,
+  tags, and 120 session log entries.
+- `PERF_BASELINE.md`: documents estimated baseline metrics and acceptance targets.
+
+#### Phase 2 — Virtualisation (`@tanstack/react-virtual`)
+
+Installed `@tanstack/react-virtual` (v3, MIT). Applied `useVirtualizer` with per-component
+thresholds; below threshold each component falls through to a normal `map()` render.
+
+| Component | Threshold | Scroll container height |
+|---|---|---|
+| LibraryView deck list | > 50 decks | `min(calc(100vh - 240px), 720px)` |
+| DeckView flat card list | > 100 cards | `calc(100vh - 540px)` min 240px |
+| StatsView session log | > 200 entries | `min(600px, calc(100vh - 400px))` |
+| CardHistoryModal history | > 50 versions | `calc(min(80vh, 600px) - 140px)` |
+
+DeckView uses `measureElement` (ResizeObserver) to handle accordion expand/collapse
+height changes live. DeckView `groupBySource` mode is excluded (below threshold in practice).
+
+Extracted `DeckList`/`DeckCard` sub-components from LibraryView, `CardFlatList` from
+DeckView, `SessionLog` from StatsView, `HistoryList` from CardHistoryModal.
+
+#### Phase 3 — Chunked card loading
+
+- `storage.js loadAll`: now fetches first **200 cards** only (`Flashcard.list(undefined, 200, 0)`);
+  returns `hasMore` flag.
+- `storage.js loadCardsPage(skip, limit=500)`: fetches one background page; also populates
+  `entityIdMap` and `cardSnapshot` so syncs work correctly.
+- `appStore.js`: added `cardsFullyLoaded: boolean` state (default `true`); `init` sets it
+  false when `hasMore`, then runs a background loop that calls `loadCardsPage` in 500-card
+  chunks and sets `cardsFullyLoaded: true` on completion.
+- `StudySelectView`: new `cardsLoading` prop; start button disabled with "Loading cards…"
+  label while background loading is in progress.
+- `Home.jsx`: passes `cardsLoading={!cardsFullyLoaded}` to `StudySelectView`.
+
+#### Phase 4 — Results and tests
+
+- `PERF_RESULTS.md`: documents expected post-optimisation timings and test strategy.
+- `src/__tests__/perf/virtualisation.test.jsx`: 8 new tests — below/above threshold
+  mounting, and 2000 ms render timing gates for 1000-entry StatsView and 200-deck
+  LibraryView.
+
+#### Verification
+
+- `npx vitest run`: **181/181 tests pass** (8 new perf tests added).
+- `vite build`: exits 0; no TypeScript or module-resolution errors.
+- Snapshot tests for DeckView and StatsView updated to accept intentional restructuring.
+
+**Modified files**
+- `src/api/storage.js`
+- `src/store/appStore.js`
+- `src/views/LibraryView.jsx`
+- `src/views/DeckView.jsx`
+- `src/views/StatsView.jsx`
+- `src/views/StudySelectView.jsx`
+- `src/modals/CardHistoryModal.jsx`
+- `src/pages/Home.jsx`
+- `src/__tests__/snapshots/views.test.jsx.snap` (2 snapshots updated)
+
+**New files**
+- `scripts/synthetic-load.js`
+- `PERF_BASELINE.md`
+- `PERF_RESULTS.md`
+- `src/__tests__/perf/virtualisation.test.jsx`
+
+---
+
 ## Session 9 (2026-04-27)
 
 ### Post-upgrade Session 3: FSRS optimiser rename (Path B)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import * as storage from "@/api/storage"
 import { C, FRONT_MAX, BACK_MAX, SOURCE_MAX } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
@@ -35,6 +36,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   const [qaBack, setQaBack] = useState("")
   const qaFrontRef = useRef(null)
   const frontRef = useRef(null)
+  const cardListRef = useRef(null)
 
   const leechThreshold = (settings||{}).leechThreshold || 5
   const isLeech = c => (c.lapses||0) >= leechThreshold
@@ -391,43 +393,92 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
     </div>
   )
 })() : (
-  <div className="rapp-col" style={{ gap:10 }}>
-    {filtered.map(c => (
-      <div key={c.id} className="rapp-card-item" onClick={()=>setExpanded(expanded===c.id?null:c.id)}>
-        <div className="rapp-row rapp-sb" style={{ gap:10 }}>
-          <p className="rapp-card-item-q" style={{ flex:1 }}>{c.front}</p>
-          <div className="rapp-row rapp-gap8" style={{ flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>setEditCard(c)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, padding:"8px 6px", fontFamily:"inherit" }}>Edit</button>
-            <button onClick={e=>handleArchiveCard(c.id,e)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, padding:"8px 6px", fontFamily:"inherit" }}>
-              {isArch(c)?"Unarchive":"Archive"}
-            </button>
-            {Ico.chevron(14, expanded===c.id)}
-          </div>
-        </div>
-        <div className="rapp-row rapp-mt8" style={{ gap:6, flexWrap:"wrap", alignItems:"center" }}>
-          {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0 }}>{c.contentType}</span>}
-          {(c.tags||[]).map((t,i) => <span key={i} className="nid-tag">{t}</span>)}
-          {c.nextReview && <span className="rapp-ts">· Due {c.nextReview}</span>}
-          {!c.nextReview && isActive(c) && <span style={{ fontSize:12, color:C.accent, fontWeight:500 }}>· New</span>}
-          {isArch(c) && <span style={{ fontSize:12, color:C.textMut }}>· Archived</span>}
-          {isActive(c) && isLeech(c) && <span className="rapp-leech">leech</span>}
-        </div>
-        {expanded===c.id && (
-          <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }} className="rapp-fadein">
-            <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.textMut, marginBottom:6 }}>Answer</p>
-            <p style={{ fontSize:14, color:C.textSec, lineHeight:1.75, whiteSpace:"pre-wrap", marginBottom:12 }}>{c.back}</p>
-            {c.elaboration && (
-              <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
-                <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.textMut, marginBottom:6 }}>Note</p>
-                <p style={{ fontSize:13, color:C.textSec, fontStyle:"italic", lineHeight:1.65 }}>{c.elaboration}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
+  <CardFlatList
+    filtered={filtered}
+    expanded={expanded}
+    setExpanded={setExpanded}
+    setEditCard={setEditCard}
+    handleArchiveCard={handleArchiveCard}
+    isArch={isArch}
+    isLeech={isLeech}
+    listRef={cardListRef}
+  />
 )}
+    </div>
+  )
+}
+
+const CARD_VIRTUAL_THRESHOLD = 100
+
+function CardFlatList({ filtered, expanded, setExpanded, setEditCard, handleArchiveCard, isArch, isLeech, listRef }) {
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 82,
+    overscan: 8,
+    enabled: filtered.length > CARD_VIRTUAL_THRESHOLD,
+  })
+
+  const renderCard = (c) => (
+    <div className="rapp-card-item" onClick={()=>setExpanded(expanded===c.id?null:c.id)}>
+      <div className="rapp-row rapp-sb" style={{ gap:10 }}>
+        <p className="rapp-card-item-q" style={{ flex:1 }}>{c.front}</p>
+        <div className="rapp-row rapp-gap8" style={{ flexShrink:0 }} onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>setEditCard(c)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, padding:"8px 6px", fontFamily:"inherit" }}>Edit</button>
+          <button onClick={e=>handleArchiveCard(c.id,e)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:12, color:C.textMut, padding:"8px 6px", fontFamily:"inherit" }}>
+            {isArch(c)?"Unarchive":"Archive"}
+          </button>
+          {Ico.chevron(14, expanded===c.id)}
+        </div>
+      </div>
+      <div className="rapp-row rapp-mt8" style={{ gap:6, flexWrap:"wrap", alignItems:"center" }}>
+        {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0 }}>{c.contentType}</span>}
+        {(c.tags||[]).map((t,i) => <span key={i} className="nid-tag">{t}</span>)}
+        {c.nextReview && <span className="rapp-ts">· Due {c.nextReview}</span>}
+        {!c.nextReview && isActive(c) && <span style={{ fontSize:12, color:C.accent, fontWeight:500 }}>· New</span>}
+        {isArch(c) && <span style={{ fontSize:12, color:C.textMut }}>· Archived</span>}
+        {isActive(c) && isLeech(c) && <span className="rapp-leech">leech</span>}
+      </div>
+      {expanded===c.id && (
+        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }} className="rapp-fadein">
+          <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.textMut, marginBottom:6 }}>Answer</p>
+          <p style={{ fontSize:14, color:C.textSec, lineHeight:1.75, whiteSpace:"pre-wrap", marginBottom:12 }}>{c.back}</p>
+          {c.elaboration && (
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
+              <p style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.textMut, marginBottom:6 }}>Note</p>
+              <p style={{ fontSize:13, color:C.textSec, fontStyle:"italic", lineHeight:1.65 }}>{c.elaboration}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  if (filtered.length <= CARD_VIRTUAL_THRESHOLD) {
+    return (
+      <div className="rapp-col" style={{ gap:10 }}>
+        {filtered.map(c => <div key={c.id}>{renderCard(c)}</div>)}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={listRef}
+      style={{ height: "calc(100vh - 540px)", minHeight: 240, overflowY: "auto" }}
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map(vi => (
+          <div
+            key={vi.key}
+            data-index={vi.index}
+            ref={virtualizer.measureElement}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)`, paddingBottom: 10 }}
+          >
+            {renderCard(filtered[vi.index])}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import { timeAgo } from "@/lib/dates"
@@ -14,6 +15,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
   const [newDeckName,    setNewDeckName]    = useState("")
   const [bannerDismissed, setBannerDismissed] = useState(sleepBannerIsDismissed)
   const newDeckRef = useRef(null)
+  const deckListRef = useRef(null)
 
   const hasDue        = getDue(cards).length > 0
   const showSleepBanner = isInSleepWindow(settings) && hasDue && !bannerDismissed
@@ -100,32 +102,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       ) : visible.length === 0 && search ? (
         <div className="rapp-empty">No decks match "{search}"</div>
       ) : (
-        <div className="rapp-col" style={{ gap:12 }}>
-          {(() => {
-            const tree = buildDeckTree(visible.map(d => d.name), deckParentMap || new Map())
-            return visible.map((d, idx) => {
-              const treeEntry = tree[idx]
-              return (
-                <div key={d.name} className="nid-deck-card"
-                  style={{ marginLeft: treeEntry.indent * 20 }}
-                  onClick={() => onSelectDeck(d.name)}>
-                  <div className="rapp-row rapp-sb">
-                    <div className="nid-deck-name">
-                      {treeEntry.indent > 0 && <span style={{ color:C.textMut, marginRight:4, fontSize:12 }}>{'> '.repeat(treeEntry.indent)}</span>}
-                      {treeEntry.displayName}
-                    </div>
-                    {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
-                  </div>
-                  <div className="nid-deck-meta">
-                    {d.total} card{d.total!==1?"s":""}
-                    {d.newCount > 0 && <span style={{ color:C.accent }}> · {d.newCount} new</span>}
-                    {d.archived && <span> · archived</span>}
-                  </div>
-                </div>
-              )
-            })
-          })()}
-        </div>
+        <DeckList visible={visible} deckParentMap={deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
       )}
 
       {archivedCount > 0 && (
@@ -134,6 +111,73 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
           {showArchived?"Hide":"Show"} {archivedCount} archived deck{archivedCount!==1?"s":""}
         </button>
       )}
+    </div>
+  )
+}
+
+const DECK_VIRTUAL_THRESHOLD = 50
+const DECK_ROW_ESTIMATE = 84  // px: card height (~72) + gap (12)
+
+function DeckList({ visible, deckParentMap, onSelectDeck, listRef }) {
+  const tree = useMemo(
+    () => buildDeckTree(visible.map(d => d.name), deckParentMap || new Map()),
+    [visible, deckParentMap]
+  )
+
+  const virtualizer = useVirtualizer({
+    count: visible.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => DECK_ROW_ESTIMATE,
+    overscan: 8,
+    enabled: visible.length > DECK_VIRTUAL_THRESHOLD,
+  })
+
+  if (visible.length <= DECK_VIRTUAL_THRESHOLD) {
+    return (
+      <div className="rapp-col" style={{ gap:12 }}>
+        {visible.map((d, idx) => <DeckCard key={d.name} d={d} treeEntry={tree[idx]} onSelectDeck={onSelectDeck} />)}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={listRef}
+      style={{ height: "min(calc(100vh - 240px), 720px)", overflowY: "auto" }}
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map(vi => (
+          <div
+            key={vi.key}
+            data-index={vi.index}
+            ref={virtualizer.measureElement}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)`, paddingBottom: 12 }}
+          >
+            <DeckCard d={visible[vi.index]} treeEntry={tree[vi.index]} onSelectDeck={onSelectDeck} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DeckCard({ d, treeEntry, onSelectDeck }) {
+  return (
+    <div className="nid-deck-card"
+      style={{ marginLeft: treeEntry.indent * 20 }}
+      onClick={() => onSelectDeck(d.name)}>
+      <div className="rapp-row rapp-sb">
+        <div className="nid-deck-name">
+          {treeEntry.indent > 0 && <span style={{ color:C.textMut, marginRight:4, fontSize:12 }}>{'> '.repeat(treeEntry.indent)}</span>}
+          {treeEntry.displayName}
+        </div>
+        {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
+      </div>
+      <div className="nid-deck-meta">
+        {d.total} card{d.total!==1?"s":""}
+        {d.newCount > 0 && <span style={{ color:C.accent }}> · {d.newCount} new</span>}
+        {d.archived && <span> · archived</span>}
+      </div>
     </div>
   )
 }
