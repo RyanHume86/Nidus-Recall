@@ -13,7 +13,7 @@ const getAnkiModule = async () => {
   return ankiModule
 }
 
-function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImportAnki }) {
+function ImportExportPanel({ cards, decks, onImportFile, onImportCards, onExport, onImportAnki }) {
   const [tab,          setTab]         = useState("notion")
   const [notionToken,  setNotionToken] = useState(()=>notionGet().token||"")
   const [notionDb,     setNotionDb]    = useState(()=>notionGet().db||"")
@@ -32,6 +32,9 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
   const [apkgPreview,    setApkgPreview]    = useState(null)
   const [apkgError,      setApkgError]      = useState(null)
   const [apkgImporting,  setApkgImporting]  = useState(false)
+  const [apkgExporting,  setApkgExporting]  = useState(false)
+  const [apkgExportDeck, setApkgExportDeck] = useState("all")
+  const [apkgExportErr,  setApkgExportErr]  = useState(null)
   const csvRef    = useRef(null)
   const backupRef = useRef(null)
 
@@ -104,6 +107,28 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
       setApkgError(`Import failed: ${err.message}`)
     } finally {
       setApkgImporting(false)
+    }
+  }
+
+  const handleApkgExport = async () => {
+    setApkgExporting(true)
+    setApkgExportErr(null)
+    try {
+      const { buildApkg } = await getAnkiModule()
+      const exportCards = apkgExportDeck === "all"
+        ? cards
+        : cards.filter(c => c.deck === apkgExportDeck)
+      const bytes = await buildApkg(exportCards)
+      const blob = new Blob([bytes], { type: "application/zip" })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      const name = apkgExportDeck === "all" ? "Nidus Recall export" : apkgExportDeck.replace(/[^a-z0-9_\- ]/gi, "_")
+      a.href = url; a.download = `${name}.apkg`; a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setApkgExportErr(`Export failed: ${err.message}`)
+    } finally {
+      setApkgExporting(false)
     }
   }
 
@@ -195,6 +220,31 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
 
       {tab==="anki" && (
         <div className="rapp-fadein">
+          {/* Export section */}
+          <div className="rapp-card rapp-mb16">
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>Export to Anki</div>
+            <p style={{ fontSize:13, color:C.textSec, lineHeight:1.65, marginBottom:14 }}>
+              Download your cards as a <strong>.apkg</strong> file for Anki desktop or AnkiDroid.
+              Basic, cloze, and image occlusion card types are preserved. Scheduling state
+              is not exported; all cards start fresh in Anki (mirroring the import behaviour).
+            </p>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:10 }}>
+              <select className="rapp-select" style={{ flex:1, minWidth:160 }} value={apkgExportDeck} onChange={e=>setApkgExportDeck(e.target.value)}>
+                <option value="all">All decks ({cards.length} cards)</option>
+                {decks.map(d => {
+                  const n = cards.filter(c => c.deck === d).length
+                  return <option key={d} value={d}>{d} ({n})</option>
+                })}
+              </select>
+              <button className="rapp-btn rapp-btn-primary" style={{ padding:"9px 16px", fontSize:13 }}
+                onClick={handleApkgExport} disabled={apkgExporting || !cards.length}>
+                {apkgExporting ? "Building..." : "↓ Export .apkg"}
+              </button>
+            </div>
+            {apkgExportErr && <p style={{ fontSize:12, color:C.again }}>{apkgExportErr}</p>}
+          </div>
+
+          {/* Import section */}
           {!apkgPreview ? (
             <div className="rapp-card">
               <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>Import from Anki</div>
@@ -214,7 +264,7 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
                 <p>Decks: <strong>{apkgPreview.summary.decks}</strong></p>
                 <p>Basic cards: <strong>{apkgPreview.summary.basic}</strong></p>
                 <p>Cloze cards: <strong>{apkgPreview.summary.cloze}</strong></p>
-                <p>Image occlusion cards: <strong>{apkgPreview.summary.imageOcclusion}</strong> (imported as basic with warning)</p>
+                <p>Image occlusion cards: <strong>{apkgPreview.summary.imageOcclusion}</strong></p>
                 <p>Unknown note types: <strong>{apkgPreview.summary.unknown}</strong></p>
               </div>
               {apkgPreview.warnings?.length > 0 && (

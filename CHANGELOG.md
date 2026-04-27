@@ -1,3 +1,97 @@
+## Session 11 (2026-04-27)
+
+### Post-upgrade Session 5: Anki .apkg export
+
+Closes the import-only asymmetry noted in Session 6. Users can now export their full
+library (or a single deck) back to Anki desktop, AnkiDroid, and AnkiWeb-compatible
+.apkg files.
+
+#### Phase 1: format research
+
+The .apkg container is a ZIP archive containing:
+- `collection.anki2`: SQLite database with `col`, `notes`, `cards`, `revlog`, `graves`
+- `media`: JSON map of numeric IDs to original filenames
+- Numbered media files (`0`, `1`, ...) for images
+
+`col.models` encodes note-type definitions (fields, templates, card requirements).
+`col.decks` maps deck IDs to deck names (flat names; hierarchy uses `::` separator).
+sql.js (already a dependency) supports writing SQLite in-browser.
+fflate (already a dependency) provides `zipSync`.
+
+#### Phase 2: implementation
+
+`src/api/anki.js` additions:
+- `buildApkg(cards)` -- async; returns a `Uint8Array` ready for download as `.apkg`.
+  Creates three Anki models: Basic (2 fields), Cloze (2 fields), and "Nidus Image
+  Occlusion" (5 fields mirroring Image Occlusion Enhanced for round-trip fidelity).
+
+  **Basic cards**: one note, one card. Front/Back fields mapped directly.
+
+  **Cloze cards**: grouped by `(deck, clozeText)`. One Anki cloze note per unique
+  text; one card per cloze index (ord = clozeIndex - 1). `Text` field carries the
+  `{{c1::...}}` markup verbatim; `Back Extra` carries the Nidus back field.
+
+  **Image occlusion cards**: one Anki note *per region* (not per image). The
+  5-field note stores: Header (region label), Image (`<img>` tag), Image Occlusion
+  Mask (SVG with the single region's `<rect>`), Footer, Back Extra. Data-URI images
+  are unpacked into numbered media files and referenced by numeric ID. The SVG uses
+  an 800x600 coordinate space; fractional Nidus coordinates are multiplied up.
+
+  Scheduling state is discarded; all exported cards are set to `type=0` (new).
+
+- `_setSqlJs(instance)` -- test-only escape hatch; allows injecting a pre-loaded
+  sql.js instance (loaded from the filesystem in Vitest/Node.js).
+
+`src/views/SettingsView.jsx` changes:
+- `ImportExportPanel` now accepts a `decks` prop.
+- Anki tab gains a new Export section above the import section: deck selector
+  (all decks or specific deck with per-deck card counts), "Export .apkg" button,
+  error display.
+- `handleApkgExport` calls `buildApkg`, wraps the result in a `Blob`, and
+  triggers a file download named after the selected deck.
+
+#### Phase 3: round-trip test
+
+`src/__tests__/anki-roundtrip.test.js` (13 tests):
+- `beforeAll`: loads `sql-wasm.wasm` from `node_modules/sql.js/dist/` via
+  `readFileSync`, initialises sql.js, injects via `_setSqlJs`.
+- Synthetic deck: 20 basic + 20 cloze + 10 image occlusion (5 images, 2 regions
+  each) = 50 cards total.
+- Round-trips: export -> `buildApkg` -> `parseApkg` -> `convertToNidusCards`.
+- Asserts: ZIP magic bytes, card count (50), correct deck name on all cards,
+  basic front/back/tag fidelity, cloze type and clozeText fidelity, occlusion
+  type and region geometry (parsed from the exported SVG).
+
+All 13 tests pass first run.
+
+#### Phase 4: compatibility note (manual verification required)
+
+**Developer action required before shipping:** import the exported `.apkg` into
+Anki desktop (2.1.x) and AnkiDroid to verify cards render correctly. Automated
+tests validate the SQLite structure and ZIP format; visual rendering of the HTML
+template and media file references can only be confirmed in the native Anki client.
+Specifically check: (a) basic and cloze cards show correct front/back, (b) image
+occlusion cards display the image and SVG overlay, (c) deck hierarchy appears
+correctly in the Anki deck browser.
+
+#### Verification
+
+- `npx vitest run`: **194/194 tests pass** (13 new round-trip tests added).
+- `vite build`: exits 0.
+- Em-dash grep: zero new hits in files modified this session.
+
+**Modified files**
+- `src/api/anki.js`
+- `src/views/SettingsView.jsx`
+
+**New files**
+- `src/__tests__/anki-roundtrip.test.js`
+
+This closes the post-upgrade backlog (Sessions 1-5). Any further work should be
+planned as a new cycle.
+
+---
+
 ## Session 10 (2026-04-27)
 
 ### Post-upgrade Session 4: virtualisation and large-deck performance
