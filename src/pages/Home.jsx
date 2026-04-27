@@ -3,8 +3,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContai
 import * as storage from "@/api/storage"
 import * as excel   from "@/api/excel"
 import * as notion  from "@/api/notion"
-// ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
-import { createEmptyCard, fsrs, generatorParameters, Rating } from "ts-fsrs"
+// src/lib/fsrs.js: FSRS-5 scheduler wrapper and card-selection utilities.
+import { scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverseIndex } from "@/lib/fsrs"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -151,86 +151,33 @@ const timeAgo  = iso => {
   return `${Math.floor(h/24)}d ago`
 }
 
-// ─── FSRS scheduling via ts-fsrs ─────────────────────────────────────────────
-// ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
-// Replaces the previous hand-rolled FSRS v4 implementation.
-
-const RATING_MAP = { again: Rating.Again, hard: Rating.Hard, good: Rating.Good, easy: Rating.Easy }
+// ─── FSRS scheduling (see src/lib/fsrs.js) ───────────────────────────────────
+// scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverseIndex
+// imported at top of file from @/lib/fsrs.
 
 /**
- * scheduleFSRS: returns { stability, difficulty, interval, nextReview }
- * Uses per-user parameters from schedulerParams if provided (from UserSchedulerParams),
- * else uses ts-fsrs defaults.
- *
- * FSRS algorithm per Supermemo (Wozniak) and the open-spaced-repetition project.
- */
-const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParams = null) => {
-  const params = generatorParameters({
-    request_retention: retentionTarget,
-    ...(schedulerParams && Array.isArray(schedulerParams) ? { w: schedulerParams } : {}),
-  })
-  const f = fsrs(params)
-  const now = new Date()
-
-  // Build a ts-fsrs card object from our card state.
-  const tsCard = {
-    due:          card.nextReview ? new Date(card.nextReview) : now,
-    stability:    card.stability  ?? 0,
-    difficulty:   card.difficulty ?? 0,
-    elapsed_days: card.lastReview
-      ? Math.max(0, Math.floor((now - new Date(card.lastReview)) / 86400000))
-      : 0,
-    scheduled_days: card.interval ?? 0,
-    reps:           card.reviewCount ?? 0,
-    lapses:         card.lapses      ?? 0,
-    state:          card.reviewCount ? 2 : 0,  // Review=2, New=0
-    last_review:    card.lastReview ? new Date(card.lastReview) : now,
-  }
-
-  const result = f.repeat(tsCard, now)
-  const scheduled = result[RATING_MAP[rating]]
-  const newCard = scheduled.card
-
-  const intervalDays = Math.max(1, Math.round(newCard.scheduled_days || 1))
-
-  return {
-    stability:  newCard.stability,
-    difficulty: newCard.difficulty,
-    interval:   intervalDays,
-  }
-}
-
-/**
- * fitSchedulerParams: adjust desired retention AND run FSRS-5 gradient descent
- * parameter fitting using the review log.
- *
- * Synchronous path: adjusts retentionTarget from observed recall accuracy.
- * Async path (background): runs gradient descent in fsrs-optimizer.js and
- * persists fitted params to UserSchedulerParams via storage.saveUserSchedulerParams.
+ * fitSchedulerParams: retention target adjustment + background FSRS-5 gradient
+ * descent. Synchronous part mirrors src/lib/fsrs.fitSchedulerParams; the async
+ * gradient-descent path stays here because it writes to storage and requires the
+ * dynamic fsrs-optimizer import.
  *
  * Reference: open-spaced-repetition/fsrs-optimizer (gradient descent algorithm).
  */
 const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
   const events = []
   for (const card of allCards) {
-    for (const entry of (card.ratingHistory || [])) {
-      events.push(entry.rating)
-    }
+    for (const entry of (card.ratingHistory || [])) events.push(entry.rating)
   }
   if (events.length < 200) return { retentionTarget: currentRetentionTarget, reviewCount: events.length, changed: false }
 
-  const nonAgainCount = events.filter(r => r !== "again").length
-  const observedAccuracy = nonAgainCount / events.length
-
+  const observedAccuracy = events.filter(r => r !== "again").length / events.length
   let newTarget = currentRetentionTarget
-  if (observedAccuracy > currentRetentionTarget + 0.05) {
+  if (observedAccuracy > currentRetentionTarget + 0.05)
     newTarget = Math.max(0.70, Math.round((currentRetentionTarget - 0.02) * 100) / 100)
-  } else if (observedAccuracy < currentRetentionTarget - 0.05) {
+  else if (observedAccuracy < currentRetentionTarget - 0.05)
     newTarget = Math.min(0.97, Math.round((currentRetentionTarget + 0.02) * 100) / 100)
-  }
 
-  // Run gradient descent in background if enough data (>= 200 reviews).
-  // Does not block return value; writes params asynchronously.
+  // Run gradient descent in background. Does not block return value.
   if (events.length >= 200) {
     getFsrsOptimizer().then(async ({ fitParams, buildReviewLog, DEFAULT_PARAMS }) => {
       try {
@@ -247,46 +194,7 @@ const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
     }).catch(() => {})
   }
 
-  return {
-    retentionTarget: newTarget,
-    reviewCount: events.length,
-    changed: newTarget !== currentRetentionTarget,
-    observedAccuracy,
-  }
-}
-
-const isActive = c => c.status !== "Parked" && c.status !== "Archived"
-const getDue   = cs => cs.filter(c => isActive(c) && c.nextReview && c.nextReview <= todayStr()).sort((a,b) => {
-  const d = a.nextReview.localeCompare(b.nextReview)
-  if (d !== 0) return d
-  return (b.stakes_flag ? 1 : 0) - (a.stakes_flag ? 1 : 0)
-})
-const getNew   = cs => cs.filter(c => isActive(c) && !c.nextReview)
-const getDueWithCatchup = (cs, cap, days, allCards = null) => {
-  const lookup = allCards || cs
-  let all = getDue(cs)
-  // Filter out cards whose prerequisite hasn't reached stability >= 7
-  all = all.filter(card => {
-    if (!card.prerequisite_card_id) return true
-    const prereq = lookup.find(c => c.id === card.prerequisite_card_id)
-    if (!prereq) return true  // prerequisite not found - allow card through
-    return prereq.stability != null && prereq.stability >= 7
-  })
-  if (!all.length) return []
-  if (all.length <= cap) return all
-  return all.slice(0, Math.min(cap, Math.ceil(all.length/days)))
-}
-
-// Build a reverse index: for each card id, which cards point TO it via connects_to
-const buildReverseIndex = (cards) => {
-  const index = {}
-  for (const card of cards) {
-    for (const targetId of (card.connects_to || [])) {
-      if (!index[targetId]) index[targetId] = []
-      if (!index[targetId].includes(card.id)) index[targetId].push(card.id)
-    }
-  }
-  return index
+  return { retentionTarget: newTarget, reviewCount: events.length, changed: newTarget !== currentRetentionTarget, observedAccuracy }
 }
 
 // parseCloze: parses Anki-compatible cloze syntax.
