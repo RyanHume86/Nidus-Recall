@@ -11,6 +11,8 @@ import { localDateStr, addDays, todayStr, genId, timeAgo } from "@/lib/dates"
 import { parseCloze, renderClozeFront, createClozeCards } from "@/lib/cloze"
 // src/lib/occlusion.js: occlusion card factory.
 import { createOcclusionCards } from "@/lib/occlusion"
+// src/lib/heatmap.js: review-log aggregation for heatmap display.
+import { buildHeatmapData } from "@/lib/heatmap"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -453,16 +455,6 @@ export function ImageOcclusionEditor({ onSave }) {
   )
 }
 
-// buildHeatmapData: map of ISO date string -> review count from session log.
-// Ref: streak visibility supports habit maintenance (Lally et al., Eur J Soc Psychol 2010).
-const buildHeatmapData = (log) => {
-  const map = {}
-  for (const entry of log) {
-    const d = entry.date ? entry.date.split('T')[0] : null
-    if (d) map[d] = (map[d] || 0) + (entry.reviewed || 0)
-  }
-  return map
-}
 
 export function ReviewHeatmap({ log }) {
   const data = buildHeatmapData(log)
