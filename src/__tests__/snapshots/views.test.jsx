@@ -120,13 +120,13 @@ import {
   FreeStudyView,
   StatsView,
   SettingsView,
-  EditCardModal,
-  AIDiffModal,
-  CardHistoryModal,
-  OcclusionCardRenderer,
-  ImageOcclusionEditor,
-  ReviewHeatmap,
 } from '@/pages/Home'
+import { EditCardModal } from '@/modals/EditCardModal'
+import { AIDiffModal } from '@/modals/AIDiffModal'
+import { CardHistoryModal } from '@/modals/CardHistoryModal'
+import { OcclusionCardRenderer } from '@/components/OcclusionCardRenderer'
+import { ImageOcclusionEditor } from '@/components/ImageOcclusionEditor'
+import { ReviewHeatmap } from '@/components/ReviewHeatmap'
 
 // ── Snapshot tests ────────────────────────────────────────────────────────────
 
