@@ -1621,7 +1621,7 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHisto
             {card.ai_edited && (
               <button onClick={()=>setShowHistory(true)} style={{ background:"none", border:`1px solid ${C.border}`, cursor:"pointer", fontSize:11, color:C.textSec, borderRadius:6, padding:"3px 8px", fontFamily:"inherit" }}>History</button>
             )}
-            <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>Ã—</button>
+            <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
           </div>
 
         </div>
