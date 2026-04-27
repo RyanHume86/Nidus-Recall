@@ -7,6 +7,8 @@ import * as notion  from "@/api/notion"
 import { scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverseIndex } from "@/lib/fsrs"
 // src/lib/dates.js: date/id helpers with no side effects.
 import { localDateStr, addDays, todayStr, genId, timeAgo } from "@/lib/dates"
+// src/lib/cloze.jsx: cloze parse/render/create helpers.
+import { parseCloze, renderClozeFront, createClozeCards } from "@/lib/cloze"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -184,81 +186,7 @@ const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
   return { retentionTarget: newTarget, reviewCount: events.length, changed: newTarget !== currentRetentionTarget, observedAccuracy }
 }
 
-// parseCloze: parses Anki-compatible cloze syntax.
-// Supported: {{c1::answer}}, {{c1::answer::hint}}, multiple indices.
-// Returns: { indices: number[], cards: Array<{index, front, back, hint}> }
-// Reference: Anki cloze deletion format, apps.ankiweb.net/docs/manual.html
-const CLOZE_RE = /\{\{c(\d+)::([^:}]+)(?:::([^}]+))?\}\}/g
-
-const parseCloze = (text) => {
-  if (!text) return { indices: [], cards: [] }
-  const indices = new Set()
-  let m
-  CLOZE_RE.lastIndex = 0
-  while ((m = CLOZE_RE.exec(text)) !== null) indices.add(Number(m[1]))
-  const sortedIndices = [...indices].sort((a, b) => a - b)
-
-  const cards = sortedIndices.map(idx => {
-    CLOZE_RE.lastIndex = 0
-    const front = text.replace(CLOZE_RE, (_, i, ans, hint) =>
-      Number(i) === idx ? (hint ? `[${hint}]` : '[...]') : ans
-    )
-    CLOZE_RE.lastIndex = 0
-    const back = text.replace(CLOZE_RE, (_, _i, ans) => ans)
-    CLOZE_RE.lastIndex = 0
-    return { index: idx, front, back, hint: null }
-  })
-  return { indices: sortedIndices, cards }
-}
-
-// renderClozeFront: replace [hint] or [...] tokens with styled blank spans.
-const renderClozeFront = (text) => {
-  if (!text) return text
-  const parts = text.split(/(\[[^\]]+\])/g)
-  return parts.map((part, i) => {
-    if (/^\[.+\]$/.test(part)) {
-      return <span key={i} className="nid-cloze-blank" style={{ color:'transparent' }}>{part}</span>
-    }
-    return part
-  })
-}
-
-// createClozeCards: build one Flashcard per cloze index with pre-computed front/back.
-// Pre-computing front/back at create time means existing review machinery works unchanged.
-const createClozeCards = (clozeText, deckName) => {
-  const { cards: variants } = parseCloze(clozeText)
-  const now = new Date().toISOString()
-  return variants.map(v => ({
-    id: genId(),
-    front: v.front,
-    back: v.back,
-    cardType: 'cloze',
-    clozeText,
-    clozeIndex: v.index,
-    deck: deckName,
-    contentType: 'Factual',
-    status: 'Active',
-    interval: 1,
-    reviewCount: 0,
-    lapses: 0,
-    ratingHistory: [],
-    connects_to: [],
-    stability: null,
-    difficulty: null,
-    nextReview: null,
-    lastReview: null,
-    elaboration: '',
-    anchor: null,
-    source: null,
-    stakes_flag: false,
-    prerequisite_card_id: null,
-    tags: [],
-    createdAt: now,
-    imageUrl: null,
-    occlusionRegions: null,
-    occlusionRegionId: null,
-  }))
-}
+// parseCloze, renderClozeFront, createClozeCards: imported from @/lib/cloze
 
 // createOcclusionCards: build one Flashcard per region.
 // Design follows Image Occlusion Enhanced addon convention used in the medical
