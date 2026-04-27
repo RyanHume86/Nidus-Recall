@@ -5,6 +5,8 @@ import * as excel   from "@/api/excel"
 import * as notion  from "@/api/notion"
 // src/lib/fsrs.js: FSRS-5 scheduler wrapper and card-selection utilities.
 import { scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverseIndex } from "@/lib/fsrs"
+// src/lib/dates.js: date/id helpers with no side effects.
+import { localDateStr, addDays, todayStr, genId, timeAgo } from "@/lib/dates"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -133,23 +135,8 @@ const deckMetaSet  = (v) => lsSet(SK.deckMeta, v)
 const lastSyncGet  = ()  => { try { return localStorage.getItem(SK.lastSync) || null } catch { return null } }
 const lastSyncSet  = ()  => { try { localStorage.setItem(SK.lastSync, new Date().toISOString()) } catch {} }
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
-const localDateStr = (d = new Date()) => {
-  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0")
-  return `${y}-${m}-${day}`
-}
-const addDays  = n => { const d = new Date(); d.setDate(d.getDate()+n); return localDateStr(d) }
-const todayStr = () => localDateStr()
-const genId    = () => Date.now().toString(36) + Math.random().toString(36).slice(2)
-const timeAgo  = iso => {
-  if (!iso) return null
-  const m = Math.floor((Date.now() - new Date(iso)) / 60000)
-  if (m < 1)   return "just now"
-  if (m < 60)  return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24)  return `${h}h ago`
-  return `${Math.floor(h/24)}d ago`
-}
+// Utilities: localDateStr, addDays, todayStr, genId, timeAgo
+// imported from @/lib/dates at top of file.
 
 // ─── FSRS scheduling (see src/lib/fsrs.js) ───────────────────────────────────
 // scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverseIndex
