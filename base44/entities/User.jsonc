@@ -64,6 +64,16 @@
       "type": "boolean",
       "default": true,
       "description": "When true, due reviews are prioritised over new cards in the pre-bedtime window."
+    },
+    "notion_integration_token": {
+      "type": "string",
+      "nullable": true,
+      "description": "Notion Internal Integration token (sensitive; stored server-side, never in localStorage or JSON exports)."
+    },
+    "notion_database_id": {
+      "type": "string",
+      "nullable": true,
+      "description": "Notion database ID or URL for card sync."
     }
   }
 }

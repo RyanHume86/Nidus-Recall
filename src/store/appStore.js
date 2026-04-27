@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import * as storage from '@/api/storage'
 import * as offlineStore from '@/lib/offline-store'
 import { settingsGet, settingsSet, deckMetaGet, deckMetaSet, lastSyncGet, lastSyncSet } from '@/lib/settings'
+import { migrateNotionCredentials } from '@/api/notionSettings'
 import { genId } from '@/lib/dates'
 import { createClozeCards } from '@/lib/cloze'
 import { createOcclusionCards } from '@/lib/occlusion'
@@ -247,6 +248,7 @@ export const useAppStore = create((set, get) => ({
       }
       set({ ready: true })
       offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})
+      migrateNotionCredentials().catch(() => {})
     } catch {
       set({ ready: true })
     }

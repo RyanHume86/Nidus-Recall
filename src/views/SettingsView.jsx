@@ -1,7 +1,8 @@
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
-import { notionGet, notionSet } from "@/lib/settings"
+import { notionGet } from "@/lib/settings"
+import { getNotionCredentials, setNotionCredentials, clearNotionCredentials } from "@/api/notionSettings"
 import { genId } from "@/lib/dates"
 import * as excel from "@/api/excel"
 import * as notion from "@/api/notion"
@@ -19,6 +20,13 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
   const [notionStatus, setNotionStatus]= useState("")
   const [notionBusy,   setNotionBusy]  = useState(false)
   const [notionPct,    setNotionPct]   = useState(0)
+
+  useEffect(() => {
+    getNotionCredentials().then(c => {
+      setNotionToken(c.token)
+      setNotionDb(c.db)
+    }).catch(() => {})
+  }, [])
   const [csvResult,    setCsvResult]   = useState(null)
   const [importResult, setImportResult]= useState(null)
   const [apkgPreview,    setApkgPreview]    = useState(null)
@@ -27,7 +35,13 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
   const csvRef    = useRef(null)
   const backupRef = useRef(null)
 
-  const saveNotion = (t,d) => notionSet({ token:t, db:d })
+  const saveNotion = (t, d) => { setNotionCredentials(t, d).catch(() => {}) }
+  const disconnectNotion = async () => {
+    setNotionBusy(true)
+    try { await clearNotionCredentials() } catch {}
+    setNotionToken(""); setNotionDb(""); setNotionStatus("Disconnected.")
+    setNotionBusy(false)
+  }
   const statusColor = s => !s?C.textMut:s.startsWith("✓")?C.accent:s.startsWith("✗")?C.again:C.textMut
 
   const testNotion = async () => {
@@ -127,11 +141,16 @@ function ImportExportPanel({ cards, onImportFile, onImportCards, onExport, onImp
             <input className="rapp-input" placeholder="Paste URL or 32-char ID" value={notionDb}
               onChange={e=>{setNotionDb(e.target.value); saveNotion(notionToken,e.target.value)}} />
           </div>
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:14 }}>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8 }}>
             <button className="rapp-btn rapp-btn-ghost" style={{ padding:"9px 14px", fontSize:13 }} onClick={testNotion} disabled={notionBusy}>Test</button>
             <button className="rapp-btn rapp-btn-ghost" style={{ padding:"9px 14px", fontSize:13 }} onClick={importNotion} disabled={notionBusy}>&#8593; Import</button>
             <button className="rapp-btn rapp-btn-primary" style={{ padding:"9px 14px", fontSize:13 }} onClick={exportNotion} disabled={notionBusy||!cards.length}>&#8595; Export</button>
           </div>
+          {(notionToken||notionDb) && (
+            <div style={{ marginBottom:14 }}>
+              <button className="rapp-btn rapp-btn-ghost" style={{ padding:"7px 12px", fontSize:12, color:C.again }} onClick={disconnectNotion} disabled={notionBusy}>Disconnect Notion</button>
+            </div>
+          )}
           {notionBusy && notionPct>0 && <div className="rapp-progress rapp-mb8"><div className="rapp-progress-fill" style={{ width:`${notionPct}%` }}/></div>}
           {notionStatus && <p style={{ fontSize:13, color:statusColor(notionStatus), lineHeight:1.6 }}>{notionStatus}</p>}
         </div>
