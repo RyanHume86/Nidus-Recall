@@ -1,5 +1,17 @@
-  :root { --sage: #5C7A6A; }
-  @media (prefers-color-scheme: dark) { :root { --sage: #5C7A65; } }
+  :root {
+    --sage: #5C7A6A;
+    --nidus-sage: #8AAD91;
+    --nidus-sage-light: #6E9275;
+    --nidus-warm: #C89968;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --sage: #5C7A65;
+      --nidus-sage: #8AAD91;
+      --nidus-sage-light: #6E9275;
+      --nidus-warm: #C89968;
+    }
+  }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

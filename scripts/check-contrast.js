@@ -6,6 +6,10 @@
 
 // Colour tokens from Home.jsx C object and CSS
 const COLORS = {
+  // Nidus brand tokens
+  nidusSage:      "#8AAD91",
+  nidusSageLight: "#6E9275",
+  nidusWarm:      "#C89968",
   // Light mode (primary)
   bg:          "#F4F7F5",
   surface:     "#EBF0ED",
@@ -108,6 +112,11 @@ const pairs = [
   // Accent on bg (for stat numbers, links)
   ["accent on bg",              C.accent,     C.bg,       4.5, "interactive"],
   ["accent on elevated",        C.accent,     C.elevated, 4.5, "interactive"],
+  // Nidus brand tokens (decorative/large-text accents — WCAG AA large text 3.0:1)
+  ["nidus-sage on bg",          C.nidusSage,      C.bg,      4.5, "muted"],
+  ["nidus-sage-light on bg",    C.nidusSageLight, C.bg,      4.5, "muted"],
+  ["nidus-warm on bg (large)",  C.nidusWarm,      C.bg,      3.0, "muted"],
+  ["nidus-warm on surface (large)", C.nidusWarm,  C.surface, 3.0, "muted"],
 ]
 
 const COL_W = [38, 9, 9, 7, 8]
