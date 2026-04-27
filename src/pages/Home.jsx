@@ -19,6 +19,17 @@ import { buildDeckTree } from "@/lib/deck-tree"
 import { DEFAULT_SETTINGS, SK, lsGet, lsSet, settingsGet, settingsSet, notionGet, notionSet, deckMetaGet, deckMetaSet, lastSyncGet, lastSyncSet, isInSleepWindow, SLEEP_DISMISS_KEY, RETURN_ONBOARD_KEY, sleepBannerIsDismissed, sleepBannerDismiss } from "@/lib/settings"
 // src/lib/stats.js: computeCalibration, buildCalibrationChart, computeFatigueScore, assembleFrictionNote.
 import { computeCalibration, buildCalibrationChart, computeFatigueScore, assembleFrictionNote } from "@/lib/stats"
+// src/lib/theme.js: C palette, field length constants.
+import { C, FRONT_MAX, BACK_MAX, NOTE_MAX, ANCHOR_MAX, SOURCE_MAX, TAG_MAX_LEN, TAG_MAX_COUNT } from "@/lib/theme"
+// src/lib/icons.jsx: Ico SVG icon set.
+import { Ico } from "@/lib/icons"
+// src/components: shared UI primitives.
+import { Badge } from "@/components/Badge"
+import { CharCount } from "@/components/CharCount"
+import { TagInput } from "@/components/TagInput"
+import { NoteToggle } from "@/components/NoteToggle"
+import { AnchorToggle } from "@/components/AnchorToggle"
+import { CardPicker } from "@/components/CardPicker"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -47,49 +58,6 @@ const getAiAssist = async () => {
   return aiAssistModule
 }
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
-const C = {
-  bg:       "#F4F7F5",
-  surface:  "#EBF0ED",
-  elevated: "#DFE8E3",
-  text:     "#1C2820",
-  textSec:  "#3A5246",
-  textMut:  "#4A6B5C",
-  accent:   "#2D6E52",
-  accentDk: "var(--sage)",
-  teal:     "#2E7B88",
-  border:   "#CFDBD5",
-  borderMd: "#BFD0CA",
-  // rating text (light)
-  again:    "#3D1408",
-  hard:     "#352A04",
-  good:     "#0E3020",
-  easy:     "#0A2A2A",
-  // rating backgrounds (light)
-  againBg:  "#F5C8B8",
-  hardBg:   "#F0E890",
-  goodBg:   "#B0E8CC",
-  easyBg:   "#A8DEDE",
-  // card surfaces
-  cardFrontBg: "#EBF0ED",  // dark: #162018
-  cardBackBg:  "#E4EDE8",  // dark: #142016
-  // anchor blocks
-  anchorBg:    "#EDE8DC",  // dark: #252018
-  // warning: error states, sync failures, overdue indicators, system warnings
-  // (light/dark values set via CSS; use these for inline styles)
-  warning:     "#B87A30",  // dark: #D4994A
-  warningBg:   "#FDF0DC",  // dark: #2A1800
-  warningText: "#5C3A00",  // dark: #F5D4A0
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const FRONT_MAX     = 500
-const BACK_MAX      = 1000
-const NOTE_MAX      = 500
-const ANCHOR_MAX    = 400
-const SOURCE_MAX    = 200
-const TAG_MAX_LEN   = 50
-const TAG_MAX_COUNT = 5
 
 
 // Utilities: localDateStr, addDays, todayStr, genId, timeAgo
@@ -840,155 +808,6 @@ const CSS = `
   }
   @media (prefers-color-scheme: dark) { .nid-cloze-revealed { background: rgba(45,110,82,0.25); } }
 `
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-const Ico = {
-  library: (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-  study:   (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  stats:   (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  gear:    (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-  plus:    (s=14) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  back:    (s=18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>,
-  chevron: (s=14, open=false) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.18s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>,
-  cards:   (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>,
-}
-
-// ─── Small components ─────────────────────────────────────────────────────────
-const BADGE_COLORS = {
-  "Factual":           { bg:"#DFE8E3", text:"#1C2820" },
-  "Mechanism":         { bg:"#EBF0ED", text:"#2E7B88" },
-  "Clinical Reasoning":{ bg:"#EBF0ED", text:"#2D6E52" },
-  "Anatomy":           { bg:"#EBF0ED", text:"var(--sage)" },
-  "Pathology":         { bg:"#F5C8B8", text:"#3D1408" },
-}
-function Badge({ type }) {
-  const t = BADGE_COLORS[type] || { bg:"#EBF0ED", text:"#3A5246" }
-  return <span className="rapp-badge" style={{ background:t.bg, color:t.text }}>{type}</span>
-}
-
-function CharCount({ current, max }) {
-  const pct = current / max
-  return <div className={`nid-char-count${pct>1?" over":pct>0.8?" warn":""}`}>{current}/{max}</div>
-}
-
-function TagInput({ tags=[], onChange }) {
-  const [input, setInput] = useState("")
-  const addTag = () => {
-    const t = input.trim().slice(0, TAG_MAX_LEN)
-    if (!t || tags.includes(t) || tags.length >= TAG_MAX_COUNT) return
-    onChange([...tags, t]); setInput("")
-  }
-  return (
-    <div>
-      {tags.length > 0 && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:8 }}>
-          {tags.map((t,i) => (
-            <span key={i} className="nid-tag">
-              {t}
-              <span className="nid-tag-rm" onClick={() => onChange(tags.filter((_,j)=>j!==i))}>×</span>
-            </span>
-          ))}
-        </div>
-      )}
-      {tags.length < TAG_MAX_COUNT && (
-        <input className="rapp-input" style={{ fontSize:13 }} value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key==="Enter"||e.key===",") { e.preventDefault(); addTag() } }}
-          placeholder={`Add tag, Enter to confirm${tags.length>0?` · ${TAG_MAX_COUNT-tags.length} left`:""}`}
-          maxLength={TAG_MAX_LEN}
-        />
-      )}
-    </div>
-  )
-}
-
-function NoteToggle({ value, onChange, open, onToggle }) {
-  return (
-    <div>
-      <div className="nid-note-toggle" onClick={onToggle}>
-        {Ico.chevron(13, open)}
-        <span>Note / Context</span>
-        <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-        {value && !open && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
-      </div>
-      {open && (
-        <div className="rapp-fadein">
-          <textarea className="rapp-textarea" rows={2} value={value} maxLength={NOTE_MAX}
-            onChange={e => onChange(e.target.value)}
-            placeholder="Context, memory hook, or related concept." />
-          <CharCount current={value.length} max={NOTE_MAX} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AnchorToggle({ value, onChange, open, onToggle }) {
-  return (
-    <div>
-      <div className="nid-note-toggle" onClick={onToggle}>
-        {Ico.chevron(13, open)}
-        <span>Memory anchor</span>
-        <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-        {value && !open && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
-        <span style={{ marginLeft:"auto", fontSize:12, color:C.textMut, cursor:"default" }}
-          title="Anchoring a personal memory to a card significantly improves long-term recall.">ⓘ</span>
-      </div>
-      {open && (
-        <div className="rapp-fadein">
-          <textarea className="rapp-textarea" rows={3} value={value} maxLength={ANCHOR_MAX}
-            onChange={e => onChange(e.target.value)}
-            placeholder="A case, a moment, or a story that connects this to something you already know." />
-          <CharCount current={value.length} max={ANCHOR_MAX} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// CardPicker: searchable single or multi-card selector used for prerequisite and connects_to.
-// mode: "single" → value is id string | null; "multi" → value is id[]
-function CardPicker({ allCards, value, onChange, mode="single", excludeId, placeholder="Search cards…" }) {
-  const [query, setQuery] = useState("")
-  const inputRef = useRef(null)
-  const selectedIds = mode==="single" ? (value ? [value] : []) : (value||[])
-  const selected = selectedIds.map(id => (allCards||[]).find(c=>c.id===id)).filter(Boolean)
-  const results = query.length < 1 ? [] : (allCards||[])
-    .filter(c => !selectedIds.includes(c.id) && c.id !== excludeId && c.front.toLowerCase().includes(query.toLowerCase()))
-    .slice(0, 6)
-  const add = id => { onChange(mode==="single" ? id : [...selectedIds, id]); setQuery(""); setTimeout(()=>inputRef.current?.focus(), 0) }
-  const remove = id => onChange(mode==="single" ? null : selectedIds.filter(x=>x!==id))
-  return (
-    <div>
-      {selected.map(c => (
-        <div key={c.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6, padding:"7px 10px", background:C.elevated, borderRadius:8 }}>
-          {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0, flexShrink:0 }}>{c.contentType}</span>}
-          <span style={{ flex:1, fontSize:13, color:C.text, lineHeight:1.5 }}>{c.front}</span>
-          <button onClick={()=>remove(c.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textMut, fontSize:16, lineHeight:1, padding:0, fontFamily:"inherit" }}>×</button>
-        </div>
-      ))}
-      {(mode==="multi" || !value) && (
-        <div style={{ position:"relative" }}>
-          <input ref={inputRef} className="rapp-input" style={{ fontSize:13 }} value={query}
-            onChange={e=>setQuery(e.target.value)} placeholder={placeholder} />
-          {results.length > 0 && (
-            <div style={{ position:"absolute", top:"calc(100% + 4px)", left:0, right:0, background:C.elevated, border:`1px solid ${C.border}`, borderRadius:8, maxHeight:200, overflowY:"auto", zIndex:20, boxShadow:"0 4px 12px rgba(28,40,32,0.1)" }}>
-              {results.map(c => (
-                <div key={c.id} onClick={()=>add(c.id)}
-                  style={{ padding:"9px 12px", cursor:"pointer", fontSize:13, color:C.text, lineHeight:1.5, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:8 }}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.surface}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0, flexShrink:0 }}>{c.contentType}</span>}
-                  <span>{c.front}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 
 // ─── Onboarding View ──────────────────────────────────────────────────────────
