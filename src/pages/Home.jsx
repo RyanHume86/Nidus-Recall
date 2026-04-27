@@ -10,6 +10,7 @@ import * as offlineStore from "@/lib/offline-store"
 import { isInstallable, triggerInstallPrompt } from "@/lib/pwa"
 import { useAppStore } from "@/store/appStore"
 import NidusLogo from "@/components/NidusLogo"
+import FirstRunOverlay from "@/components/FirstRunOverlay"
 import { LibraryView } from "@/views/LibraryView"
 import { DeckView } from "@/views/DeckView"
 import { StudySelectView } from "@/views/StudySelectView"
@@ -28,6 +29,7 @@ export default function Home() {
   const [sessionCapOverride, setSessionCapOverride] = useState(null)
   const [sessionFocused,     setSessionFocused]     = useState(false)
   const [interleavedCards,   setInterleavedCards]   = useState(null)
+  const [firstRunDone,       setFirstRunDone]       = useState(() => !!localStorage.getItem("nidus.firstRunSeen"))
 
   // ── Store: data + sync ─────────────────────────────────────────────────────
   const cards                   = useAppStore(s => s.cards)
@@ -202,6 +204,7 @@ export default function Home() {
 
   return (
     <>
+      {!firstRunDone && <FirstRunOverlay onDone={() => setFirstRunDone(true)} />}
       <div className="rapp">
         {!inSession && (
           <div className="rapp-sidebar">

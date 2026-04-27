@@ -4977,37 +4977,256 @@ exports[`view snapshots > LibraryView: empty state 1`] = `
     </div>
     <div
       class="rapp-wrap rapp-fadein"
-      style="text-align: center; padding-top: 60px; max-width: 400px; margin: 0px auto;"
+      style="text-align: center; padding-top: 48px;"
     >
       <div
-        style="font-size: 22px; font-weight: 700; margin-bottom: 8px;"
+        style="display: flex; justify-content: center; margin-bottom: 28px;"
       >
-        What should we call you?
+        <span
+          style="display: inline-flex; align-items: center; gap: 19.200000000000003px;"
+        >
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="48"
+            viewBox="4 6 158 104"
+            width="72.92307692307693"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M 54,60 C 46,50 38,38 32,28"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <path
+              d="M 32,28 C 24,20 16,14 10,10"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <path
+              d="M 32,28 C 30,22 24,24 18,30"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <path
+              d="M 49,68 C 40,64 30,62 20,58"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <path
+              d="M 54,77 C 46,84 38,90 30,96"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <circle
+              cx="60"
+              cy="68"
+              r="14"
+              stroke="#6E9275"
+              stroke-width="2.5"
+            />
+            <path
+              d="M 72,68 C 86,64 102,56 118,48 C 126,44 136,42 146,38"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <ellipse
+              cx="77"
+              cy="66.9"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 77 66.9)"
+            />
+            <ellipse
+              cx="87"
+              cy="64.7"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 87 64.7)"
+            />
+            <ellipse
+              cx="98"
+              cy="62.28"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 98 62.28)"
+            />
+            <ellipse
+              cx="108"
+              cy="60.08"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 108 60.08)"
+            />
+            <ellipse
+              cx="119"
+              cy="57.66"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 119 57.66)"
+            />
+            <ellipse
+              cx="130"
+              cy="55.24"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 130 55.24)"
+            />
+            <ellipse
+              cx="141"
+              cy="52.82"
+              fill="#FFFFFF"
+              rx="5"
+              ry="8"
+              stroke="#6E9275"
+              stroke-width="1.5"
+              transform="rotate(-24 141 52.82)"
+            />
+            <path
+              d="M 93,60 C 97,67 99,75 97,83"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="1.5"
+            />
+            <path
+              d="M 146,38 C 150,34 155,30 158,26"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <path
+              d="M 146,38 C 150,40 154,44 156,48"
+              stroke="#6E9275"
+              stroke-linecap="round"
+              stroke-width="2"
+            />
+            <circle
+              cx="158"
+              cy="24"
+              fill="#6E9275"
+              opacity="0.85"
+              r="2.2"
+            />
+            <circle
+              cx="160"
+              cy="30"
+              fill="#6E9275"
+              opacity="0.75"
+              r="1.8"
+            />
+            <circle
+              cx="157"
+              cy="50"
+              fill="#6E9275"
+              opacity="0.65"
+              r="2.2"
+            />
+            <circle
+              cx="160"
+              cy="57"
+              fill="#6E9275"
+              opacity="0.45"
+              r="1.5"
+            />
+            <circle
+              cx="99"
+              cy="86"
+              fill="#6E9275"
+              opacity="0.40"
+              r="1.8"
+            />
+          </svg>
+          <span
+            style="display: flex; flex-direction: column; gap: 2px;"
+          >
+            <span
+              style="font-size: 24px; font-weight: 300; letter-spacing: 0.45em; text-transform: uppercase; color: rgb(58, 92, 66); line-height: 1;"
+            >
+              Nidus Recall
+            </span>
+            <span
+              style="font-size: 10.56px; letter-spacing: 0.4em; text-transform: uppercase; color: rgb(110, 146, 117); line-height: 1;"
+            >
+              remember everything
+            </span>
+          </span>
+        </span>
       </div>
       <div
-        style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 28px; line-height: 1.65;"
+        style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 8px; color: rgb(28, 40, 32);"
       >
-        Just a first name. We'll use it to say hello.
+        Welcome to Nidus Recall.
       </div>
-      <input
-        class="rapp-input"
-        maxlength="60"
-        placeholder="Your first name"
-        style="width: 100%; margin-bottom: 12px; font-size: 16px;"
-        value=""
-      />
+      <div
+        style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 32px; line-height: 1.65;"
+      >
+        Build your own flashcard decks. Study using active recall.
+        <br />
+        Let spaced repetition handle the scheduling.
+      </div>
       <button
         class="rapp-btn rapp-btn-primary"
-        style="width: 100%; margin-bottom: 10px;"
+        style="width: 100%; margin-bottom: 12px;"
       >
-        Continue
+        <svg
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-width="2.5"
+          viewBox="0 0 24 24"
+          width="14"
+        >
+          <line
+            x1="12"
+            x2="12"
+            y1="5"
+            y2="19"
+          />
+          <line
+            x1="5"
+            x2="19"
+            y1="12"
+            y2="12"
+          />
+        </svg>
+         Try a sample deck
       </button>
       <button
         class="rapp-btn rapp-btn-ghost"
-        style="width: 100%;"
+        style="width: 100%; margin-bottom: 20px;"
       >
-        Skip
+        Create your first deck
       </button>
+      <p
+        style="font-size: 12px; color: rgb(74, 107, 92); line-height: 1.6;"
+      >
+        The sample deck includes basic, cloze, and image occlusion card types so you can explore each format before building your own content.
+      </p>
     </div>
   </div>
 </div>
@@ -5134,37 +5353,256 @@ exports[`view snapshots > OnboardingView 1`] = `
 <div>
   <div
     class="rapp-wrap rapp-fadein"
-    style="text-align: center; padding-top: 60px; max-width: 400px; margin: 0px auto;"
+    style="text-align: center; padding-top: 48px;"
   >
     <div
-      style="font-size: 22px; font-weight: 700; margin-bottom: 8px;"
+      style="display: flex; justify-content: center; margin-bottom: 28px;"
     >
-      What should we call you?
+      <span
+        style="display: inline-flex; align-items: center; gap: 19.200000000000003px;"
+      >
+        <svg
+          aria-hidden="true"
+          fill="none"
+          height="48"
+          viewBox="4 6 158 104"
+          width="72.92307692307693"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M 54,60 C 46,50 38,38 32,28"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M 32,28 C 24,20 16,14 10,10"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M 32,28 C 30,22 24,24 18,30"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M 49,68 C 40,64 30,62 20,58"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M 54,77 C 46,84 38,90 30,96"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <circle
+            cx="60"
+            cy="68"
+            r="14"
+            stroke="#6E9275"
+            stroke-width="2.5"
+          />
+          <path
+            d="M 72,68 C 86,64 102,56 118,48 C 126,44 136,42 146,38"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <ellipse
+            cx="77"
+            cy="66.9"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 77 66.9)"
+          />
+          <ellipse
+            cx="87"
+            cy="64.7"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 87 64.7)"
+          />
+          <ellipse
+            cx="98"
+            cy="62.28"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 98 62.28)"
+          />
+          <ellipse
+            cx="108"
+            cy="60.08"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 108 60.08)"
+          />
+          <ellipse
+            cx="119"
+            cy="57.66"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 119 57.66)"
+          />
+          <ellipse
+            cx="130"
+            cy="55.24"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 130 55.24)"
+          />
+          <ellipse
+            cx="141"
+            cy="52.82"
+            fill="#FFFFFF"
+            rx="5"
+            ry="8"
+            stroke="#6E9275"
+            stroke-width="1.5"
+            transform="rotate(-24 141 52.82)"
+          />
+          <path
+            d="M 93,60 C 97,67 99,75 97,83"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="1.5"
+          />
+          <path
+            d="M 146,38 C 150,34 155,30 158,26"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <path
+            d="M 146,38 C 150,40 154,44 156,48"
+            stroke="#6E9275"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+          <circle
+            cx="158"
+            cy="24"
+            fill="#6E9275"
+            opacity="0.85"
+            r="2.2"
+          />
+          <circle
+            cx="160"
+            cy="30"
+            fill="#6E9275"
+            opacity="0.75"
+            r="1.8"
+          />
+          <circle
+            cx="157"
+            cy="50"
+            fill="#6E9275"
+            opacity="0.65"
+            r="2.2"
+          />
+          <circle
+            cx="160"
+            cy="57"
+            fill="#6E9275"
+            opacity="0.45"
+            r="1.5"
+          />
+          <circle
+            cx="99"
+            cy="86"
+            fill="#6E9275"
+            opacity="0.40"
+            r="1.8"
+          />
+        </svg>
+        <span
+          style="display: flex; flex-direction: column; gap: 2px;"
+        >
+          <span
+            style="font-size: 24px; font-weight: 300; letter-spacing: 0.45em; text-transform: uppercase; color: rgb(58, 92, 66); line-height: 1;"
+          >
+            Nidus Recall
+          </span>
+          <span
+            style="font-size: 10.56px; letter-spacing: 0.4em; text-transform: uppercase; color: rgb(110, 146, 117); line-height: 1;"
+          >
+            remember everything
+          </span>
+        </span>
+      </span>
     </div>
     <div
-      style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 28px; line-height: 1.65;"
+      style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 8px; color: rgb(28, 40, 32);"
     >
-      Just a first name. We'll use it to say hello.
+      Welcome to Nidus Recall.
     </div>
-    <input
-      class="rapp-input"
-      maxlength="60"
-      placeholder="Your first name"
-      style="width: 100%; margin-bottom: 12px; font-size: 16px;"
-      value=""
-    />
+    <div
+      style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 32px; line-height: 1.65;"
+    >
+      Build your own flashcard decks. Study using active recall.
+      <br />
+      Let spaced repetition handle the scheduling.
+    </div>
     <button
       class="rapp-btn rapp-btn-primary"
-      style="width: 100%; margin-bottom: 10px;"
+      style="width: 100%; margin-bottom: 12px;"
     >
-      Continue
+      <svg
+        fill="none"
+        height="14"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-width="2.5"
+        viewBox="0 0 24 24"
+        width="14"
+      >
+        <line
+          x1="12"
+          x2="12"
+          y1="5"
+          y2="19"
+        />
+        <line
+          x1="5"
+          x2="19"
+          y1="12"
+          y2="12"
+        />
+      </svg>
+       Try a sample deck
     </button>
     <button
       class="rapp-btn rapp-btn-ghost"
-      style="width: 100%;"
+      style="width: 100%; margin-bottom: 20px;"
     >
-      Skip
+      Create your first deck
     </button>
+    <p
+      style="font-size: 12px; color: rgb(74, 107, 92); line-height: 1.6;"
+    >
+      The sample deck includes basic, cloze, and image occlusion card types so you can explore each format before building your own content.
+    </p>
   </div>
 </div>
 `;

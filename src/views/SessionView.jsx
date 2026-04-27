@@ -257,6 +257,10 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
         <textarea className="rapp-textarea" rows={3} placeholder="Anything that felt slow or unclear?" value={friction} onChange={e=>setFriction(e.target.value)} />
       </div>
       <button className="rapp-btn rapp-btn-primary rapp-btn-full" onClick={handleClose}>Save and finish</button>
+
+      <div style={{ marginTop: 32, display: "flex", justifyContent: "center", opacity: 0.45 }}>
+        <NidusLogo size={22} theme="light" withWordmark />
+      </div>
     </div>
   )}
 
