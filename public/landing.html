@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Nidus Recall: spaced repetition for serious learners</title>
+  <meta name="description" content="Nidus Recall is a spaced repetition study tool built for postgraduate academic learners. FSRS scheduling, cloze cards, image occlusion, sleep-aware reminders, Anki import, and offline PWA support.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Nidus Recall: spaced repetition for serious learners">
+  <meta property="og:description" content="Evidence-based spaced repetition for postgraduate medicine and science. FSRS scheduling, cloze deletion, image occlusion, sleep-aware reminders, Anki import, offline PWA.">
+  <meta property="og:image" content="https://nidus-recall.base44.app/icons/icon-512.svg">
+  <meta property="og:url" content="https://nidus-recall.base44.app">
+  <meta property="og:site_name" content="Nidus Recall">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nidus Recall: spaced repetition for serious learners">
+  <meta name="twitter:description" content="Evidence-based spaced repetition for postgraduate medicine and science. FSRS scheduling, cloze deletion, image occlusion, sleep-aware reminders, Anki import, offline PWA.">
+  <meta name="twitter:image" content="https://nidus-recall.base44.app/icons/icon-512.svg">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F4F7F5;
+      --surface: #EBF0ED;
+      --text: #1C2820;
+      --textSec: #3A5246;
+      --textMut: #7BA090;
+      --accent: #2D6E52;
+      --border: #CFDBD5;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .logo-name { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+    h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; letter-spacing: -1px; color: var(--text); line-height: 1.15; margin-bottom: 18px; }
+    .sub { font-size: 18px; color: var(--textSec); margin-bottom: 32px; line-height: 1.6; max-width: 560px; }
+    .cta { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 600; margin-bottom: 48px; }
+    .cta:hover { background: #245a42; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 48px; }
+    .feat { background: var(--surface); border-radius: 14px; padding: 18px 16px; }
+    .feat-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .feat-desc { font-size: 13px; color: var(--textSec); line-height: 1.55; }
+    .screenshot { width: 100%; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(28,40,32,0.10); margin-bottom: 48px; background: var(--surface); height: 320px; display: flex; align-items: center; justify-content: center; }
+    .screenshot-placeholder { font-size: 14px; color: var(--textMut); }
+    .footer { font-size: 12px; color: var(--textMut); }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #161E1A; --surface: #1E2923; --text: #E4EDE7; --textSec: #8BB09A; --textMut: #5A7A6A; --border: #2A3A30; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-name">Nidus Recall</span>
+    </div>
+
+    <h1>Spaced repetition for serious learners</h1>
+    <p class="sub">
+      Built for postgraduate medicine and science. Nidus Recall uses the FSRS-5 algorithm to schedule your reviews at the optimal moment, so you retain more with less time at the desk.
+    </p>
+
+    <a class="cta" href="https://nidus-recall.base44.app">Open the app</a>
+
+    <div class="features">
+      <div class="feat">
+        <div class="feat-title">FSRS-5 scheduling</div>
+        <div class="feat-desc">The open-source Free Spaced Repetition Scheduler, fitted to your own review history over time.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Cloze deletion</div>
+        <div class="feat-desc">Anki-compatible {{c1::syntax}} for cloze cards. Retrieval practice over passive re-reading (Roediger and Karpicke, 2006).</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Image occlusion</div>
+        <div class="feat-desc">Draw masks over diagrams and anatomical images. Each region becomes an independent card.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Sleep-aware reminders</div>
+        <div class="feat-desc">Optional bedtime window shifts to review-only mode, aligned with sleep consolidation evidence (Diekelmann and Born, 2010).</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Anki import</div>
+        <div class="feat-desc">Import .apkg decks directly. Basic, cloze, and image occlusion card types are converted automatically.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Offline PWA</div>
+        <div class="feat-desc">Install on any device. Reviews queue locally when offline and sync when connection returns.</div>
+      </div>
+    </div>
+
+    <div class="screenshot" role="img" aria-label="Screenshot of the Nidus Recall study screen">
+      <span class="screenshot-placeholder">Study screen screenshot</span>
+    </div>
+
+    <a class="cta" href="https://nidus-recall.base44.app">Start studying free</a>
+
+    <p class="footer" style="margin-top:32px">
+      Nidus Recall v0.6.0. Built for postgraduate learners who need to retain complex material long-term.
+      Scheduling evidence: Cepeda et al. (Psychol Bull 2006); Ebbinghaus forgetting curve.
+    </p>
+  </div>
+</body>
+</html>
