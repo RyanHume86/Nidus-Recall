@@ -25,6 +25,14 @@ const getFsrsOptimizer = async () => {
   return fsrsOptimizerModule
 }
 
+// Dynamic import for AI assist safety layer -- only loaded when user opens AI edit panel.
+// src/api/aiAssist.js: Nidus Recall implementation. See module for hallucination-rate references.
+let aiAssistModule = null
+const getAiAssist = async () => {
+  if (!aiAssistModule) aiAssistModule = await import('../api/aiAssist.js')
+  return aiAssistModule
+}
+
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
   bg:       "#F4F7F5",
@@ -1188,6 +1196,27 @@ const CSS = `
   }
 
   /* Cloze and image occlusion card styles (Session 3) */
+  /* AI assist components */
+  .nid-ai-badge {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 500; color: #2E7B88;
+    background: rgba(46,123,136,0.10); border: 1px solid rgba(46,123,136,0.22);
+    border-radius: 5px; padding: 2px 6px; cursor: pointer; user-select: none;
+  }
+  .nid-ai-badge:hover { background: rgba(46,123,136,0.18); }
+  .nid-diff-col { flex: 1; min-width: 0; }
+  .nid-diff-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #7BA090; margin-bottom: 6px; }
+  .nid-diff-original { background: rgba(189,50,50,0.07); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.6; }
+  .nid-diff-proposed { background: rgba(45,110,82,0.08); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.6; }
+  .nid-diff-del { background: rgba(189,50,50,0.18); border-radius: 3px; padding: 0 2px; }
+  .nid-diff-ins { background: rgba(45,110,82,0.22); border-radius: 3px; padding: 0 2px; }
+  .nid-clinical-warn { background: #FDF0DC; border: 1px solid #E8C880; border-radius: 10px;
+    padding: 10px 14px; font-size: 12px; color: #5C3A00; line-height: 1.6; margin-bottom: 14px; }
+  .nid-history-row { display: flex; gap: 8px; align-items: flex-start; padding: 10px 0;
+    border-bottom: 1px solid #CFDBD5; }
+  .nid-history-row:last-child { border-bottom: none; }
+
   .nid-cloze-blank {
     display: inline-block; background: #CFDBD5; color: transparent;
     border-radius: 4px; padding: 2px 8px; min-width: 40px; text-align: center;
@@ -1508,13 +1537,47 @@ function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncS
 }
 
 // ─── Edit Card Modal ──────────────────────────────────────────────────────────
-function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
+function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
   const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
   const [showNote, setShowNote]   = useState(!!(card.elaboration))
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
   const [showConnects, setShowConnects] = useState(!!(card.connects_to?.length))
   const [showPrereq, setShowPrereq]     = useState(!!(card.prerequisite_card_id))
   const [confirmDel, setConfirmDel] = useState(false)
+  const [aiPrompt, setAiPrompt]     = useState("")
+  const [aiOpen, setAiOpen]         = useState(false)
+  const [aiLoading, setAiLoading]   = useState(false)
+  const [aiProposal, setAiProposal] = useState(null)
+  const [aiError, setAiError]       = useState(null)
+  const [showHistory, setShowHistory] = useState(false)
+
+  const handleAiRequest = async () => {
+    if (!aiPrompt.trim()) return
+    setAiLoading(true); setAiError(null); setAiProposal(null)
+    try {
+      const { requestAIEdit } = await getAiAssist()
+      const result = await requestAIEdit({ ...card, ...form }, aiPrompt)
+      setAiProposal(result)
+    } catch (err) {
+      if (err.message.startsWith("CITATION_REFUSED:")) {
+        setAiError("Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.")
+      } else {
+        setAiError(err.message || "AI request failed. Try again.")
+      }
+    }
+    setAiLoading(false)
+  }
+
+  const handleApplyAiProposal = async () => {
+    if (!aiProposal) return
+    const snapshot = { front: card.front, back: card.back, elaboration: card.elaboration, source: card.source, tags: card.tags }
+    if (onSaveHistory) {
+      try { await onSaveHistory(card.id, snapshot, "ai", aiProposal.model) } catch (_) {}
+    }
+    setForm(f => ({ ...f, front: aiProposal.proposed.front, back: aiProposal.proposed.back, ai_edited: true }))
+    setAiProposal(null); setAiOpen(false); setAiPrompt("")
+  }
+
 
   const handleSave = async () => {
     if (!form.front.trim() || !form.back.trim()) return
@@ -1547,11 +1610,20 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
       <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
         className="rapp-modal-inner">
         <div className="rapp-row rapp-sb rapp-mb20">
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
             <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit card</span>
             {card.contentType && <span className="nid-ct-chip" style={{ marginBottom:0 }}>{card.contentType}</span>}
+            {card.ai_edited && (
+              <span className="nid-ai-badge" title="AI-edited. Click to view history." onClick={()=>setShowHistory(true)}>AI edited</span>
+            )}
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            {card.ai_edited && (
+              <button onClick={()=>setShowHistory(true)} style={{ background:"none", border:`1px solid ${C.border}`, cursor:"pointer", fontSize:11, color:C.textSec, borderRadius:6, padding:"3px 8px", fontFamily:"inherit" }}>History</button>
+            )}
+            <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>Ã—</button>
+          </div>
+
         </div>
 
         {decks.length > 1 && (
@@ -1647,6 +1719,52 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
           </div>
         )}
 
+        {/* AI assist */}
+        <div style={{ marginBottom:14 }}>
+          {!aiOpen ? (
+            <button onClick={()=>setAiOpen(true)}
+              style={{ width:"100%", padding:"9px 0", borderRadius:10, border:`1px solid ${C.border}`, background:"transparent",
+                color:C.textSec, fontSize:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              AI assist
+            </button>
+          ) : (
+            <div style={{ background:C.elevated, borderRadius:12, padding:"14px 14px 10px" }}>
+              <div style={{ fontSize:12, fontWeight:600, color:C.text, marginBottom:8 }}>AI assist</div>
+              <p style={{ fontSize:11, color:C.textMut, marginBottom:8, lineHeight:1.6 }}>
+                Describe how to improve this card. Citations must be added manually (LLMs hallucinate medical references at rates above 30%: Alkaissi and McFarlane, Am J Case Rep 2023; Thirunavukarasu et al., Lancet Digit Health 2023).
+              </p>
+              {aiError && (
+                <div style={{ background:"#FDF0DC", border:"1px solid #E8C880", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#5C3A00", marginBottom:8 }}>{aiError}</div>
+              )}
+              <textarea className="rapp-textarea" rows={2} value={aiPrompt}
+                onChange={e=>setAiPrompt(e.target.value)}
+                placeholder="e.g. Make the question more concise and improve the recall cue." />
+              <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                <button onClick={handleAiRequest} disabled={!aiPrompt.trim()||aiLoading}
+                  style={{ flex:1, padding:"8px", borderRadius:8, border:"none", background:C.accent, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", opacity:aiLoading?0.6:1 }}>
+                  {aiLoading ? "Thinking..." : "Suggest edit"}
+                </button>
+                <button onClick={()=>{ setAiOpen(false); setAiError(null); setAiProposal(null); setAiPrompt("") }}
+                  style={{ padding:"8px 12px", borderRadius:8, border:`1px solid ${C.border}`, background:"transparent", color:C.textSec, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        {aiProposal && (
+          <AIDiffModal
+            original={{ front: form.front, back: form.back }}
+            proposed={aiProposal.proposed}
+            isClinical={aiProposal.isClinical}
+            onApprove={handleApplyAiProposal}
+            onEdit={(f) => { setForm(prev => ({ ...prev, ...f, ai_edited: true })); setAiProposal(null); setAiOpen(false); setAiPrompt("") }}
+            onReject={() => setAiProposal(null)}
+          />
+        )}
+        {showHistory && (
+          <CardHistoryModal cardId={card.id} onClose={()=>setShowHistory(false)} />
+        )}
         <button className="rapp-btn rapp-btn-primary rapp-mb12" style={{ width:"100%" }}
           onClick={handleSave} disabled={!form.front.trim()||!form.back.trim()}>
           Save changes
@@ -1668,6 +1786,118 @@ function EditCardModal({ card, cards, onUpdateCards, onClose, decks }) {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// â”€â”€â”€ AI Diff Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Displays original vs AI-proposed content side by side. User must click Accept,
+// Edit before accepting, or Reject. No card is modified until Accept is clicked.
+function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit, onReject }) {
+  const [editMode, setEditMode] = useState(false)
+  const [editedFront, setEditedFront] = useState(proposed.front)
+  const [editedBack,  setEditedBack]  = useState(proposed.back)
+
+  const wordDiff = (orig, next) => {
+    const ow = orig.trim().split(/\s+/), nw = next.trim().split(/\s+/)
+    const origSet = new Set(ow), nextSet = new Set(nw)
+    const origH = ow.map((w,i) => !nextSet.has(w) ? <span key={i} className="nid-diff-del">{w} </span> : <span key={i}>{w} </span>)
+    const nextH = nw.map((w,i) => !origSet.has(w) ? <span key={i} className="nid-diff-ins">{w} </span> : <span key={i}>{w} </span>)
+    return { origH, nextH, changed: ow.some(w=>!nextSet.has(w)) || nw.some(w=>!origSet.has(w)) }
+  }
+  const fDiff = wordDiff(original.front, proposed.front)
+  const bDiff = wordDiff(original.back, proposed.back)
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:640, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
+        <div className="rapp-row rapp-sb rapp-mb20">
+          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Review AI suggestion</span>
+          <button onClick={onReject} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+        </div>
+        {isClinical && (
+          <div className="nid-clinical-warn">
+            AI-suggested changes to clinical content can contain subtle factual errors. Verify against a primary source before accepting.
+          </div>
+        )}
+        <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>Review the proposed changes. Nothing is saved until you click Accept.</p>
+        {[{label:"Front",diff:fDiff,val:editedFront,setter:setEditedFront,rows:2},{label:"Back",diff:bDiff,val:editedBack,setter:setEditedBack,rows:4}].map(({label,diff,val,setter,rows})=>(
+          <div key={label} style={{ marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.8px", color:C.textMut, marginBottom:8 }}>{label}</div>
+            {!editMode ? (
+              <div style={{ display:"flex", gap:12 }}>
+                <div className="nid-diff-col"><div className="nid-diff-col-label">Original</div><div className="nid-diff-original">{diff.origH}</div></div>
+                <div className="nid-diff-col"><div className="nid-diff-col-label">Proposed</div><div className="nid-diff-proposed">{diff.nextH}</div></div>
+              </div>
+            ) : (
+              <textarea className="rapp-textarea" rows={rows} value={val} onChange={e=>setter(e.target.value)} />
+            )}
+          </div>
+        ))}
+        {!fDiff.changed && !bDiff.changed && <p style={{ fontSize:12, color:C.textMut, fontStyle:"italic", marginBottom:12 }}>No changes detected.</p>}
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          {!editMode ? (
+            <>
+              <button onClick={onApprove} style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:C.accent, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Accept</button>
+              <button onClick={()=>setEditMode(true)} style={{ flex:1, padding:"10px", borderRadius:10, border:`+"`"+`1px solid ${C.border}`+"`"+`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Edit before accepting</button>
+              <button onClick={onReject} style={{ flex:1, padding:"10px", borderRadius:10, border:"1px solid #E8B0A0", background:"transparent", color:C.again, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Reject</button>
+            </>
+          ) : (
+            <>
+              <button onClick={()=>onEdit({ front:editedFront, back:editedBack })} style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:C.accent, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Accept edited version</button>
+              <button onClick={()=>setEditMode(false)} style={{ flex:1, padding:"10px", borderRadius:10, border:`+"`"+`1px solid ${C.border}`+"`"+`, background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>Back to diff</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// â”€â”€â”€ Card History Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Shows all CardHistory records for a card, newest first.
+// The original content before the first AI change is always preserved and visible.
+function CardHistoryModal({ cardId, onClose }) {
+  const [history, setHistory] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState(null)
+  useEffect(() => {
+    storage.listCardHistory(cardId)
+      .then(h => { setHistory(h); setLoading(false) })
+      .catch(e => { setError(e.message); setLoading(false) })
+  }, [cardId])
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"80vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
+        <div className="rapp-row rapp-sb rapp-mb16">
+          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit history</span>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+        </div>
+        <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>AI-assisted edits are logged here. The content before the first AI change is always preserved.</p>
+        {loading && <p style={{ fontSize:13, color:C.textMut }}>Loading...</p>}
+        {error   && <p style={{ fontSize:13, color:C.again }}>Could not load history: {error}</p>}
+        {history && history.length === 0 && <p style={{ fontSize:13, color:C.textMut, fontStyle:"italic" }}>No AI edits recorded for this card.</p>}
+        {history && history.map((h,i) => (
+          <div key={h.id||i} className="nid-history-row">
+            <div style={{ flexShrink:0, marginTop:4, width:8, height:8, borderRadius:"50%", background: h.modified_by==="ai" ? "#2E7B88" : "#7BA090" }} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:"flex", gap:6, marginBottom:4, flexWrap:"wrap" }}>
+                <span style={{ fontSize:12, fontWeight:600, color:C.text }}>v{h.version}</span>
+                <span style={{ fontSize:11, color:C.textMut }}>{h.modified_by==="ai" ? `AI (${h.ai_model_used||"unknown"})` : "You"}</span>
+                {h.modified_at && <span style={{ fontSize:11, color:C.textMut }}>{new Date(h.modified_at).toLocaleDateString()}</span>}
+              </div>
+              {h.content_snapshot && (
+                <div style={{ background:C.elevated, borderRadius:8, padding:"8px 10px" }}>
+                  <p style={{ fontSize:11, color:C.textMut, margin:"0 0 2px" }}>Front</p>
+                  <p style={{ fontSize:12, color:C.text, margin:"0 0 8px", lineHeight:1.5 }}>{h.content_snapshot.front}</p>
+                  <p style={{ fontSize:11, color:C.textMut, margin:"0 0 2px" }}>Back</p>
+                  <p style={{ fontSize:12, color:C.text, margin:0, lineHeight:1.5 }}>{h.content_snapshot.back}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -1759,7 +1989,7 @@ function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onA
 
   return (
     <div className="rapp-wrap rapp-fadein">
-      {editCard && <EditCardModal card={editCard} cards={cards} onUpdateCards={onUpdateCards} decks={decks} onClose={()=>setEditCard(null)} />}
+      {editCard && <EditCardModal card={editCard} cards={cards} onUpdateCards={onUpdateCards} decks={decks} onClose={()=>setEditCard(null)} onSaveHistory={storage.saveCardHistory} />}
 
       {/* Header */}
       <div className="rapp-row rapp-sb rapp-mb24">
@@ -2496,6 +2726,9 @@ function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyD
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               {isMature && <span style={{ fontSize:10, fontWeight:500, color:"var(--sage)" }}>Mature</span>}
               {card.stakes_flag && <div style={{ width:8, height:8, borderRadius:"50%", background:C.accent, flexShrink:0 }} />}
+              {card.ai_edited && (
+                <span className="nid-ai-badge" title="AI-edited. View history in the card editor." style={{ cursor:"default" }}>AI edited</span>
+              )}
             </div>
           </div>
         )}
@@ -3330,6 +3563,10 @@ function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onIm
       {activeTab === "data" && (
         <ImportExportPanel cards={cards} decks={decks} onExport={onExport} onImportFile={onImport} onImportCards={onImportCards} onImportAnki={onImportAnki} />
       )}
+
+      <div style={{ marginTop:32, paddingTop:16, borderTop:`1px solid ${C.border}`, textAlign:"center" }}>
+        <span style={{ fontSize:11, color:C.textMut }}>Nidus Recall v0.6.0</span>
+      </div>
     </div>
   )
 }
