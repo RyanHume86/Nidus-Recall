@@ -1,3 +1,73 @@
+## Session 12 (2026-04-27)
+
+### Post-upgrade cleanup pass
+
+Closed three follow-up items identified in VERIFICATION_REPORT.md.
+No new features. No em-dash violations introduced.
+
+#### Phase 1: SettingsView.jsx split (ImportExportPanel extraction)
+
+`src/views/SettingsView.jsx` was at 618 lines, exceeding the Session 7 Phase 7 acceptance
+criterion of 500 lines or fewer per view file. The `ImportExportPanel` inner component
+(Notion, Excel, JSON backup, and Anki import/export tabs) was extracted to
+`src/components/ImportExportPanel.jsx`. Props are passed explicitly; no Zustand selectors
+added inside the new file.
+
+- `src/views/SettingsView.jsx`: 618 lines -> 328 lines (PASS).
+- `src/components/ImportExportPanel.jsx`: 293 lines (new file).
+- Rendered HTML output is identical; snapshot tests passed without update.
+
+#### Phase 2: unused imports removed from src/pages/Home.jsx
+
+ESLint reported two unused-import errors:
+
+- `settingsSet` (from `@/lib/settings`): settings persistence is now entirely handled by
+  the Zustand store. Import removed.
+- `OnboardingView` (from `@/views/OnboardingView`): not rendered anywhere in this file
+  (the onboarding view is reached through a conditional in LibraryView). Import removed.
+
+`npm run lint` now exits 0 with zero errors or warnings.
+
+#### Phase 3: src/pages/Home.jsx line count (verification only, no fix)
+
+`wc -l src/pages/Home.jsx` returns **290 lines** (two lines removed in Phase 2).
+
+This is in the 200-500 range: above the stricter root-shell target (200 lines) but well
+below the general view ceiling (500 lines). The root shell still contains navigation
+handlers, derived-value memos, and the offline/PWA listener effects that would need to
+move to the Zustand store to bring the file below 200 lines. That refactor is non-trivial
+and is deferred to a future session. No action taken here.
+
+#### Phase 4: vite-plugin-pwa version bump
+
+Bumped `vite-plugin-pwa` from `^0.20.0` to `^0.21.0`. Version 0.21.x adds a Vite 6 peer
+dependency declaration that 0.20.x lacked, so `npm install` now succeeds without
+`--legacy-peer-deps`. Build exit 0; `dist/manifest.webmanifest` and `dist/sw.js` both
+generated correctly. Vulnerability count reduced from 23 to 21 (2 advisories patched by
+the bump).
+
+#### Verification
+
+- `npm test`: **194/194 tests pass** (count unchanged).
+- `npm run lint`: exit 0, zero errors.
+- `npm run build`: exit 0.
+- `node scripts/check-contrast.js`: all 23 AA pairs pass.
+- `wc -l src/views/SettingsView.jsx`: 328 lines (PASS, under 500).
+- `wc -l src/components/ImportExportPanel.jsx`: 293 lines.
+- `wc -l src/pages/Home.jsx`: 290 lines (documented above).
+- Em-dash grep: zero new hits beyond the seven existing acceptable hits in VERIFICATION_REPORT.md.
+
+**Modified files**
+- `src/views/SettingsView.jsx`
+- `src/pages/Home.jsx`
+- `package.json` / `package-lock.json`
+
+**New files**
+- `src/components/ImportExportPanel.jsx`
+- `VERIFICATION_REPORT.md` (written in prior verification-only session)
+
+---
+
 ## Session 11 (2026-04-27)
 
 ### Post-upgrade Session 5: Anki .apkg export
