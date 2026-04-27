@@ -1,3 +1,66 @@
+## Session 7 (2026-04-27)
+
+### Home.jsx decomposition (Phases 1-6)
+
+Broke the 4253-line god component into a maintainable module tree.
+All 127 tests pass throughout. No em/en dashes in user-facing strings.
+
+#### New files
+
+**src/lib/**
+- `heatmap.js` -- `buildHeatmapData(log)` aggregates review counts by ISO date
+- `deck-tree.js` -- `buildDeckTree(names, parentMap)` hierarchical deck list builder
+- `settings.js` -- `DEFAULT_SETTINGS`, `SK`, localStorage helpers, sleep-window logic
+- `stats.js` -- `computeCalibration`, `buildCalibrationChart`, `computeFatigueScore`, `assembleFrictionNote`
+- `fit-params.js` -- full `fitSchedulerParams` with background FSRS-5 gradient descent and storage side effects
+- `theme.js` -- `C` colour palette + field-length constants
+- `icons.jsx` -- `Ico` SVG icon set
+
+**src/components/**
+- `Badge.jsx` -- content-type badge
+- `CharCount.jsx` -- character counter with warn/over states
+- `TagInput.jsx` -- tag management chip input
+- `NoteToggle.jsx` -- collapsible note field
+- `AnchorToggle.jsx` -- collapsible memory anchor field
+- `CardPicker.jsx` -- searchable card selector (single/multi mode)
+- `OcclusionCardRenderer.jsx` -- image occlusion SVG overlay renderer
+- `ReviewHeatmap.jsx` -- 52-week activity heatmap with streak counter
+- `ImageOcclusionEditor.jsx` -- image upload and rect/polygon region drawing
+
+**src/modals/**
+- `AIDiffModal.jsx` -- word-diff display with Accept/Edit/Reject flow
+- `CardHistoryModal.jsx` -- AI edit version log with revert
+- `EditCardModal.jsx` -- full card editor with AI assist and history
+
+**src/views/**
+- `OnboardingView.jsx` -- first-run welcome screen
+- `LibraryView.jsx` -- deck list with sleep banner and search
+- `DeckView.jsx` -- deck management, card add (basic/cloze/occlusion), card list
+- `StudySelectView.jsx` -- study mode selector (SRS/Interleaved/Free)
+- `SessionView.jsx` -- FSRS review session with cloze/occlusion/mature-card support
+- `FreeStudyView.jsx` -- unscheduled card browser
+- `StatsView.jsx` -- heatmap, retention, calibration chart, session history
+- `SettingsView.jsx` -- study/sleep/data tabs (includes ImportExportPanel)
+- `ReturnOnboardingCard.jsx` -- return-after-gap re-onboarding card
+
+**src/store/**
+- `appStore.js` -- Zustand store holding cards, log, decks, settings, sync status,
+  offline state, and all async actions (init, updateCards debounced 800ms, flushCards,
+  addLog, updateSettings, addDeck, archiveDeck, createSampleDeck, markSessionComplete,
+  handleImportCards, handleApkgImportCards)
+
+**src/styles/**
+- `app.css` -- extracted from the 366-line CSS template literal in Home.jsx;
+  imported from main.jsx alongside index.css
+
+#### Modified files
+
+- `src/pages/Home.jsx` -- reduced from 4253 lines to 291 lines (Root Component only).
+  Navigation state remains local; all data/sync state read from useAppStore.
+- `src/main.jsx` -- added `import '@/styles/app.css'`
+- `src/__tests__/snapshots/views.test.jsx` -- updated imports to use new module paths
+- `package.json` -- added zustand@5
+
 ## Session 6 (2026-04-26)
 
 ### Phase 6: AI assist safety
