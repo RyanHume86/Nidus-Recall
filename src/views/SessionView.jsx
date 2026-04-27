@@ -10,6 +10,7 @@ import { computeCalibration, computeFatigueScore, assembleFrictionNote } from "@
 import { fitSchedulerParams } from "@/lib/fit-params"
 import { OcclusionCardRenderer } from "@/components/OcclusionCardRenderer"
 import VesicleDots from "@/components/VesicleDots"
+import NidusLogo from "@/components/NidusLogo"
 
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
