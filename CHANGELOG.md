@@ -1,3 +1,74 @@
+## Session 13 (2026-04-27)
+
+### Brand, onboarding & voice
+
+Full visual identity pass: neuron mark, design tokens, name-based greetings, and a copy/tone rewrite across the app.
+
+#### Phase 0 — Brand audit
+
+`BRAND_AUDIT.md` written at repo root. Documents all logo asset paths, sidebar wordmark locations, User entity field decisions, OnboardingView routing status, token file location, and strings requiring rewrite. Committed as `chore(brand): BRAND_AUDIT.md`.
+
+#### Phase 1 — NidusLogo component and icons
+
+- `src/components/NidusLogo.jsx` created. Props: `size` (default 32), `theme` ("dark" | "light" | "icon"), `withWordmark`, `withStrapline`. Inline SVG neuron mark: soma at (60, 68, r=14), three dendrite branches, myelinated axon with 7 elliptical sheaths at cx=77–141, collateral, terminal fork, five vesicle dots (opacities 0.85–0.40). Three colour themes; no animation; render-stable for snapshots.
+- `src/pages/Home.jsx`: both `<div className="rapp-logo"><div className="rapp-logo-dot"/>Nidus Recall</div>` (skeleton + main) replaced with `<NidusLogo size={28} withWordmark />`.
+- `public/icons/icon-192.svg` and `public/icons/icon-512.svg` replaced; icon theme (bg `#101F12`, stroke `#8AAD91`, border-radius 22%).
+- `public/icons/icon-192.png`, `public/icons/icon-512.png`, `public/apple-touch-icon.png` regenerated via `node scripts/generate-icons.js`.
+- `public/landing.html`: dot + text logo replaced with inline neuron SVG (light theme: stroke `#6E9275`, myelin `#FFFFFF`) plus wide-tracked wordmark and "remember everything" strapline.
+
+#### Phase 2 — Design tokens and VesicleDots
+
+- `src/styles/app.css`: three new CSS custom properties added to `:root` (both light and dark blocks):
+  - `--nidus-sage: #8AAD91` — primary brand green
+  - `--nidus-sage-light: #6E9275` — light-mode variant
+  - `--nidus-warm: #C89968` — warm accent (large/decorative text only; 3.0:1 large-text threshold)
+- `scripts/check-contrast.js`: four new token pairs added (nidus-sage, nidus-sage-light, nidus-warm on bg, nidus-warm on surface). Typed "muted" so they don't trigger hard-fail exit. All interactive and body text pairs still pass AA (4.5:1). Exit 0.
+- `src/components/VesicleDots.jsx` created. Absolutely positioned SVG with 7 branded dots at 3–7% opacity; purely decorative, pointer-events none.
+
+#### Phase 3 — Onboarding name capture
+
+- `base44/entities/User.jsonc`: `first_name` field added (string, nullable, maxLength 60). Description notes localStorage mirror under `nidus.firstName`.
+- `src/views/OnboardingView.jsx` rewritten with a three-step flow:
+  1. **name** — autofocused input, Continue / Skip.
+  2. **meet** — "Nice to meet you, {name}. Ready to build something worth remembering?" → Let's go.
+  3. **welcome** — original CTA content (unchanged). Skips directly to welcome if name already stored.
+  - Name persisted to `localStorage["nidus.firstName"]` (trimmed, max 60 chars).
+- `src/views/SettingsView.jsx`: "About you" card added to Study tab above Daily limits. First-name input updates `localStorage["nidus.firstName"]` live via `useEffect`.
+
+#### Phase 4 — Greeting helper and wiring
+
+- `src/lib/greeting.js` created. Exports `getTimeOfDay(now)` (bands: morning 5–12, afternoon 12–17, evening 17–21, night 21–05) and `getGreeting(firstName, now)` (night case uses "Hello" not "Good night").
+- `src/lib/__tests__/greeting.test.js`: 17 tests covering all time-band boundaries, name inclusion/exclusion, null/whitespace name handling, night-band special case. All pass.
+- `src/views/LibraryView.jsx`: header title changed to `getGreeting(localStorage.getItem("nidus.firstName"))` when `decks.length > 0`; falls back to "Library" on empty state.
+- `src/views/StudySelectView.jsx`: title changed to `getGreeting(...)` always; subtitle changed to "Ready when you are."
+- `src/views/StatsView.jsx`: title changed to `getGreeting(...)` when `log.length > 0`; falls back to "Progress" on empty log.
+
+#### Phase 5 — Progress rename
+
+- `src/pages/Home.jsx` NAV array: `label: "Stats"` → `label: "Progress"`. Route ID stays `"stats"`.
+- `src/views/StatsView.jsx` empty-state heading: "Stats" already covered by Phase 4 fallback to "Progress".
+
+#### Phase 6 — Copy rewrites
+
+- `src/views/StudySelectView.jsx` line ~126: "Nothing to study. Come back tomorrow or add cards." → "You're all caught up. Check back tomorrow, or add new cards to keep the momentum going."
+- `src/views/StatsView.jsx` empty-state cards: headers and body copy rewritten for warmer, peer-level tone. "Tracking started: score shown after 10 qualifying reviews." → "Your recall accuracy appears here after 10 qualifying reviews — keep going."
+- `src/views/StatsView.jsx` critical cards row: now conditionally rendered (hidden when `criticalCards === 0`).
+- `src/views/SessionView.jsx` close phase: "tracking started" → "appears after 10 qualifying reviews". Added reflection line above stat boxes (accuracy-keyed: ≥90% "Sharp session", ≥75% "Solid work", ≥60% "Plenty to build on", <60% "Tough session").
+
+#### Phase 7 — VesicleDots placement and warm accent
+
+- `VesicleDots` placed in: StatsView empty-state first card (position: relative + overflow: hidden wrapper), SessionView reflection card.
+- `var(--nidus-warm)` applied to: SessionView session-recall % display, SessionView 30-day recall accuracy `<strong>`, StatsView mature card stat number.
+
+#### Phase 8 — Verification
+
+- `npm test`: **211/211 passing** (194 prior + 17 new greeting tests). 7 snapshots updated for view content changes.
+- `npm run lint`: exit 0, zero errors.
+- `npm run build`: exit 0.
+- `node scripts/check-contrast.js`: exit 0, all interactive/body pairs pass AA.
+
+---
+
 ## Session 12 (2026-04-27)
 
 ### Post-upgrade cleanup pass
