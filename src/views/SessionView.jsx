@@ -9,6 +9,7 @@ import { renderClozeFront } from "@/lib/cloze"
 import { computeCalibration, computeFatigueScore, assembleFrictionNote } from "@/lib/stats"
 import { fitSchedulerParams } from "@/lib/fit-params"
 import { OcclusionCardRenderer } from "@/components/OcclusionCardRenderer"
+import VesicleDots from "@/components/VesicleDots"
 
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
@@ -211,6 +212,28 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
           {remainingInList} card{remainingInList!==1?"s":""} remaining for today
         </div>
       )}
+      {(() => {
+        const total = stats.reviewed
+        const nonAgain = total - stats.failed
+        const pct = total > 0 ? Math.round((nonAgain / total) * 100) : null
+        const line = pct === null ? null
+          : pct >= 90 ? "Sharp session — your memory is consolidating well."
+          : pct >= 75 ? "Solid work. The cards you missed will come back sooner."
+          : pct >= 60 ? "Plenty to build on. Those hard cards are the ones worth reviewing."
+          : "Tough session — that means you're working on the right material."
+        return line ? (
+          <div className="rapp-card rapp-mb16" style={{ position: "relative", overflow: "hidden" }}>
+            <VesicleDots />
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.65 }}>{line}</div>
+              {pct !== null && (
+                <div style={{ marginTop: 8, fontSize: 28, fontWeight: 700, color: "var(--nidus-warm)" }}>{pct}%</div>
+              )}
+              <div style={{ fontSize: 11, color: C.textMut }}>session recall</div>
+            </div>
+          </div>
+        ) : null
+      })()}
       <div className="rapp-stat-row rapp-mb20">
         <div className="rapp-stat-box"><div className="rapp-stat-num">{stats.reviewed}</div><div className="rapp-stat-lbl">Reviewed</div></div>
         <div className="rapp-stat-box"><div className="rapp-stat-num" style={{ color:stats.failed>0?C.again:C.textMut }}>{stats.failed}</div><div className="rapp-stat-lbl">Failed</div></div>
@@ -218,7 +241,7 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
       </div>
       {(() => { const cal = computeCalibration(cards); return (
         <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>
-          Recall accuracy (30 days): {cal.score !== null ? <strong style={{ color:cal.score>=85?C.accent:C.warning }}>{cal.score}%</strong> : <span>tracking started</span>}
+          Recall accuracy (30 days): {cal.score !== null ? <strong style={{ color:"var(--nidus-warm)" }}>{cal.score}%</strong> : <span>appears after 10 qualifying reviews</span>}
         </div>
       )})()}
       <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>

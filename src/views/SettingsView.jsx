@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import { ImportExportPanel } from "@/components/ImportExportPanel"
@@ -12,6 +12,15 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
   } = settings||{}
   const [activeTab, setActiveTab] = useState("study")
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [firstName, setFirstName] = useState(() => localStorage.getItem("nidus.firstName") || "")
+  const [firstNameDraft, setFirstNameDraft] = useState(() => localStorage.getItem("nidus.firstName") || "")
+
+  useEffect(() => {
+    const saved = firstNameDraft.trim().slice(0, 60)
+    if (saved) localStorage.setItem("nidus.firstName", saved)
+    else localStorage.removeItem("nidus.firstName")
+    setFirstName(saved)
+  }, [firstNameDraft])
 
   const TAB = (id, label) => (
     <button onClick={()=>setActiveTab(id)}
@@ -36,6 +45,24 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
 
       {activeTab === "study" && (
         <div className="rapp-fadein">
+          <div className="rapp-card rapp-mb16">
+            <div className="rapp-sec-title">About you</div>
+            <div className="rapp-mb4">
+              <label className="rapp-label">First name</label>
+              <input
+                className="rapp-input"
+                value={firstNameDraft}
+                onChange={e => setFirstNameDraft(e.target.value)}
+                placeholder="Used for greetings"
+                maxLength={60}
+                style={{ width: "100%" }}
+              />
+              <p style={{ fontSize: 12, color: C.textMut, marginTop: 6, lineHeight: 1.6 }}>
+                Just your first name. Saved locally, never shared.
+              </p>
+            </div>
+          </div>
+
           <div className="rapp-card rapp-mb16">
             <div className="rapp-sec-title">Daily limits</div>
 

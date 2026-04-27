@@ -176,7 +176,7 @@ export default function Home() {
   const NAV = [
     { id: "library",      label: "Library",  icon: Ico.library, active: view === "library" || view === "deck" },
     { id: "study-select", label: "Study",    icon: Ico.study,   active: view === "study-select" },
-    { id: "stats",        label: "Stats",    icon: Ico.stats,   active: view === "stats" },
+    { id: "stats",        label: "Progress", icon: Ico.stats,   active: view === "stats" },
     { id: "settings",     label: "Settings", icon: Ico.gear,    active: view === "settings" },
   ]
 

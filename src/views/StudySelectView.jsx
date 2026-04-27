@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { getGreeting } from "@/lib/greeting"
 import { C } from "@/lib/theme"
 import { getDueWithCatchup, getNew, isActive } from "@/lib/fsrs"
 import { isInSleepWindow } from "@/lib/settings"
@@ -23,8 +24,8 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   return (
     <div className="rapp-wrap rapp-fadein">
       <div className="rapp-mb24">
-        <div className="rapp-pg-title">Study</div>
-        <div className="rapp-pg-sub">Choose mode and deck</div>
+        <div className="rapp-pg-title">{getGreeting(localStorage.getItem("nidus.firstName"))}</div>
+        <div className="rapp-pg-sub">Ready when you are.</div>
       </div>
 
       <div className="rapp-col" style={{ gap:10, marginBottom:20 }}>
@@ -122,7 +123,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
 
       {(mode==="srs" || mode==="interleaved") && !canStart && !cardsLoading && (
         <p style={{ textAlign:"center", fontSize:13, color:C.textMut, marginTop:12 }}>
-          Nothing to study. Come back tomorrow or add cards.
+          You're all caught up. Check back tomorrow, or add new cards to keep the momentum going.
         </p>
       )}
     </div>

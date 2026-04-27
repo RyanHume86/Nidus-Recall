@@ -4977,59 +4977,37 @@ exports[`view snapshots > LibraryView: empty state 1`] = `
     </div>
     <div
       class="rapp-wrap rapp-fadein"
-      style="text-align: center; padding-top: 60px;"
+      style="text-align: center; padding-top: 60px; max-width: 400px; margin: 0px auto;"
     >
       <div
         style="font-size: 22px; font-weight: 700; margin-bottom: 8px;"
       >
-        Welcome to Nidus Recall
+        What should we call you?
       </div>
       <div
-        style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 32px; line-height: 1.65;"
+        style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 28px; line-height: 1.65;"
       >
-        Build your own flashcard decks. Study using active recall.
-        <br />
-        Let spaced repetition handle the scheduling.
+        Just a first name. We'll use it to say hello.
       </div>
+      <input
+        class="rapp-input"
+        maxlength="60"
+        placeholder="Your first name"
+        style="width: 100%; margin-bottom: 12px; font-size: 16px;"
+        value=""
+      />
       <button
         class="rapp-btn rapp-btn-primary"
-        style="width: 100%; margin-bottom: 12px;"
+        style="width: 100%; margin-bottom: 10px;"
       >
-        <svg
-          fill="none"
-          height="14"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="2.5"
-          viewBox="0 0 24 24"
-          width="14"
-        >
-          <line
-            x1="12"
-            x2="12"
-            y1="5"
-            y2="19"
-          />
-          <line
-            x1="5"
-            x2="19"
-            y1="12"
-            y2="12"
-          />
-        </svg>
-         Try a sample deck
+        Continue
       </button>
       <button
         class="rapp-btn rapp-btn-ghost"
-        style="width: 100%; margin-bottom: 16px;"
+        style="width: 100%;"
       >
-        Create your first deck
+        Skip
       </button>
-      <p
-        style="font-size: 12px; color: rgb(74, 107, 92); line-height: 1.6;"
-      >
-        The sample deck includes basic, cloze, and image occlusion card types so you can explore each format before building your own content.
-      </p>
     </div>
   </div>
 </div>
@@ -5051,7 +5029,7 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
           <div
             class="rapp-pg-title"
           >
-            Library
+            Hello
           </div>
           <div
             style="font-size: 11.5px; color: rgb(74, 107, 92); margin-top: 3px;"
@@ -5156,59 +5134,37 @@ exports[`view snapshots > OnboardingView 1`] = `
 <div>
   <div
     class="rapp-wrap rapp-fadein"
-    style="text-align: center; padding-top: 60px;"
+    style="text-align: center; padding-top: 60px; max-width: 400px; margin: 0px auto;"
   >
     <div
       style="font-size: 22px; font-weight: 700; margin-bottom: 8px;"
     >
-      Welcome to Nidus Recall
+      What should we call you?
     </div>
     <div
-      style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 32px; line-height: 1.65;"
+      style="font-size: 14px; color: rgb(58, 82, 70); margin-bottom: 28px; line-height: 1.65;"
     >
-      Build your own flashcard decks. Study using active recall.
-      <br />
-      Let spaced repetition handle the scheduling.
+      Just a first name. We'll use it to say hello.
     </div>
+    <input
+      class="rapp-input"
+      maxlength="60"
+      placeholder="Your first name"
+      style="width: 100%; margin-bottom: 12px; font-size: 16px;"
+      value=""
+    />
     <button
       class="rapp-btn rapp-btn-primary"
-      style="width: 100%; margin-bottom: 12px;"
+      style="width: 100%; margin-bottom: 10px;"
     >
-      <svg
-        fill="none"
-        height="14"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-width="2.5"
-        viewBox="0 0 24 24"
-        width="14"
-      >
-        <line
-          x1="12"
-          x2="12"
-          y1="5"
-          y2="19"
-        />
-        <line
-          x1="5"
-          x2="19"
-          y1="12"
-          y2="12"
-        />
-      </svg>
-       Try a sample deck
+      Continue
     </button>
     <button
       class="rapp-btn rapp-btn-ghost"
-      style="width: 100%; margin-bottom: 16px;"
+      style="width: 100%;"
     >
-      Create your first deck
+      Skip
     </button>
-    <p
-      style="font-size: 12px; color: rgb(74, 107, 92); line-height: 1.6;"
-    >
-      The sample deck includes basic, cloze, and image occlusion card types so you can explore each format before building your own content.
-    </p>
   </div>
 </div>
 `;
@@ -5375,6 +5331,36 @@ exports[`view snapshots > SettingsView 1`] = `
     <div
       class="rapp-fadein"
     >
+      <div
+        class="rapp-card rapp-mb16"
+      >
+        <div
+          class="rapp-sec-title"
+        >
+          About you
+        </div>
+        <div
+          class="rapp-mb4"
+        >
+          <label
+            class="rapp-label"
+          >
+            First name
+          </label>
+          <input
+            class="rapp-input"
+            maxlength="60"
+            placeholder="Used for greetings"
+            style="width: 100%;"
+            value=""
+          />
+          <p
+            style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
+          >
+            Just your first name. Saved locally, never shared.
+          </p>
+        </div>
+      </div>
       <div
         class="rapp-card rapp-mb16"
       >
@@ -5573,7 +5559,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
       <div
         class="rapp-pg-title"
       >
-        Stats
+        Progress
       </div>
     </div>
     <div
@@ -7312,55 +7298,113 @@ exports[`view snapshots > StatsView: empty log 1`] = `
     </div>
     <div
       class="rapp-card rapp-mb16"
+      style="position: relative; overflow: hidden;"
     >
-      <div
-        style="font-size: 15px; font-weight: 700; margin-bottom: 12px;"
+      <svg
+        aria-hidden="true"
+        class=""
+        style="position: absolute; inset: 0px; width: 100%; height: 100%; pointer-events: none;"
       >
-        Your stats will appear here after your first study session.
-      </div>
+        <circle
+          cx="12%"
+          cy="18%"
+          fill="#8AAD91"
+          opacity="0.07"
+          r="3.2"
+        />
+        <circle
+          cx="78%"
+          cy="11%"
+          fill="#8AAD91"
+          opacity="0.05"
+          r="2.4"
+        />
+        <circle
+          cx="88%"
+          cy="55%"
+          fill="#8AAD91"
+          opacity="0.06"
+          r="3.8"
+        />
+        <circle
+          cx="22%"
+          cy="72%"
+          fill="#8AAD91"
+          opacity="0.05"
+          r="2.8"
+        />
+        <circle
+          cx="60%"
+          cy="85%"
+          fill="#8AAD91"
+          opacity="0.04"
+          r="2"
+        />
+        <circle
+          cx="45%"
+          cy="30%"
+          fill="#8AAD91"
+          opacity="0.03"
+          r="1.6"
+        />
+        <circle
+          cx="5%"
+          cy="48%"
+          fill="#8AAD91"
+          opacity="0.04"
+          r="2.4"
+        />
+      </svg>
       <div
-        style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
+        style="position: relative; z-index: 1;"
       >
-        <p
-          style="margin-bottom: 8px;"
+        <div
+          style="font-size: 15px; font-weight: 700; margin-bottom: 12px;"
         >
-          <strong>
-            Due today:
-          </strong>
-           cards whose next review date is today or earlier.
-        </p>
-        <p
-          style="margin-bottom: 8px;"
+          Your progress will appear here after your first session.
+        </div>
+        <div
+          style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
         >
-          <strong>
-            Active cards:
-          </strong>
-           total cards with status Active (not archived or parked).
-        </p>
-        <p
-          style="margin-bottom: 8px;"
-        >
-          <strong>
-            Mature cards:
-          </strong>
-           cards with a stability value above the maturity threshold (default: 30 days). Mature cards need less frequent review.
-        </p>
-        <p
-          style="margin-bottom: 8px;"
-        >
-          <strong>
-            Recall accuracy:
-          </strong>
-           percentage of reviews rated Good or Easy in the last 30 days.
-        </p>
-        <p
-          style="margin-bottom: 16px;"
-        >
-          <strong>
-            Critical cards:
-          </strong>
-           cards with the stakes flag set. These are reviewed at higher priority.
-        </p>
+          <p
+            style="margin-bottom: 8px;"
+          >
+            <strong>
+              Due today
+            </strong>
+             — cards whose next review falls today or earlier.
+          </p>
+          <p
+            style="margin-bottom: 8px;"
+          >
+            <strong>
+              Active cards
+            </strong>
+             — total cards in rotation (not archived).
+          </p>
+          <p
+            style="margin-bottom: 8px;"
+          >
+            <strong>
+              Mature cards
+            </strong>
+             — cards with a stability above 30 days. They need reviewing less and less often.
+          </p>
+          <p
+            style="margin-bottom: 8px;"
+          >
+            <strong>
+              Recall accuracy
+            </strong>
+             — the share of reviews rated Good or Easy in the last 30 days.
+          </p>
+          <p>
+            <strong>
+              Critical cards
+            </strong>
+             — cards you've flagged as high-stakes. Reviewed at higher priority.
+          </p>
+        </div>
       </div>
     </div>
     <div
@@ -7369,7 +7413,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
       <div
         style="font-size: 14px; font-weight: 600; margin-bottom: 8px;"
       >
-        How the scheduling works
+        How FSRS scheduling works
       </div>
       <div
         style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
@@ -7377,7 +7421,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
         <p
           style="margin-bottom: 8px;"
         >
-          The FSRS algorithm estimates the probability you will recall a card and schedules it to be reviewed just before that probability drops below a target threshold (default: 90%). Cards you recall easily are shown less often; cards you struggle with come back sooner.
+          The algorithm estimates how likely you are to recall each card, then schedules it just before that probability would drop below your target (default: 90%). Cards you know well drift out to months; cards you find hard come back in days.
         </p>
         <p>
           Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.
@@ -7390,28 +7434,28 @@ exports[`view snapshots > StatsView: empty log 1`] = `
       <div
         style="font-size: 14px; font-weight: 600; margin-bottom: 8px;"
       >
-        What to expect
+        What the first few months look like
       </div>
       <div
         style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: rgb(58, 82, 70);"
       >
         <div>
           <strong>
-            Week 1:
+            Week 1
           </strong>
-           cards are new, intervals are short (1 to 3 days). High daily volume.
+           — short intervals, high volume. The algorithm is learning you.
         </div>
         <div>
           <strong>
-            Week 4:
+            Week 4
           </strong>
-           familiar cards space out to 7 to 21 days. Daily workload stabilises.
+           — familiar cards space out to 1–3 weeks. Daily load starts to settle.
         </div>
         <div>
           <strong>
-            Month 3:
+            Month 3
           </strong>
-           well-known cards reviewed once every few months. New cards drive most of the load.
+           — well-known cards reviewed monthly. New cards drive most of the workload.
         </div>
       </div>
     </div>
@@ -7455,7 +7499,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
         >
           <div
             class="rapp-stat-num"
-            style="color: rgb(45, 110, 82);"
+            style="color: var(--nidus-warm);"
           >
             0
           </div>
@@ -7476,21 +7520,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
         </div>
         <p
           style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
-        >
-          Critical cards: 
-          <strong
-            style="color: rgb(74, 107, 92);"
-          >
-            0
-          </strong>
-          <span
-            style="color: rgb(74, 107, 92);"
-          >
-             of 
-            0
-             total
-          </span>
-        </p>
+        />
       </div>
       <div
         class="rapp-card rapp-mb20"
@@ -7503,7 +7533,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
         <p
           style="font-size: 13px; color: rgb(74, 107, 92); margin-bottom: 12px;"
         >
-          Tracking started: score shown after 10 qualifying reviews.
+          Your recall accuracy appears here after 10 qualifying reviews — keep going.
         </p>
       </div>
     </div>
@@ -7527,7 +7557,7 @@ exports[`view snapshots > StatsView: with log and cards 1`] = `
       <div
         class="rapp-pg-title"
       >
-        Stats
+        Hello
       </div>
     </div>
     <div
@@ -9310,7 +9340,7 @@ exports[`view snapshots > StatsView: with log and cards 1`] = `
         >
           <div
             class="rapp-stat-num"
-            style="color: rgb(45, 110, 82);"
+            style="color: var(--nidus-warm);"
           >
             0
           </div>
@@ -9389,21 +9419,7 @@ exports[`view snapshots > StatsView: with log and cards 1`] = `
         </div>
         <p
           style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
-        >
-          Critical cards: 
-          <strong
-            style="color: rgb(74, 107, 92);"
-          >
-            0
-          </strong>
-          <span
-            style="color: rgb(74, 107, 92);"
-          >
-             of 
-            2
-             total
-          </span>
-        </p>
+        />
       </div>
       <div
         class="rapp-card rapp-mb20"
@@ -9416,7 +9432,7 @@ exports[`view snapshots > StatsView: with log and cards 1`] = `
         <p
           style="font-size: 13px; color: rgb(74, 107, 92); margin-bottom: 12px;"
         >
-          Tracking started: score shown after 10 qualifying reviews.
+          Your recall accuracy appears here after 10 qualifying reviews — keep going.
         </p>
       </div>
     </div>
@@ -9567,12 +9583,12 @@ exports[`view snapshots > StudySelectView: with due cards 1`] = `
       <div
         class="rapp-pg-title"
       >
-        Study
+        Hello
       </div>
       <div
         class="rapp-pg-sub"
       >
-        Choose mode and deck
+        Ready when you are.
       </div>
     </div>
     <div

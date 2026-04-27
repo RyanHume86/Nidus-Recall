@@ -1,10 +1,12 @@
 import { useState, useRef } from "react"
+import { getGreeting } from "@/lib/greeting"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts"
 import { C } from "@/lib/theme"
 import { getDue, getNew, isActive } from "@/lib/fsrs"
 import { computeCalibration, buildCalibrationChart, computeFatigueScore } from "@/lib/stats"
 import { ReviewHeatmap } from "@/components/ReviewHeatmap"
+import VesicleDots from "@/components/VesicleDots"
 
 export function StatsView({ log, cards, decks, settings }) {
   const [selectedDeck, setSelectedDeck] = useState("all")
@@ -26,7 +28,7 @@ export function StatsView({ log, cards, decks, settings }) {
   return (
     <div className="rapp-wrap rapp-fadein">
       <div className="rapp-mb24">
-        <div className="rapp-pg-title">Stats</div>
+        <div className="rapp-pg-title">{log.length > 0 ? getGreeting(localStorage.getItem("nidus.firstName")) : "Progress"}</div>
       </div>
 
       <div className="rapp-mb20">
@@ -40,36 +42,38 @@ export function StatsView({ log, cards, decks, settings }) {
 
       {log.length === 0 && (
         <>
-          <div className="rapp-card rapp-mb16">
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>
-              Your stats will appear here after your first study session.
-            </div>
-            <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
-              <p style={{ marginBottom:8 }}><strong>Due today:</strong> cards whose next review date is today or earlier.</p>
-              <p style={{ marginBottom:8 }}><strong>Active cards:</strong> total cards with status Active (not archived or parked).</p>
-              <p style={{ marginBottom:8 }}><strong>Mature cards:</strong> cards with a stability value above the maturity threshold (default: 30 days). Mature cards need less frequent review.</p>
-              <p style={{ marginBottom:8 }}><strong>Recall accuracy:</strong> percentage of reviews rated Good or Easy in the last 30 days.</p>
-              <p style={{ marginBottom:16 }}><strong>Critical cards:</strong> cards with the stakes flag set. These are reviewed at higher priority.</p>
+          <div className="rapp-card rapp-mb16" style={{ position: "relative", overflow: "hidden" }}>
+            <VesicleDots />
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ fontSize:15, fontWeight:700, marginBottom:12 }}>
+                Your progress will appear here after your first session.
+              </div>
+              <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
+                <p style={{ marginBottom:8 }}><strong>Due today</strong> — cards whose next review falls today or earlier.</p>
+                <p style={{ marginBottom:8 }}><strong>Active cards</strong> — total cards in rotation (not archived).</p>
+                <p style={{ marginBottom:8 }}><strong>Mature cards</strong> — cards with a stability above 30 days. They need reviewing less and less often.</p>
+                <p style={{ marginBottom:8 }}><strong>Recall accuracy</strong> — the share of reviews rated Good or Easy in the last 30 days.</p>
+                <p><strong>Critical cards</strong> — cards you've flagged as high-stakes. Reviewed at higher priority.</p>
+              </div>
             </div>
           </div>
           <div className="rapp-card rapp-mb16">
-            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>How the scheduling works</div>
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>How FSRS scheduling works</div>
             <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
               <p style={{ marginBottom:8 }}>
-                The FSRS algorithm estimates the probability you will recall a card and
-                schedules it to be reviewed just before that probability drops below a
-                target threshold (default: 90%). Cards you recall easily are shown less
-                often; cards you struggle with come back sooner.
+                The algorithm estimates how likely you are to recall each card,
+                then schedules it just before that probability would drop below your target (default: 90%).
+                Cards you know well drift out to months; cards you find hard come back in days.
               </p>
               <p>Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.</p>
             </div>
           </div>
           <div className="rapp-card rapp-mb20">
-            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>What to expect</div>
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>What the first few months look like</div>
             <div style={{ display:'flex', gap:16, flexWrap:'wrap', fontSize:12, color:C.textSec }}>
-              <div><strong>Week 1:</strong> cards are new, intervals are short (1 to 3 days). High daily volume.</div>
-              <div><strong>Week 4:</strong> familiar cards space out to 7 to 21 days. Daily workload stabilises.</div>
-              <div><strong>Month 3:</strong> well-known cards reviewed once every few months. New cards drive most of the load.</div>
+              <div><strong>Week 1</strong> — short intervals, high volume. The algorithm is learning you.</div>
+              <div><strong>Week 4</strong> — familiar cards space out to 1–3 weeks. Daily load starts to settle.</div>
+              <div><strong>Month 3</strong> — well-known cards reviewed monthly. New cards drive most of the workload.</div>
             </div>
           </div>
         </>
@@ -86,7 +90,7 @@ export function StatsView({ log, cards, decks, settings }) {
           <div className="rapp-stat-lbl">Active cards</div>
         </div>
         <div className="rapp-stat-box">
-          <div className="rapp-stat-num" style={{ color:C.accent }}>{matureCards}</div>
+          <div className="rapp-stat-num" style={{ color:"var(--nidus-warm)" }}>{matureCards}</div>
           <div className="rapp-stat-lbl">Mature</div>
         </div>
       </div>
@@ -123,8 +127,10 @@ export function StatsView({ log, cards, decks, settings }) {
           <div className="rapp-card rapp-mb20">
             <div className="rapp-sec-title">Deck health</div>
             <p style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
-              Critical cards: <strong style={{ color:criticalCards>0?C.accent:C.textMut }}>{criticalCards}</strong>
-              <span style={{ color:C.textMut }}> of {totalActive} total</span>
+              {criticalCards > 0 && (
+                <>Critical cards: <strong style={{ color:C.accent }}>{criticalCards}</strong>
+                <span style={{ color:C.textMut }}> of {totalActive} total</span></>
+              )}
             </p>
             {fatigueAlertsEnabled && fatigueScore >= 2 && (
               <p style={{ fontSize:13, color:C.warning, marginTop:10, lineHeight:1.6 }}>
@@ -156,7 +162,7 @@ export function StatsView({ log, cards, decks, settings }) {
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:12 }}>Good/easy ratings not followed by Again (30-day window)</p>
               </>
             ) : (
-              <p style={{ fontSize:13, color:C.textMut, marginBottom:12 }}>Tracking started: score shown after 10 qualifying reviews.</p>
+              <p style={{ fontSize:13, color:C.textMut, marginBottom:12 }}>Your recall accuracy appears here after 10 qualifying reviews — keep going.</p>
             )}
             {chartData.length >= 4 ? (
               <ResponsiveContainer width="100%" height={140}>

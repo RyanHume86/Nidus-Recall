@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react"
+import { getGreeting } from "@/lib/greeting"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
@@ -47,7 +48,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       <div className="rapp-mb24">
         <div className="rapp-row rapp-sb" style={{ alignItems:"flex-start" }}>
           <div>
-            <div className="rapp-pg-title">Library</div>
+            <div className="rapp-pg-title">{decks.length > 0 ? getGreeting(localStorage.getItem("nidus.firstName")) : "Library"}</div>
             {syncLabel && (
               <div style={{ fontSize:11.5, color: syncStatus==="error" ? C.again : C.textMut, marginTop:3 }}>
                 {syncStatus==="saving"?"●":syncStatus==="error"?"⚠":"✓"} {syncLabel}
