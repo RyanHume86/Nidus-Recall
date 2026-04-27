@@ -8,13 +8,18 @@ import '@/styles/app.css'
 // to prevent the base44 error handler from crashing on an undefined error object.
 window.addEventListener('unhandledrejection', (event) => {
   const reason = event.reason
-  // Suppress SW SecurityErrors (DOMException or Error) in preview/dev environments
-  if (reason?.name === 'SecurityError' && reason?.message?.includes('ServiceWorker')) {
+  // Suppress bare undefined/null rejections that crash the base44 error handler
+  if (reason === undefined || reason === null) {
     event.preventDefault()
     return
   }
-  // Suppress bare undefined/null rejections that crash the base44 error handler
-  if (reason === undefined || reason === null) {
+  // Suppress SW SecurityErrors (DOMException or any error) in preview/dev environments
+  if (reason?.name === 'SecurityError' || reason instanceof DOMException) {
+    event.preventDefault()
+    return
+  }
+  // Suppress anything without a .message string (base44 handler calls .match on it)
+  if (typeof reason?.message !== 'string') {
     event.preventDefault()
   }
 })
