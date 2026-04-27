@@ -9,6 +9,8 @@ import { scheduleFSRS, isActive, getDue, getNew, getDueWithCatchup, buildReverse
 import { localDateStr, addDays, todayStr, genId, timeAgo } from "@/lib/dates"
 // src/lib/cloze.jsx: cloze parse/render/create helpers.
 import { parseCloze, renderClozeFront, createClozeCards } from "@/lib/cloze"
+// src/lib/occlusion.js: occlusion card factory.
+import { createOcclusionCards } from "@/lib/occlusion"
 // dexie: MIT license, dfahlander/Dexie.js, IndexedDB wrapper with query API.
 // workbox-window: Apache-2.0, GoogleChrome/workbox, service worker lifecycle management.
 import * as offlineStore from "@/lib/offline-store"
@@ -187,44 +189,7 @@ const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
 }
 
 // parseCloze, renderClozeFront, createClozeCards: imported from @/lib/cloze
-
-// createOcclusionCards: build one Flashcard per region.
-// Design follows Image Occlusion Enhanced addon convention used in the medical
-// Anki community (AnKing, Pepper Pharm) - most users from that ecosystem expect
-// this behaviour. Polygon support is a documented TODO.
-const createOcclusionCards = (imageUrl, regions, deckName) => {
-  const now = new Date().toISOString()
-  return regions.map(region => ({
-    id: genId(),
-    front: region.label,
-    back: region.label,
-    cardType: 'image_occlusion',
-    imageUrl,
-    occlusionRegions: regions,
-    occlusionRegionId: region.id,
-    clozeText: null,
-    clozeIndex: null,
-    deck: deckName,
-    contentType: 'Factual',
-    status: 'Active',
-    interval: 1,
-    reviewCount: 0,
-    lapses: 0,
-    ratingHistory: [],
-    connects_to: [],
-    stability: null,
-    difficulty: null,
-    nextReview: null,
-    lastReview: null,
-    elaboration: '',
-    anchor: null,
-    source: null,
-    stakes_flag: false,
-    prerequisite_card_id: null,
-    tags: [],
-    createdAt: now,
-  }))
-}
+// createOcclusionCards: imported from @/lib/occlusion
 
 // OcclusionCardRenderer: renders image with region overlays.
 // Front: tested region is opaque mask; all others semi-transparent.
