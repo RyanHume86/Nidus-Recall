@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS = {
   fatigueAlertsEnabled:        true,
   attentionDeclarationEnabled: true,
   sleepPrefersReviews:         true,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 }
 
 // ─── Local storage helpers ────────────────────────────────────────────────────

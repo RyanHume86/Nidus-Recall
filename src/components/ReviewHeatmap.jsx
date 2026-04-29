@@ -1,13 +1,16 @@
 import { C } from "@/lib/theme"
 import { buildHeatmapData } from "@/lib/heatmap"
+import { localDateStr } from "@/lib/dates"
+import { settingsGet } from "@/lib/settings"
 
-export function ReviewHeatmap({ log }) {
+export function ReviewHeatmap({ log, today = localDateStr(new Date(), settingsGet().timezone) }) {
   const data = buildHeatmapData(log)
-  const today = new Date()
+  // Anchor at noon UTC so setUTCDate arithmetic never crosses a day boundary.
+  const anchor = new Date(today + 'T12:00:00Z')
   const days = []
   for (let i = 364; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
+    const d = new Date(anchor)
+    d.setUTCDate(d.getUTCDate() - i)
     const key = d.toISOString().split('T')[0]
     days.push({ key, count: data[key] || 0 })
   }

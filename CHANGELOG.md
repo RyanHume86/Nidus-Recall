@@ -1,3 +1,74 @@
+## Session 7a (2026-04-29): FSRS scheduler correctness
+
+### 1.1 Validate schedulerParams
+
+Added `validateFsrsParams(params)` and `FsrsParamValidationError` to `src/lib/fsrs.js`.
+
+- Source of truth: canonical `CLAMP_PARAMETERS` exported by `ts-fsrs`. Ranges track upstream automatically.
+- Accepts arrays of length 17 (FSRS-4), 18 (transitional), or 19 (FSRS-5).
+- Rejects: non-array input, wrong length, NaN/Infinity/non-finite values, values outside published per-index ranges.
+- `scheduleFSRS` now wraps invalid params with a try/catch, falls back to ts-fsrs library defaults, and console.warns once per session.
+- `src/lib/fit-params.js`: validates fitted params before `saveUserSchedulerParams`. If validation fails, logs the failing index and keeps prior params.
+- 20 new tests in `src/__tests__/fsrs-params.test.js`: structural checks, element checks, boundary values, canonical defaults accepted, library-fitted output accepted, scheduleFSRS graceful fallback.
+
+**Finding (deferred): DEFAULT_PARAMS mismatch.** The project's hand-rolled `DEFAULT_PARAMS` in `src/lib/fsrs-optimizer.js` uses a different array layout from canonical FSRS-5. Values at indices 14, 15, 16, and 18 fall outside canonical clamps; ts-fsrs has been silently clamping them at runtime. Consequence: `tuneRetentionTarget` starts from this non-canonical baseline, and the validator now rejects its output. The optimizer persistence is skipped (warning only) until `DEFAULT_PARAMS` is corrected to canonical `default_w` from `ts-fsrs`. Scheduled as a separate fix.
+
+### 1.2 Relearning state: Option A (spec-compliant)
+
+**Decision confirmed by Ryan: Option A.**
+
+Changed state derivation in `scheduleFSRS` (`src/lib/fsrs.js`) from two-state (`reviewCount ? 2 : 0`) to three-state:
+
+- New (0): `reviewCount === 0`
+- Relearning (3): `lapses > 0 AND interval <= 1` (card just lapsed; on a short relearning step)
+- Review (2): all other reviewed cards
+
+Rationale: ts-fsrs applies different stability ramps for Relearning vs Review. Cards that have lapsed and are on a short step (interval = 0 or 1) now correctly use the Relearning state machine, which penalises lapse-recovery stability appropriately.
+
+Migration: no schema change required. State is derived on every `scheduleFSRS` call from existing `lapses` and `interval` fields, which are already persisted in CardState.
+
+Regression tests for lapsed cards with `interval=3` (Review state): baselines unchanged.
+New regression tests in `src/lib/__tests__/fsrs-regression.test.js` for `relearningCard` (lapses=1, interval=1): frozen baselines captured 2026-04-29.
+
+**Documented deviation (Learning state):** Learning state (1) is not tracked separately. Cards with `reviewCount > 0` but low interval and zero lapses are treated as Review. This is acceptable for the current data model; adding Learning state would require tracking step progression, which is a planned future feature.
+
+### 1.3 Timezone strategy: Option B (user-configured timezone)
+
+**Decision confirmed by Ryan: Option B.**
+
+Added `timezone` field to `DEFAULT_SETTINGS` in `src/lib/settings.js`, defaulting to `Intl.DateTimeFormat().resolvedOptions().timeZone`. This auto-detects the user's system timezone on first load.
+
+### 1.4 Centralise date handling
+
+Refactored `src/lib/dates.js`:
+
+- `localDateStr(d, tz)`: accepts an optional IANA timezone string; uses `d.toLocaleDateString('en-CA', { timeZone: tz })` for timezone-correct output, falls back to local Date methods when omitted.
+- `todayStr(tz)`: thin wrapper over `localDateStr(new Date(), tz)`.
+- `addDays(n, tz)`: timezone-aware n-days-from-today string.
+
+Updated `src/lib/fsrs.js`:
+
+- Removed inline `todayStr`. Now imports `localDateStr` from `dates.js` and `settingsGet` from `settings.js`.
+- `todayStr()` in fsrs.js reads `settingsGet().timezone` on each call so scheduling cutoffs always respect the user's configured timezone.
+
+Updated `src/components/ReviewHeatmap.jsx`:
+
+- Accepts `today` prop (ISO date string) defaulting to `localDateStr(new Date(), settingsGet().timezone)`.
+- Day-loop arithmetic switched from local `setDate`/`toISOString` to UTC anchor (`noon UTC`) + `setUTCDate`, eliminating DST edge cases in the 365-day window.
+- Tests pass `today="2026-01-15"` (fixed date) to both `ReviewHeatmap` renders; 5 date-drift snapshot failures now pass.
+
+### Decisions made under discretion
+
+None. All material decisions (1.2 and 1.3) required and received explicit confirmation from Ryan before implementation.
+
+### Deferred items
+
+1. **DEFAULT_PARAMS canonical alignment.** `src/lib/fsrs-optimizer.js:13-21` `DEFAULT_PARAMS` does not match canonical `ts-fsrs` `default_w`. Correct by replacing `DEFAULT_PARAMS` with `default_w` from `ts-fsrs` and removing the project's hand-rolled values. No behaviour change (ts-fsrs already clamps inputs); removes the degenerate starting point for the gradient descent and allows the validator to pass fitted params.
+2. **Learning state (1).** Tracking Learning state would require step-level scheduling data not currently in CardState. Deferred to a future session.
+3. **Migrate remaining ad-hoc `new Date()` uses.** `settings.js:39-40`, `SessionView.jsx:144`, `stats.js`, `cloze.jsx`, `occlusion.js`, `storage.js` still use inline `new Date()` for timestamps and date arithmetic. Scheduling-critical paths now go through `dates.js`; display and audit-log uses are left as-is.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice

@@ -173,6 +173,35 @@ describe('FSRS regression baseline', () => {
       { stability: 0.86079476, difficulty: 8.45728889, interval: 1 }))
   })
 
+  // Card in Relearning state: lapses >= 1 AND interval <= 1.
+  // Session 7a, Option A: state is now derived as Relearning (3) for this shape.
+  // Frozen 2026-04-29. Do not update unless the derivation rule changes intentionally.
+  describe('relearning state card (lapses=1, interval=1) -- all four ratings', () => {
+    const relearningCard = () => ({
+      stability: 1.8, difficulty: 7.8, interval: 1,
+      reviewCount: 8, lapses: 1,
+      nextReview: '2026-01-15', lastReview: '2026-01-14',
+      status: 'Active',
+    })
+    it('again', () => check(relearningCard(), 'again', 0.9, null,
+      { stability: 0.90185134, difficulty: 8.48964176, interval: 1 }))
+    it('hard',  () => check(relearningCard(), 'hard',  0.9, null,
+      { stability: 1.51171447, difficulty: 8.13429724, interval: 1 }))
+    it('good',  () => check(relearningCard(), 'good',  0.9, null,
+      { stability: 2.53398819, difficulty: 7.77895271, interval: 3 }))
+    it('easy',  () => check(relearningCard(), 'easy',  0.9, null,
+      { stability: 4.24755881, difficulty: 7.42360818, interval: 4 }))
+  })
+
+  // lapsedCard (lapses=5, interval=3) remains in Review state: interval > 1 so no Relearning.
+  // Baselines below are identical to pre-session-7a values; listed to confirm no regression.
+  describe('high lapse review card (lapses=5, interval=3, state=Review) -- baseline unchanged', () => {
+    it('again', () => check(lapsedCard(), 'again', 0.9, null,
+      { stability: 0.83547722, difficulty: 8.48964176, interval: 1 }))
+    it('good',  () => check(lapsedCard(), 'good',  0.9, null,
+      { stability: 6.34174608, difficulty: 7.77895271, interval: 6 }))
+  })
+
   describe('overdue card (elapsed >> scheduled_days)', () => {
     const card = newCard({ stability: 10, difficulty: 5.5, interval: 10, reviewCount: 6,
       lapses: 0, nextReview: '2025-12-15', lastReview: '2025-12-05' })
