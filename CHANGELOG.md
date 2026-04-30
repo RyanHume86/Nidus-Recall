@@ -1,3 +1,63 @@
+## Session 7e (2026-04-30)
+
+### Dependency cleanup
+
+Removed 13 confirmed-unused direct dependencies. No bundle size change (expected: Vite already tree-shook all removed packages because none had import statements in `src/`). Node_modules install footprint is reduced.
+
+#### 5.1 - Confirmed-unused packages removed
+
+Each package was verified with `grep -rn "from '<pkg>'" src/` before removal. All returned zero hits.
+
+| Package | Reason kept off list |
+|---|---|
+| `moment` | No imports in src/ |
+| `react-quill` | No imports in src/ |
+| `html2canvas` | No imports in src/ |
+| `jspdf` | No imports in src/ |
+| `canvas-confetti` | No imports in src/ |
+| `three` | No imports in src/ |
+| `react-leaflet` | No imports in src/ |
+| `@stripe/react-stripe-js` | No imports in src/ |
+| `@stripe/stripe-js` | No imports in src/ |
+
+Removed in a single `npm uninstall` batch.
+
+#### 5.2 - framer-motion
+
+Grepped `src/` for `from 'framer-motion'`, `AnimatePresence`, `<motion.`, `motion.`, and re-exports in `src/components/ui/`. Zero hits everywhere. Removed.
+
+#### 5.3 - Toast library deduplication
+
+`react-hot-toast`: zero hits in `src/`. The active toast library is `sonner`, wired via `src/components/ui/sonner.jsx`. Removed `react-hot-toast`.
+
+`sonner` kept: actively imported in `src/components/ui/sonner.jsx`.
+
+#### 5.4 - vitest version
+
+`npm ls vitest` shows `vitest@4.1.5` installed and resolving correctly. Package.json declares `^4.1.5`. All 205 tests pass. No version change needed.
+
+#### Kept - with reason
+
+- `dexie`: imported in `src/lib/offline-store.js` (line 14), which is consumed by `src/pages/Home.jsx`, `src/store/appStore.js`, and `src/views/SessionView.jsx`. Not safe to remove.
+- `lodash`: removed from direct dependencies. Remains in `node_modules` as a transitive dependency of `recharts@2.15.4` and `vite-plugin-pwa/workbox-build`. Not in the bundle (Vite tree-shakes it; recharts uses it internally at build time only).
+
+#### 5.5 - Bundle size
+
+| Metric | Before | After |
+|---|---|---|
+| Uncompressed total (JS) | 1,491,596 bytes | 1,491,596 bytes |
+| Gzipped total (JS) | 463,253 bytes | 463,253 bytes |
+
+Zero delta. Investigation confirmed: all removed packages had no import statements in `src/`, so Vite's tree-shaker had already excluded them from the production bundle before this session. The cleanup reduces `node_modules` install footprint and eliminates false dependencies from `package.json`. The production bundle was already optimal with respect to these packages.
+
+#### Verification
+
+- `npm ci` exits cleanly after removal.
+- `npm test`: 205 passing (6 pre-existing snapshot failures unchanged).
+- `npm run build`: exit 0.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice
