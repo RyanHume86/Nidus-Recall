@@ -14,8 +14,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     globals: true,
-    reporters: process.env.CI ? ['junit'] : ['default'],
-    outputFile: process.env.CI ? 'test-results/junit.xml' : undefined,
+    reporters: process.env.CI ? ['verbose', 'junit'] : ['default'],
+    outputFile: process.env.CI ? { junit: 'test-results/junit.xml' } : undefined,
   },
   logLevel: 'error', // Suppress warnings, only show errors
   // assetsInclude: include .wasm so Vite handles sql.js WASM correctly.
