@@ -91,7 +91,11 @@ export function ImportExportPanel({ cards, decks, onImportFile, onImportCards, o
       const { cards: converted, warnings } = convertToNidusCards(parsed.notes, genId)
       setApkgPreview({ ...parsed, convertedCards: converted, warnings })
     } catch (err) {
-      setApkgError(`Parse failed: ${err.message}`)
+      if (err?.name === 'ApkgTooLargeError') {
+        setApkgError('This .apkg is larger than 50 MB. Split your Anki collection into smaller decks before importing.')
+      } else {
+        setApkgError(`Parse failed: ${err.message}`)
+      }
     }
   }
 

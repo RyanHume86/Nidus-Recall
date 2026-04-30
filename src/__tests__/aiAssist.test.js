@@ -17,7 +17,7 @@ vi.mock('@/api/base44Client', () => ({
 }))
 
 import { base44 } from '@/api/base44Client'
-import { hasCitationIntent, isClinicalContent, requestAIEdit } from '../api/aiAssist'
+import { hasCitationIntent, isClinicalContent, requestAIEdit, AiPromptTooLongError } from '../api/aiAssist'
 import { saveCardHistory, listCardHistory } from '../api/storage'
 
 describe('hasCitationIntent', () => {
@@ -95,6 +95,34 @@ describe('requestAIEdit', () => {
     )
     const result = await requestAIEdit(card, 'clarify this')
     expect(result.isClinical).toBe(false)
+  })
+
+  it('accepts a prompt of exactly 2000 characters', async () => {
+    const prompt = 'a'.repeat(2000)
+    base44.functions.callFunction.mockResolvedValueOnce(
+      JSON.stringify({ front: 'Q?', back: 'A.' })
+    )
+    await expect(requestAIEdit(card, prompt)).resolves.toBeDefined()
+  })
+
+  it('accepts a prompt of exactly 2200 characters (server boundary)', async () => {
+    const prompt = 'a'.repeat(2200)
+    base44.functions.callFunction.mockResolvedValueOnce(
+      JSON.stringify({ front: 'Q?', back: 'A.' })
+    )
+    await expect(requestAIEdit(card, prompt)).resolves.toBeDefined()
+  })
+
+  it('rejects a prompt of 2201 characters with AiPromptTooLongError', async () => {
+    const prompt = 'a'.repeat(2201)
+    await expect(requestAIEdit(card, prompt)).rejects.toThrow(AiPromptTooLongError)
+  })
+
+  it('rejects a prompt of 2201 characters with AiPromptTooLongError (boundary)', async () => {
+    const prompt = 'a'.repeat(2201)
+    await expect(
+      requestAIEdit(card, prompt)
+    ).rejects.toMatchObject({ name: 'AiPromptTooLongError' })
   })
 })
 
