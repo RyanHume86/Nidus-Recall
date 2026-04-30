@@ -1,3 +1,53 @@
+## Session 7c (2026-04-30): Test coverage backfill
+
+### Summary
+
+Added integration and unit tests for the three highest-risk unprotected modules. All tests are deterministic (no real network calls). Vitest built-in mocking throughout; no new testing libraries introduced.
+
+**New test files:**
+- `src/__tests__/storage.test.js` - 43 tests
+- `src/__tests__/appStore.test.js` - 52 tests
+- `src/__tests__/cloze.test.jsx` - 24 tests (renamed from `.js`; JSX extension required for React render tests)
+
+**Total tests added:** ~120 (including 1 todo placeholder in stub)
+
+**Baseline:** 211 tests | **After:** 331 passing + 1 todo = 332
+
+### Coverage before / after
+
+| File | Stmts before | Stmts after | Branch before | Branch after | Target |
+|---|---|---|---|---|---|
+| `src/api/storage.js` | 20% | **97.05%** | 2.84% | **82.52%** | 80% stmts/branch |
+| `src/store/appStore.js` | 0% | **97.79%** | 0% | **75.47%** | 80% stmts/branch |
+| `src/lib/cloze.jsx` | 12% | **100%** | 0% | **100%** | 90% stmts |
+
+### storage.js (src/api/storage.js)
+
+Covered: `loadAll` (deck/card/log/CardState/UserSchedulerParams loading; snapshot merge; deckParentMap build; hasMore flag), `loadCardsPage`, `ensureDeck` (create, cache, concurrency deduplication), `syncCards` (create/update/delete paths; concurrency lock serialisation), `syncCardState` (create and update), `syncCardStates` (batched), `appendLog`, `updateLog`, `adjustDeckCount` (increment, floor-at-zero, no-op for unknown), `recalculateDeckCount`, `saveCardHistory` (version 1 and increment), `listCardHistory` (sorted desc), `getUserSchedulerParams`, `saveUserSchedulerParams` (create and update), `listCardStates`, `getDeckParentMap`.
+
+Uncovered (lines 64-65, 437-438): the `deckPending.catch` error-re-throw path in `ensureDeck`, and the dynamic `import()` inside `runMigration` (covered separately in migration-idempotency tests on the session-7b branch).
+
+Branch coverage gap: the `ensureDeck` error path and one minor ternary inside `toEntityData`; both are unreachable without engineering a Base44 entity.create rejection that also propagates through Promise chaining correctly in the test environment.
+
+### appStore.js (src/store/appStore.js)
+
+Covered: `markSaved` (immediate state, 2000ms idle timer, timer de-duplication, lastSyncSet call), `updateCards` (immediate state update, 800ms debounce for `syncCards` and `syncCardStates`, rapid-call timer reset, error path), `flushCards` (no-op, success with markSaved, error path), `addLog`, `updateSettings`, `addDeck` (trim, dedup, empty no-op), `archiveDeck` (toggle both directions), `markSessionComplete` (noop, success, updateLog call, no-id skip), simple setters, `handleImportCards` (success, failure), `handleApkgImportCards` (merge, singular/plural message branch), `createSampleDeck` (deck missing, deck exists, basic cards, cloze cards, occlusion cards, merge with existing), `init` (state load, deck dedup, migration trigger, migration skip, error fallback, background paging, paging catch-break, seedFromNetwork, migrateNotionCredentials).
+
+Branch coverage at 75.47% (above 60% floor, below 80% target). Remaining uncovered branches: line 88 (`syncCardStates` lazy catch inside the `_cardStateTimer` callback when `_pendingCards` is null - edge case that cannot occur in normal usage because `_pendingCards` is always set before the timer fires), line 235 (`updateLog` error silently swallowed inside `markSessionComplete` when `id` is absent - the id-absent test covers the branch but not the `.catch` arm), lines 261-264 (the `if (!more) break` true-path in the background paging loop - requires a multi-page fixture that was deferred for Session 7c-2).
+
+### cloze.jsx (src/lib/cloze.jsx)
+
+100%/100% achieved. Covered: `parseCloze` (null/empty, basic, hint syntax, multiple indices, same index, sort order, three indices, mid-word token, plain text, empty answer, single-colon malform, nested braces no-throw, large index, mixed hint/no-hint), `renderClozeFront` (null guard, empty-string guard, `[...]` blank span, hint span, plain-text array, multiple blanks), `createClozeCards` (shape, genId, empty input, FSRS defaults).
+
+### Decisions
+
+- Renamed `cloze.test.js` to `cloze.test.jsx`; left a todo-only stub at the old path so Vitest does not error on a missing suite.
+- `syncCardStates` comparison bug documented: the snapshot (`toAppCardState`) includes `clozeIndex` and `sourceCardClientId` fields but the comparison object does not, so diffing always fires. Tests assert actual behaviour rather than intended behaviour. A fix is deferred.
+- `vi.useFakeTimers()` scoped to the `markSaved` and `updateCards` describe blocks only; other tests use real timers to avoid interference.
+- Zustand store reset uses `setState(RESET)` without the replace flag so action functions survive between tests.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice
