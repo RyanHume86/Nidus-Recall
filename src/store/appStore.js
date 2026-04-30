@@ -234,19 +234,23 @@ export const useAppStore = create((set, get) => ({
         cardsFullyLoaded: !hasMore,
         ...(dpm ? { deckParentMap: dpm } : {}),
       })
+      const MIGRATION_CACHE_KEY = 'nidus-last-migration-run'
       try {
-        const states = await storage.listCardStates()
-        const migratedIds = new Set(states.filter(s => s.migrated).map(s => s.cardClientId))
-        const needsMigration = rc.some(c =>
-          !migratedIds.has(c.id) && (c.stability != null || (c.reviewCount || 0) > 0)
-        )
-        if (needsMigration) {
-          console.log('[Nidus Recall] Running CardState migration...')
+        const lastRun = localStorage.getItem(MIGRATION_CACHE_KEY)
+        const withinCache = lastRun && (Date.now() - Number(lastRun)) < 24 * 60 * 60 * 1000
+        if (!withinCache) {
           const result = await storage.runMigration()
-          console.log('[Nidus Recall] Migration complete:', result)
+          const anyMigrated = result.splitCardState.created > 0
+            || result.deckHierarchy.created > 0
+            || result.deckHierarchy.updated > 0
+          if (anyMigrated) {
+            console.log('[Nidus Recall] Migration complete:', result)
+          }
+          localStorage.setItem(MIGRATION_CACHE_KEY, String(Date.now()))
         }
-      } catch (_) {
+      } catch (err) {
         // Migration errors are non-fatal; app continues normally.
+        console.warn('[Nidus Recall] Migration check failed (non-fatal):', err.message || err)
       }
       set({ ready: true })
       offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})

@@ -1,10 +1,7 @@
 /**
  * Migration: detect "Parent::Child" deck names and convert to nested structure.
  * Idempotent: only processes decks where name contains "::" and parentDeckId is null.
- *
- * Run from the browser console after deployment:
- *   import { migrateUp } from '/migrations/2026-04-26-deck-hierarchy.js'
- *   await migrateUp(base44)
+ * Auto-run on startup via storage.runMigration() after loadAll() completes.
  */
 
 export async function migrateUp(base44) {
