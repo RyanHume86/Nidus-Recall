@@ -1,3 +1,43 @@
+## Session 7d (2026-04-30)
+
+### Input bounds and Content Security Policy
+
+Three hardening commits: cap untrusted input sizes at both the client and server boundary, then add a CSP meta tag to prevent script injection.
+
+#### 4.1 - .apkg upload size cap
+
+- `src/api/anki.js`: new exported `ApkgTooLargeError` class (message includes size in MB). `parseApkg` checks `buffer.byteLength > 50 * 1024 * 1024` immediately after the buffer is created, before passing to `unzipSync`. Prevents fflate from receiving arbitrarily large untrusted data.
+- `src/components/ImportExportPanel.jsx`: `handleApkgSelect` catch block checks `err?.name === 'ApkgTooLargeError'` first and shows: "This .apkg is larger than 50 MB. Split your Anki collection into smaller decks before importing."
+- `src/__tests__/anki-roundtrip.test.js`: two new tests in `describe('parseApkg size cap', ...)` -- 51 MB buffer rejects with `ApkgTooLargeError`; 49 MB buffer fails for a different reason (invalid zip), not with `ApkgTooLargeError`.
+
+#### 4.2 - AI prompt length cap (client and server)
+
+- `src/api/aiAssist.js`: `PROMPT_MAX_CHARS = 2200` constant; new exported `AiPromptTooLongError` class with `.length` field. Check inserted between the citation refusal check and the `isClinical` computation -- throws before any LLM call is made.
+- `src/modals/EditCardModal.jsx`: AI prompt textarea gains `maxLength={2000}`. Live character counter ("X / 2000") renders below the textarea in red at 2000. Submit button disabled when `aiPrompt.length > 2000`. Catch block checks `err?.name === 'AiPromptTooLongError'` first and shows: "Your AI prompt is too long. Shorten it and try again."
+- `src/__tests__/aiAssist.test.js`: four new tests -- 2000 chars accepted; 2200 chars accepted (at server boundary); 2201 chars rejected with `AiPromptTooLongError`; boundary check on `.name` field.
+
+#### 4.3 - Content Security Policy meta tag
+
+- `index.html`: CSP meta tag added in `<head>`. Policy:
+  - `default-src 'self'`
+  - `script-src 'self'` (no inline or eval)
+  - `style-src 'self' 'unsafe-inline'` (recharts and inline style props require this)
+  - `img-src 'self' data: blob:` (ImageOcclusionEditor uses FileReader data URIs; blob: for canvas exports)
+  - `connect-src 'self' https://*.base44.app https://*.base44.com`
+  - `font-src 'self' data:`
+  - `object-src 'none'`
+  - `base-uri 'self'`
+  - `form-action 'self'`
+  - `frame-ancestors 'none'`
+
+#### Verification
+
+- `npm run build` clean (exit 0).
+- All 211 passing tests continue to pass; 6 new tests added (2 size-cap, 4 prompt-length).
+- 6 pre-existing snapshot mismatches remain (introduced in earlier sessions; not regression from this session).
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice

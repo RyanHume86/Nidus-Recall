@@ -31,11 +31,23 @@ const getSql = async () => {
 // instance (loaded from the filesystem) without needing a browser WASM loader.
 export const _setSqlJs = (instance) => { SQL = instance }
 
+export class ApkgTooLargeError extends Error {
+  constructor(sizeBytes) {
+    super(`Apkg file is ${(sizeBytes / 1024 / 1024).toFixed(1)} MB; maximum is 50 MB.`)
+    this.name = 'ApkgTooLargeError'
+    this.sizeBytes = sizeBytes
+  }
+}
+
 // parseApkg: accepts a File or ArrayBuffer, returns parsed import data.
 export const parseApkg = async (fileOrBuffer) => {
   const buffer = fileOrBuffer instanceof ArrayBuffer
     ? new Uint8Array(fileOrBuffer)
     : new Uint8Array(await fileOrBuffer.arrayBuffer())
+
+  if (buffer.byteLength > 50 * 1024 * 1024) {
+    throw new ApkgTooLargeError(buffer.byteLength)
+  }
 
   // Unzip the .apkg archive.
   const unzipped = unzipSync(buffer)

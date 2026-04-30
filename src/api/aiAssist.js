@@ -27,9 +27,20 @@ export const isClinicalContent = (deckName, tags) => {
   return (tags || []).some(t => CLINICAL_REGEX.test(t))
 }
 
+const PROMPT_MAX_CHARS = 2200
+
+export class AiPromptTooLongError extends Error {
+  constructor(length) {
+    super(`AI prompt is ${length} characters; maximum is ${PROMPT_MAX_CHARS}.`)
+    this.name = 'AiPromptTooLongError'
+    this.length = length
+  }
+}
+
 /**
  * requestAIEdit: calls the LLM to propose an edit to a flashcard.
  * Throws 'CITATION_REFUSED: ...' synchronously if citation intent is detected.
+ * Throws AiPromptTooLongError if the prompt exceeds PROMPT_MAX_CHARS.
  * Returns { proposed: { front, back }, isClinical: boolean }.
  *
  * The AI system prompt instructs the model not to add citations (second safety layer).
@@ -37,6 +48,10 @@ export const isClinicalContent = (deckName, tags) => {
 export const requestAIEdit = async (card, userPrompt) => {
   if (hasCitationIntent(userPrompt)) {
     throw 'CITATION_REFUSED: Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.'
+  }
+
+  if ((userPrompt || '').length > PROMPT_MAX_CHARS) {
+    throw new AiPromptTooLongError((userPrompt || '').length)
   }
 
   const isClinical = isClinicalContent(card.deck, card.tags)

@@ -17,7 +17,7 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { cwd } from 'process'
 import initSqlJs from 'sql.js'
-import { buildApkg, parseApkg, convertToNidusCards, _setSqlJs } from '@/api/anki.js'
+import { buildApkg, parseApkg, convertToNidusCards, _setSqlJs, ApkgTooLargeError } from '@/api/anki.js'
 import { genId } from '@/lib/dates.js'
 
 // ── sql.js WASM bootstrap ──────────────────────────────────────────────────────
@@ -189,5 +189,18 @@ describe('Anki .apkg round-trip (50 cards)', () => {
       expect(c.status).toBe('Active')
       expect(c.nextReview).toBeNull()
     }
+  })
+})
+
+describe('parseApkg size cap', () => {
+  it('rejects a buffer larger than 50 MB with ApkgTooLargeError', async () => {
+    const buf = new Uint8Array(51 * 1024 * 1024).buffer
+    await expect(parseApkg(buf)).rejects.toThrow(ApkgTooLargeError)
+  })
+
+  it('does not reject a 49 MB buffer with ApkgTooLargeError', async () => {
+    const buf = new Uint8Array(49 * 1024 * 1024).buffer
+    // Will fail later (not valid zip), but must NOT throw ApkgTooLargeError.
+    await expect(parseApkg(buf)).rejects.not.toThrow(ApkgTooLargeError)
   })
 })

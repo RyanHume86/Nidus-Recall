@@ -32,7 +32,9 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
       const result = await requestAIEdit({ ...card, ...form }, aiPrompt)
       setAiProposal(result)
     } catch (err) {
-      if (err.message.startsWith("CITATION_REFUSED:")) {
+      if (err?.name === 'AiPromptTooLongError') {
+        setAiError("Your AI prompt is too long. Shorten it and try again.")
+      } else if (err.message?.startsWith("CITATION_REFUSED:")) {
         setAiError("Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.")
       } else {
         setAiError(err.message || "AI request failed. Try again.")
@@ -208,10 +210,14 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
                 <div style={{ background:"#FDF0DC", border:"1px solid #E8C880", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#5C3A00", marginBottom:8 }}>{aiError}</div>
               )}
               <textarea className="rapp-textarea" rows={2} value={aiPrompt}
+                maxLength={2000}
                 onChange={e=>setAiPrompt(e.target.value)}
                 placeholder="e.g. Make the question more concise and improve the recall cue." />
+              <div style={{ textAlign:"right", fontSize:11, color: aiPrompt.length >= 2000 ? "#C0392B" : C.textMut, marginTop:2 }}>
+                {aiPrompt.length} / 2000
+              </div>
               <div style={{ display:"flex", gap:8, marginTop:8 }}>
-                <button onClick={handleAiRequest} disabled={!aiPrompt.trim()||aiLoading}
+                <button onClick={handleAiRequest} disabled={!aiPrompt.trim()||aiLoading||aiPrompt.length>2000}
                   style={{ flex:1, padding:"8px", borderRadius:8, border:"none", background:C.accent, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", opacity:aiLoading?0.6:1 }}>
                   {aiLoading ? "Thinking..." : "Suggest edit"}
                 </button>
