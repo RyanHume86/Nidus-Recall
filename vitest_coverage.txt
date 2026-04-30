@@ -1,0 +1,77 @@
+﻿[base44] Proxy not enabled (VITE_BASE44_APP_BASE_URL not set)
+
+ RUN  v4.1.5 C:/Users/ryanr/Nidus-Recall
+      Coverage enabled with v8
+
+ ❯ src/__tests__/cloze.test.js (0 test)
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > new good
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > new easy
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > young good
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > young again
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > mature good
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > mature hard
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > lapsed good
+[FSRS V5]auto fill w to 19 length
+
+stdout | src/lib/__tests__/fsrs-regression.test.js > FSRS regression baseline > custom UserSchedulerParams (17-element w array) > lapsed again
+[FSRS V5]auto fill w to 19 length
+
+ ✓ src/lib/__tests__/fsrs-regression.test.js (79 tests) 98ms
+stdout | src/__tests__/appStore.test.js > init > calls runMigration when a card with state has no CardState record
+[Nidus Recall] Running CardState migration...
+
+stdout | src/__tests__/appStore.test.js > init > calls runMigration when a card with state has no CardState record
+[Nidus Recall] Migration complete: { migrated: 1 }
+
+ ✓ src/lib/__tests__/fsrs-optimizer.test.js (19 tests) 117ms
+ ✓ src/__tests__/appStore.test.js (43 tests) 112ms
+ ✓ src/__tests__/notionSettings.test.js (14 tests) 37ms
+ ✓ src/lib/__tests__/greeting.test.js (17 tests) 23ms
+ ✓ src/__tests__/aiAssist.test.js (27 tests) 100ms
+ ✓ src/test/smoke.test.js (1 test) 12ms
+ ✓ src/__tests__/storage.test.js (43 tests) 105ms
+ ✓ src/__tests__/anki-roundtrip.test.js (13 tests) 396ms
+ ✓ scripts/__tests__/generate-icons.test.js (6 tests) 601ms
+ ✓ src/__tests__/cloze.test.jsx (25 tests) 101ms
+ ✓ src/modals/__tests__/CardHistoryModal.test.jsx (7 tests) 647ms
+ ✓ src/__tests__/perf/virtualisation.test.jsx (8 tests) 717ms
+ ❯ src/__tests__/snapshots/views.test.jsx (20 tests | 3 failed) 873ms
+     ✓ LibraryView: empty state 76ms
+     × LibraryView: with decks and cards 35ms
+     ✓ OnboardingView 10ms
+     ✓ DeckView: with cards 115ms
+     × StudySelectView: with due cards 18ms
+     ✓ SessionView: no due cards (empty queue) 9ms
+     ✓ SessionView: with due cards 8ms
+     ✓ FreeStudyView: with cards 8ms
+     ✓ StatsView: empty log 174ms
+     × StatsView: with log and cards 133ms
+     ✓ SettingsView 23ms
+     ✓ EditCardModal: existing card 32ms
+     ✓ AIDiffModal: without clinical warning 16ms
+     ✓ AIDiffModal: with clinical warning 12ms
+     ✓ CardHistoryModal: empty history 11ms
+     ✓ OcclusionCardRenderer: front side (masked) 5ms
+     ✓ OcclusionCardRenderer: back side (revealed) 2ms
+     ✓ ImageOcclusionEditor: initial state (no image) 6ms
+     ✓ ReviewHeatmap: empty log 94ms
+     ✓ ReviewHeatmap: with activity 83ms
+
+  Snapshots  3 failed
+ Test Files  2 failed | 13 passed (15)
+      Tests  3 failed | 319 passed (322)
+   Start at  18:03:06
+   Duration  8.80s (transform 3.17s, setup 7.77s, import 8.95s, tests 3.94s, environment 55.08s)
+

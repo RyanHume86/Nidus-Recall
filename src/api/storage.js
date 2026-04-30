@@ -22,6 +22,10 @@
  *   Use syncCardStates(updatedCards) to batch-persist all scheduling fields.
  */
 
+/** @typedef {import('../types.js').Card} Card */
+/** @typedef {import('../types.js').Deck} Deck */
+/** @typedef {import('../types.js').SessionLog} SessionLog */
+/** @typedef {import('../types.js').CardState} CardState */
 import { base44 } from "@/api/base44Client"
 
 // ── In-memory state (rebuilt on each loadAll call) ────────────────────────────
@@ -235,7 +239,7 @@ export const loadAll = async () => {
       intensity_score: e.intensity_score ?? 0,
       status:       e.status       || "complete",
     }))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const deckNames = deckEntities.map(d => d.title)
 

@@ -3,7 +3,7 @@ import { C } from "@/lib/theme"
 
 // Searchable single or multi-card selector used for prerequisite and connects_to.
 // mode: "single" → value is id string | null; "multi" → value is id[]
-export function CardPicker({ allCards, value, onChange, mode="single", excludeId, placeholder="Search cards…" }) {
+export function CardPicker({ allCards, value, onChange, mode="single", excludeId=null, placeholder="Search cards…" }) {
   const [query, setQuery] = useState("")
   const inputRef = useRef(null)
   const selectedIds = mode==="single" ? (value ? [value] : []) : (value||[])

@@ -13,16 +13,28 @@
 
 import Dexie from 'dexie'
 
-const db = new Dexie('NidusRecallOffline')
+class NidusDb extends Dexie {
+  /** @type {import('dexie').Table} */ cards
+  /** @type {import('dexie').Table} */ cardStates
+  /** @type {import('dexie').Table} */ decks
+  /** @type {import('dexie').Table} */ sessionLog
+  /** @type {import('dexie').Table} */ pendingActions
+  /** @type {import('dexie').Table} */ meta
 
-db.version(1).stores({
-  cards:          'clientId, deckName, nextReview, status',
-  cardStates:     'cardClientId, nextReview',
-  decks:          'name',
-  sessionLog:     '++id, date',
-  pendingActions: '++id, type, cardClientId, timestamp',
-  meta:           'key',
-})
+  constructor() {
+    super('NidusRecallOffline')
+    this.version(1).stores({
+      cards:          'clientId, deckName, nextReview, status',
+      cardStates:     'cardClientId, nextReview',
+      decks:          'name',
+      sessionLog:     '++id, date',
+      pendingActions: '++id, type, cardClientId, timestamp',
+      meta:           'key',
+    })
+  }
+}
+
+const db = new NidusDb()
 
 // --- Seed local DB from loaded data ---
 export const seedFromNetwork = async ({ cards, decks, log }) => {

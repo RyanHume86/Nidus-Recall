@@ -1,6 +1,10 @@
 const isNode = typeof window === 'undefined';
-const windowObj = isNode ? { localStorage: new Map() } : window;
-const storage = windowObj.localStorage;
+// In Node environments (tests), the storage methods are never reached because
+// getAppParamValue returns early. The no-op object satisfies the Storage interface.
+/** @type {Storage} */
+const storage = isNode
+  ? /** @type {Storage} */ (/** @type {unknown} */ ({ getItem: () => null, setItem: () => {}, removeItem: () => {} }))
+  : window.localStorage;
 
 const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();

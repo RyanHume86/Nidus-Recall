@@ -1,3 +1,6 @@
+/** @typedef {import('../types.js').Card} Card */
+/** @typedef {import('../types.js').AiResponse} AiResponse */
+
 /**
  * AI assist safety layer.
  *
@@ -30,9 +33,14 @@ export const isClinicalContent = (deckName, tags) => {
 /**
  * requestAIEdit: calls the LLM to propose an edit to a flashcard.
  * Throws 'CITATION_REFUSED: ...' synchronously if citation intent is detected.
+ * Throws AiPromptTooLongError if userPrompt exceeds PROMPT_MAX_CHARS.
  * Returns { proposed: { front, back }, isClinical: boolean }.
  *
  * The AI system prompt instructs the model not to add citations (second safety layer).
+ *
+ * @param {Pick<Card, 'front'|'back'|'deck'|'tags'>} card
+ * @param {string} userPrompt
+ * @returns {Promise<AiResponse>}
  */
 export const requestAIEdit = async (card, userPrompt) => {
   if (hasCitationIntent(userPrompt)) {
@@ -48,7 +56,7 @@ export const requestAIEdit = async (card, userPrompt) => {
     isClinical ? 'This card contains clinical content. Be conservative and do not introduce factual changes.' : '',
   ].filter(Boolean).join(' ')
 
-  const raw = await base44.functions.callFunction('invokeLLM', {
+  const raw = await /** @type {{ callFunction: (name: string, args: Record<string, unknown>) => Promise<unknown> }} */ (/** @type {unknown} */ (base44.functions)).callFunction('invokeLLM', {
     prompt: userPrompt,
     system: systemPrompt,
     card_front: card.front,

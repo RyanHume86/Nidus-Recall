@@ -87,7 +87,7 @@ export const buildReviewLog = (cards) => {
       const event = history[i]
       const prev = i > 0 ? history[i - 1] : null
       const elapsedDays = prev
-        ? Math.max(0, (new Date(event.date) - new Date(prev.date)) / 86400000)
+        ? Math.max(0, (new Date(event.date).getTime() - new Date(prev.date).getTime()) / 86400000)
         : 0
       events.push({
         cardId:      card.id,

@@ -17,7 +17,7 @@ export const genId = () => Date.now().toString(36) + Math.random().toString(36).
 
 export const timeAgo = (iso) => {
   if (!iso) return null
-  const m = Math.floor((Date.now() - new Date(iso)) / 60000)
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (m < 1)  return 'just now'
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)

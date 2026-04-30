@@ -100,7 +100,7 @@ export default function Home() {
     const reader = new FileReader()
     reader.onload = async ev => {
       try {
-        const data = JSON.parse(ev.target.result)
+        const data = JSON.parse(/** @type {string} */ (ev.target.result))
         if (!data.cards || !Array.isArray(data.cards)) throw new Error("Invalid format")
         useAppStore.setState({ syncStatus: 'saving', cards: data.cards, _pendingCards: data.cards })
         await storage.syncCards(data.cards)
@@ -168,7 +168,7 @@ export default function Home() {
   const due           = useMemo(() => getDueWithCatchup(cards, settings.reviewCap || 100, settings.catchupDays || 7, cards), [cards, settings])
   const totalDueAll   = useMemo(() => getDue(cards).length, [cards])
   const lastSessionDate = useMemo(() => log.reduce((latest, e) => (!latest || e.date > latest) ? e.date : latest, null), [log])
-  const gapDays         = lastSessionDate ? Math.floor((Date.now() - new Date(lastSessionDate)) / 86400000) : 0
+  const gapDays         = lastSessionDate ? Math.floor((Date.now() - new Date(lastSessionDate).getTime()) / 86400000) : 0
   const hasGap          = log.length > 0 && gapDays >= 7
   const onboardingShownForGap = hasGap && localStorage.getItem(RETURN_ONBOARD_KEY) === lastSessionDate
   const showReturnCard  = hasGap && !onboardingShownForGap
