@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=junit",
+    "ci": "npm run lint && npm run typecheck && npm test",
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm','public/sql-wasm.wasm')\" && node scripts/generate-icons.js"
   },
   "dependencies": {

@@ -11,7 +11,7 @@ import { AIDiffModal } from "@/modals/AIDiffModal"
 import { CardHistoryModal } from "@/modals/CardHistoryModal"
 
 export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
-  const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
+  const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", deck:card.deck||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
   const [showNote, setShowNote]   = useState(!!(card.elaboration))
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
   const [showConnects, setShowConnects] = useState(!!(card.connects_to?.length))

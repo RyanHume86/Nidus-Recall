@@ -13,6 +13,8 @@
 //
 // Reference: Anki file format documentation at github.com/ankidroid/Anki-Android/wiki
 
+/** @typedef {import('../types.js').Card} Card */
+/** @typedef {import('../types.js').AnkiNote} AnkiNote */
 import initSqlJs from 'sql.js'
 import { unzipSync, zipSync } from 'fflate'
 
@@ -32,6 +34,10 @@ const getSql = async () => {
 export const _setSqlJs = (instance) => { SQL = instance }
 
 // parseApkg: accepts a File or ArrayBuffer, returns parsed import data.
+/**
+ * @param {File|ArrayBuffer} fileOrBuffer
+ * @returns {Promise<object>}
+ */
 export const parseApkg = async (fileOrBuffer) => {
   const buffer = fileOrBuffer instanceof ArrayBuffer
     ? new Uint8Array(fileOrBuffer)
@@ -188,6 +194,11 @@ const parseOcclusionSvg = (svgString) => {
   }
 }
 
+/**
+ * @param {AnkiNote[]} parsedNotes
+ * @param {() => string} genId
+ * @returns {{ cards: object[], warnings: string[] }}
+ */
 // convertToNidusCards: converts parsed Anki notes to Nidus Recall card objects.
 // Scheduling state is intentionally discarded. See module comment above.
 export const convertToNidusCards = (parsedNotes, genId) => {
@@ -492,11 +503,14 @@ export const buildApkg = async (cards) => {
   const dbBytes = db.export()
   db.close()
 
+  /** @type {import('fflate').Zippable} */
   const zipInput = {
     'collection.anki2': [dbBytes, { level: 0 }],
     'media': [new TextEncoder().encode(JSON.stringify(mediaMap)), { level: 6 }],
   }
-  for (const [numId, bytes] of Object.entries(mediaFiles)) zipInput[numId] = [bytes, { level: 0 }]
+  for (const [numId, bytes] of Object.entries(mediaFiles)) {
+    /** @type {Record<string, import('fflate').ZippableFile>} */ (zipInput)[numId] = [bytes, { level: 0 }]
+  }
 
   return zipSync(zipInput)
 }

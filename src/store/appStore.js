@@ -1,3 +1,7 @@
+/** @typedef {import('../types.js').Card} Card */
+/** @typedef {import('../types.js').Deck} Deck */
+/** @typedef {import('../types.js').SessionLog} SessionLog */
+/** @typedef {import('../types.js').User} User */
 import { create } from 'zustand'
 import * as storage from '@/api/storage'
 import * as offlineStore from '@/lib/offline-store'

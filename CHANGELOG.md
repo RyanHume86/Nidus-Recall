@@ -1,3 +1,52 @@
+## Session 14 (2026-04-30)
+
+### Dead code removal, JSDoc typedefs, and CI typecheck
+
+#### Phase 1 -- Delete unused components
+
+- `src/components/Badge.jsx` deleted. Zero imports confirmed by ripgrep scan before removal.
+- `src/components/ProtectedRoute.jsx` deleted. Only self-reference confirmed; no consumer found.
+
+#### Phase 2 -- Core type declarations
+
+- `src/types.js` created. Exports zero runtime code (`export {}` for module status). Declares 14 JSDoc `@typedef` blocks: `Rating`, `CardType`, `CardStatus`, `ContentType`, `OcclusionRegion`, `Card`, `Flashcard`, `CardState`, `Deck`, `SessionLog`, `User`, `AnkiNote`, `AiRequest`, `AiResponse`. Consumed via `@typedef {import('./types.js').X} X` at use sites.
+
+#### Phase 3 -- Typedef annotations at use sites
+
+- `src/lib/fsrs.js`: `Card` typedef imported; `@param`/`@returns` added to `scheduleFSRS`; Date arithmetic fixed (`getTime()` on both operands).
+- `src/lib/fsrs-optimizer.js`: Date arithmetic fixed (`getTime()` on both operands in elapsed-days calculation).
+- `src/lib/dates.js`: Date arithmetic fixed (`Date.now() - new Date(iso).getTime()`).
+- `src/lib/app-params.js`: `localStorage` union type fixed via double cast (`unknown` then `Storage`) in Node test environment guard.
+- `src/lib/offline-store.js`: Converted procedural Dexie setup to `class NidusDb extends Dexie` with typed table properties.
+- `src/api/storage.js`: `Card`, `Deck`, `SessionLog`, `CardState` typedef imports added; sort fixed with `getTime()`.
+- `src/api/aiAssist.js`: `AiRequest`, `AiResponse` typedef imports added; `base44.functions.callFunction` cast through `unknown` to typed interface.
+- `src/api/anki.js`: `AnkiNote`, `Card` typedef imports added; `Zippable` type annotation fixed via `import('fflate').Zippable` cast.
+- `src/api/notion.js`: `[string, object][]` tuple annotation added to `need` array.
+- `src/store/appStore.js`: `Card`, `Deck`, `SessionLog`, `User` typedef imports added.
+- `src/modals/EditCardModal.jsx`: `deck` field added to form initial state to match `Card` shape.
+- `src/views/DeckView.jsx`: `document.querySelector` result cast to `HTMLElement|null` before `.focus()`.
+- `src/components/CardPicker.jsx`: `excludeId=null` default parameter added (was required but unused by most callers).
+- `src/pages/Home.jsx`: `FileReader` result cast to `string`; Date arithmetic fixed with `.getTime()`.
+
+#### Phase 4 -- TypeScript infrastructure
+
+- `src/sql-js-types.d.ts` created. Minimal ambient `declare module 'sql.js'` with `Database`, `SqlJsStatic`, `QueryExecResult`, `SqlJsConfig`, and `initSqlJs` default export. Redirected via `jsconfig.json` `paths` to prevent `tsc` from type-checking the raw sql-wasm JS bundle.
+- `jsconfig.json` updated: `"vite/client"` added to `types` (fixes `import.meta.env`); `"sql.js"` path redirect added; `src/sql-js-types.d.ts` added to `include`.
+- `package.json`: `"ci": "npm run lint && npm run typecheck && npm test"` script added.
+
+#### Phase 5 -- CI workflow
+
+- `.github/workflows/ci.yml` created. Three jobs on Node 20 (`ubuntu-latest`): `lint`, `typecheck`, `test`. Triggers on push and pull-request to `main`.
+
+#### Phase 6 -- Verification
+
+- `npm run typecheck`: exit 0, zero errors (down from 35 src/ errors + 38 sql.js errors at session start).
+- `npm run lint`: exit 0, zero errors.
+- `npm test`: **211/211 passing** (6 date-sensitive snapshots updated).
+- `npm run build`: exit 0.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice

@@ -64,6 +64,7 @@ const ensureSchema = async (token, dbId) => {
   const existing = Object.keys(db.properties || {})
   const missing  = {}
 
+  /** @type {[string, object][]} */
   const need = [
     [P.back,        { rich_text: {} }],
     [P.contentType, { select: {} }],

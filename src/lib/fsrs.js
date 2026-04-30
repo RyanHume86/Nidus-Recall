@@ -1,4 +1,5 @@
 // ts-fsrs: MIT license, open-spaced-repetition/ts-fsrs, reference FSRS-5 implementation.
+/** @typedef {import('../types.js').Card} Card */
 import { fsrs, generatorParameters, Rating } from 'ts-fsrs'
 
 export const RATING_MAP = {
@@ -14,6 +15,13 @@ export const RATING_MAP = {
  * Uses per-user params (array) when provided; else ts-fsrs defaults.
  *
  * FSRS algorithm per Supermemo (Wozniak) and the open-spaced-repetition project.
+ *
+ * @param {Card} card
+ * @param {'again'|'hard'|'good'|'easy'} rating
+ * @param {number} [retentionTarget]
+ * @param {number[]|null} [schedulerParams]
+ * @param {Date} [now]
+ * @returns {{ stability: number, difficulty: number, interval: number }}
  */
 export const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParams = null, now = new Date()) => {
   const params = generatorParameters({
@@ -27,7 +35,7 @@ export const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParam
     stability:      card.stability  ?? 0,
     difficulty:     card.difficulty ?? 0,
     elapsed_days:   card.lastReview
-      ? Math.max(0, Math.floor((now - new Date(card.lastReview)) / 86400000))
+      ? Math.max(0, Math.floor((now.getTime() - new Date(card.lastReview).getTime()) / 86400000))
       : 0,
     scheduled_days: card.interval   ?? 0,
     reps:           card.reviewCount ?? 0,

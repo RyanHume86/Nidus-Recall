@@ -175,7 +175,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
           <textarea ref={frontRef} className="rapp-textarea" rows={2} value={form.front} maxLength={FRONT_MAX}
             onChange={e=>setForm(f=>({...f,front:e.target.value}))}
             placeholder="Question or prompt that forces retrieval."
-            onKeyDown={e=>{ if(e.key==="Tab"){ e.preventDefault(); document.querySelector(".nid-back-input")?.focus() }}} />
+            onKeyDown={e=>{ if(e.key==="Tab"){ e.preventDefault(); /** @type {HTMLElement|null} */ (document.querySelector(".nid-back-input"))?.focus() }}} />
           <CharCount current={form.front.length} max={FRONT_MAX} />
         </div>
 
