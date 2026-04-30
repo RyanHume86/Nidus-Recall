@@ -1,3 +1,61 @@
+## Session 7b (2026-04-29)
+
+### Migration verification
+
+Diagnosed conflicting documentation between Session 2 (console-run instruction) and Session 5
+(auto-run claim), then fixed the gap and added verification coverage.
+
+#### Diagnosis
+
+Session 5 CHANGELOG Item 2 claimed `storage.runMigration()` was "called automatically" on
+startup. Audit of `src/store/appStore.js` and `src/api/storage.js` showed:
+
+- `split-card-state` migration: auto-run was in place via `appStore.init -> storage.runMigration()`.
+- `deck-hierarchy` migration: NOT auto-run. `storage.runMigration()` only called `split-card-state`.
+  The CHANGELOG Session 3 deck-hierarchy entry and the migration file header both said
+  "run from browser console after deployment", which was the original correct instruction.
+
+Session 5 overclaimed: it wired auto-run for split-card-state but left deck-hierarchy as console-only.
+
+#### Changes
+
+**`src/api/storage.js`:**
+- `runMigration()` updated to run both migrations sequentially and return
+  `{ splitCardState: { created, skipped, total }, deckHierarchy: { created, updated } }`.
+- Added `getMigrationStatus()`: read-only, returns migrated/pending counts for both migrations
+  plus `lastRunAt` from localStorage.
+- Added `if (import.meta.env.DEV) { window.__nidusMigrationStatus = getMigrationStatus }` for
+  console inspection in development.
+
+**`src/store/appStore.js`:**
+- Replaced the `listCardStates()` + `needsMigration` heuristic with a 24h localStorage cache
+  (`nidus-last-migration-run`). Migration runs at most once per 24 hours regardless of state.
+  Migration errors remain non-fatal.
+
+**`migrations/2026-04-26-deck-hierarchy.js`:**
+- Header comment updated: removed "run from the browser console after deployment" instruction;
+  replaced with "auto-run on startup via storage.runMigration() after loadAll() completes".
+
+**`src/__tests__/snapshots/views.test.jsx`:**
+- `runMigration` mock return value updated from stale `{ migrated: 0 }` to
+  `{ splitCardState: { created: 0, skipped: 0, total: 0 }, deckHierarchy: { created: 0, updated: 0 } }`.
+- 5 ReviewHeatmap date-drift snapshots updated (two days of date drift since last regeneration).
+
+**`src/__tests__/migration-idempotency.test.js` (new, 11 tests):**
+- split-card-state: second `migrateUp` is a no-op; mixed fixture; `migrateDown` round-trip.
+- deck-hierarchy: same three guarantees.
+- `getMigrationStatus()` returns correct counts for a known fixture.
+- `window.__nidusMigrationStatus` exposed in DEV.
+- `runMigration` order: split-card-state entity calls complete before deck-hierarchy begins.
+- `appStore.init` calls `runMigration` when cache is stale; skips it when cache is fresh.
+
+#### Verification
+
+- `npm test`: **222/222 tests pass** (11 new migration idempotency tests; 5 stale snapshots updated).
+- No em-dash violations introduced.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice
@@ -655,6 +713,7 @@ All ten items deferred across Sessions 1-4 are implemented in this session.
 - The startup `useEffect` in the root component now calls `storage.listCardStates()` after `loadAll()`. If any cards have scheduling state (`stability != null` or `reviewCount > 0`) but no matching migrated CardState, `storage.runMigration()` is called automatically.
 - This is idempotent: the migration script checks the `migrated` flag. Migration errors are non-fatal.
 - Added `listCardStates()` export to `storage.js`.
+- **Correction (Session 7b):** the Session 5 implementation only wired auto-run for `split-card-state`; `deck-hierarchy` was not included in `runMigration()`. Both are now included. The `listCardStates()` heuristic was replaced with a 24h localStorage cache (`nidus-last-migration-run`). The `runMigration()` return shape was updated to `{ splitCardState, deckHierarchy }`.
 
 #### Item 3: dark mode contrast audit
 
@@ -972,9 +1031,9 @@ All ten items deferred across Sessions 1-4 are implemented in this session.
   UI-only. Deferred to Session 3.
 
 - **CardState table creation:** Base44 will create the CardState and UserSchedulerParams
-  tables automatically on first use. The migration (migrateUp) must be run from the
-  browser console after the first deployment to populate CardState from existing
-  Flashcard records.
+  tables automatically on first use. Migration from Flashcard to CardState now runs
+  automatically on startup via `storage.runMigration()` (corrected in Session 7b;
+  console-run instruction removed).
 
 - **Dark mode contrast audit:** Carried forward from Session 1.
 
@@ -999,8 +1058,7 @@ All ten items deferred across Sessions 1-4 are implemented in this session.
 
 ### Follow-up items for Session 3
 
-- Run migrateUp() from browser console after first deployment; verify CardState records
-  created for all existing Flashcard records.
+- [Resolved in Session 7b] Migration now auto-runs on startup; no console step required.
 
 - Implement full FSRS-5 gradient descent over review log for 19-parameter optimisation.
 

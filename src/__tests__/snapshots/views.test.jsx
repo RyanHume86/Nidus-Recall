@@ -42,7 +42,7 @@ vi.mock('@/api/storage', () => ({
   getUserSchedulerParams: vi.fn().mockReturnValue(null),
   saveUserSchedulerParams: vi.fn().mockResolvedValue({}),
   listCardStates: vi.fn().mockResolvedValue([]),
-  runMigration: vi.fn().mockResolvedValue({ migrated: 0 }),
+  runMigration: vi.fn().mockResolvedValue({ splitCardState: { created: 0, skipped: 0, total: 0 }, deckHierarchy: { created: 0, updated: 0 } }),
   getDeckParentMap: vi.fn().mockResolvedValue(new Map()),
 }))
 

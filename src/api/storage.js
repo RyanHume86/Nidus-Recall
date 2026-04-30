@@ -430,12 +430,17 @@ export const saveUserSchedulerParams = async (params, reviewCount) => {
 }
 
 /**
- * Run the card-state split migration (migrateUp).
- * Idempotent: safe to call multiple times.
+ * Run all pending migrations in canonical order.
+ * 1. split-card-state: moves FSRS fields from Flashcard to CardState (idempotent via migrated flag).
+ * 2. deck-hierarchy: converts "Parent::Child" deck names to nested parentDeckId structure (idempotent via parentDeckId check).
+ * Returns { splitCardState: { created, skipped, total }, deckHierarchy: { created, updated } }.
  */
 export const runMigration = async () => {
-  const { migrateUp } = await import('../../migrations/2026-04-26-split-card-state.js')
-  return migrateUp(base44)
+  const { migrateUp: splitUp }     = await import('../../migrations/2026-04-26-split-card-state.js')
+  const { migrateUp: hierarchyUp } = await import('../../migrations/2026-04-26-deck-hierarchy.js')
+  const splitCardState = await splitUp(base44)
+  const deckHierarchy  = await hierarchyUp(base44)
+  return { splitCardState, deckHierarchy }
 }
 
 /**
@@ -450,6 +455,34 @@ export const getDeckParentMap = () => new Map(deckParentMapMemo)
  */
 export const listCardStates = async () => {
   return base44.entities.CardState.list().catch(() => [])
+}
+
+/**
+ * Returns migration status for both migrations. Used by __nidusMigrationStatus() in dev.
+ * Does NOT run any migrations; read-only.
+ */
+export const getMigrationStatus = async () => {
+  const [cards, states, decks] = await Promise.all([
+    base44.entities.Flashcard.list().catch(() => []),
+    base44.entities.CardState.list().catch(() => []),
+    base44.entities.Deck.list().catch(() => []),
+  ])
+  const migratedCardIds = new Set(states.filter(s => s.migrated).map(s => s.cardClientId))
+  const splitMigrated   = cards.filter(c => migratedCardIds.has(c.clientId || c.id)).length
+  const splitPending    = cards.length - splitMigrated
+  // deck-hierarchy: pending = decks still containing "::" (not yet renamed/reparented)
+  const hierarchyPending  = decks.filter(d => d.title.includes('::')).length
+  const hierarchyMigrated = decks.filter(d => d.parentDeckId != null).length
+  const lastRunAt = localStorage.getItem('nidus-last-migration-run') || null
+  return {
+    splitCardState: { migrated: splitMigrated, pending: splitPending, total: cards.length },
+    deckHierarchy:  { migrated: hierarchyMigrated, pending: hierarchyPending, total: decks.length },
+    lastRunAt: lastRunAt ? new Date(Number(lastRunAt)).toISOString() : null,
+  }
+}
+
+if (import.meta.env.DEV) {
+  window.__nidusMigrationStatus = getMigrationStatus
 }
 
 /**
