@@ -19,6 +19,7 @@ vi.mock('@/api/base44Client', () => ({
 import { base44 } from '@/api/base44Client'
 import { hasCitationIntent, isClinicalContent, requestAIEdit } from '../api/aiAssist'
 import { saveCardHistory, listCardHistory } from '../api/storage'
+import { setAuthState } from '@/lib/api/withAuth'
 
 describe('hasCitationIntent', () => {
   it('returns true for explicit add-citation prompt', () => {
@@ -101,6 +102,7 @@ describe('requestAIEdit', () => {
 describe('saveCardHistory', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    setAuthState(true)
     base44.entities.CardHistory.filter.mockResolvedValue([])
     base44.entities.CardHistory.create.mockResolvedValue({ id: 'hist-1', version: 1 })
   })
