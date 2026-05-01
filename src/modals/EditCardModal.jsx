@@ -11,7 +11,7 @@ import { AIDiffModal } from "@/modals/AIDiffModal"
 import { CardHistoryModal } from "@/modals/CardHistoryModal"
 
 export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
-  const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
+  const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null, review_status:card.review_status||"unreviewed", accuracy_date:card.accuracy_date||"", accuracy_reviewer:card.accuracy_reviewer||"", guideline_version:card.guideline_version||"" })
   const allTags = useMemo(() => {
     const set = new Set()
     for (const c of (cards || [])) for (const t of (c.tags || [])) set.add(t)
@@ -21,6 +21,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
   const [showConnects, setShowConnects] = useState(!!(card.connects_to?.length))
   const [showPrereq, setShowPrereq]     = useState(!!(card.prerequisite_card_id))
+  const [showClinical, setShowClinical] = useState(!!(card.review_status && card.review_status !== 'unreviewed'))
   const [confirmDel, setConfirmDel] = useState(false)
   const [aiPrompt, setAiPrompt]     = useState("")
   const [aiOpen, setAiOpen]         = useState(false)
@@ -59,7 +60,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
   const handleSave = async () => {
     if (!form.front.trim() || !form.back.trim()) return
     const prereq = form.prerequisite_card_id === card.id ? null : form.prerequisite_card_id
-    await onUpdateCards(cards.map(c => c.id===card.id ? { ...c, front:form.front, back:form.back, tags:form.tags, elaboration:form.note, anchor:form.anchor.trim()||null, source:form.source.trim()||null, contentType:form.contentType, stakes_flag:form.stakesFlag, connects_to:form.connects_to, prerequisite_card_id:prereq } : c))
+    await onUpdateCards(cards.map(c => c.id===card.id ? { ...c, front:form.front, back:form.back, tags:form.tags, elaboration:form.note, anchor:form.anchor.trim()||null, source:form.source.trim()||null, contentType:form.contentType, stakes_flag:form.stakesFlag, connects_to:form.connects_to, prerequisite_card_id:prereq, review_status:form.review_status||"unreviewed", accuracy_date:form.accuracy_date||null, accuracy_reviewer:form.accuracy_reviewer.trim()||null, guideline_version:form.guideline_version.trim()||null } : c))
     onClose()
   }
   const handleDelete = async () => {
@@ -138,6 +139,48 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
             onChange={e=>setForm(f=>({...f,source:e.target.value}))}
             placeholder="Article, chapter, guideline, or lecture this card came from." />
           {form.source.length >= SOURCE_MAX - 40 && <CharCount current={form.source.length} max={SOURCE_MAX} />}
+        </div>
+
+        <div className="rapp-mb12">
+          <div className="nid-note-toggle" data-testid="clinical-accuracy-toggle" onClick={()=>setShowClinical(o=>!o)}>
+            {Ico.chevron(13, showClinical)}
+            <span>Clinical accuracy</span>
+            <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
+            {form.review_status !== 'unreviewed' && !showClinical && (
+              <span style={{ fontSize:11, color: form.review_status==='outdated' ? C.again : C.accent, marginLeft:6 }}>
+                ● {form.review_status}
+              </span>
+            )}
+          </div>
+          {showClinical && (
+            <div className="rapp-fadein" style={{ marginTop:10, padding:'12px 14px', background:C.elevated, borderRadius:10 }} data-testid="clinical-accuracy-panel">
+              <div className="rapp-mb10">
+                <label className="rapp-label">Review status</label>
+                <select className="rapp-select" data-testid="review-status-select" value={form.review_status} onChange={e=>setForm(f=>({...f,review_status:e.target.value}))}>
+                  <option value="unreviewed">Unreviewed</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="outdated">Outdated</option>
+                </select>
+              </div>
+              <div className="rapp-mb10">
+                <label className="rapp-label">Last reviewed</label>
+                <input className="rapp-input" type="date" data-testid="accuracy-date-input" value={form.accuracy_date}
+                  onChange={e=>setForm(f=>({...f,accuracy_date:e.target.value}))} />
+              </div>
+              <div className="rapp-mb10">
+                <label className="rapp-label">Reviewed by</label>
+                <input className="rapp-input" data-testid="accuracy-reviewer-input" value={form.accuracy_reviewer} maxLength={120}
+                  onChange={e=>setForm(f=>({...f,accuracy_reviewer:e.target.value}))}
+                  placeholder="Name or initials" />
+              </div>
+              <div>
+                <label className="rapp-label">Guideline version</label>
+                <input className="rapp-input" data-testid="guideline-version-input" value={form.guideline_version} maxLength={100}
+                  onChange={e=>setForm(f=>({...f,guideline_version:e.target.value}))}
+                  placeholder="e.g. SAMF 2024, UTD 2025" />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rapp-mb12">

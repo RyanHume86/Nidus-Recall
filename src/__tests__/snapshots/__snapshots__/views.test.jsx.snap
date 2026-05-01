@@ -4179,6 +4179,38 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         class="rapp-mb12"
       >
         <div
+          class="nid-note-toggle"
+          data-testid="clinical-accuracy-toggle"
+        >
+          <svg
+            fill="none"
+            height="13"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+            viewBox="0 0 24 24"
+            width="13"
+          >
+            <polyline
+              points="6 9 12 15 18 9"
+            />
+          </svg>
+          <span>
+            Clinical accuracy
+          </span>
+          <span
+            style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
+          >
+            (optional)
+          </span>
+        </div>
+      </div>
+      <div
+        class="rapp-mb12"
+      >
+        <div
           class="rapp-row rapp-sb"
           style="align-items: flex-start;"
         >
