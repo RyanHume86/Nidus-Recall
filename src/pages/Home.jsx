@@ -12,6 +12,7 @@ import { useAppStore } from "@/store/appStore"
 import { useAuth } from "@/lib/AuthContext"
 import NidusLogo from "@/components/NidusLogo"
 import FirstRunOverlay from "@/components/FirstRunOverlay"
+import { AgreementGate } from "@/components/AgreementGate"
 import { SleepScheduleModal, sleepOnboardComplete } from "@/components/onboarding/SleepScheduleModal"
 import { LibraryView } from "@/views/LibraryView"
 import { DeckView } from "@/views/DeckView"
@@ -34,8 +35,8 @@ export default function Home() {
   const [firstRunDone,       setFirstRunDone]       = useState(() => !!localStorage.getItem("nidus.firstRunSeen"))
   const [sleepOnboardSeen,   setSleepOnboardSeen]   = useState(false)
 
-  // ── Auth (needed for sleep onboarding flag) ────────────────────────────────
-  const { user, isAuthenticated, authChecked } = useAuth()
+  // ── Auth (needed for sleep onboarding flag and agreement gate) ───────────────
+  const { user, isAuthenticated, authChecked, checkUserAuth } = useAuth()
 
   // ── Store: data + sync ─────────────────────────────────────────────────────
   const cards                   = useAppStore(s => s.cards)
@@ -68,6 +69,15 @@ export default function Home() {
   const incrementSessionsCompleted = useAppStore(s => s.incrementSessionsCompleted)
   const handleImportCards        = useAppStore(s => s.handleImportCards)
   const handleApkgImportCards    = useAppStore(s => s.handleApkgImportCards)
+
+  // ── POPIA agreement gate ───────────────────────────────────────────────────
+  const needsAgreement = isAuthenticated && authChecked && user != null && !user.agreement_accepted_at
+
+  const handleAcceptAgreement = async (version) => {
+    const { base44 } = await import('@/api/base44Client')
+    await base44.auth.updateMe({ agreement_accepted_at: new Date().toISOString(), agreement_version: version })
+    await checkUserAuth()
+  }
 
   // ── Load ───────────────────────────────────────────────────────────────────
   useEffect(() => { init() }, [])
@@ -220,6 +230,7 @@ export default function Home() {
 
   return (
     <>
+      {needsAgreement && <AgreementGate onAccept={handleAcceptAgreement} />}
       {!firstRunDone && <FirstRunOverlay onDone={() => setFirstRunDone(true)} />}
       {showSleepModal && (
         <SleepScheduleModal
@@ -294,7 +305,7 @@ export default function Home() {
           {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={incrementSessionsCompleted} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
-          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} onImportAnki={handleApkgImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} />}
+          {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} onImportAnki={handleApkgImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} onDeleteAccount={async()=>{ await storage.deleteAllUserData(); const { base44 } = await import('@/api/base44Client'); base44.auth.logout(window.location.origin) }} />}
         </div>
 
         {!inSession && (

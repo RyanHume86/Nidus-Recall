@@ -3,6 +3,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import UserNotRegisteredError from '@/components/UserNotRegisteredError'
+import { LegalPage } from './pages/legal/LegalPage'
 import Home from './pages/Home'
 
 const AuthenticatedApp = () => {
@@ -23,7 +24,10 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/*" element={<Home />} />
+      <Route path="/privacy"          element={<LegalPage type="privacy" />} />
+      <Route path="/terms"            element={<LegalPage type="terms" />} />
+      <Route path="/data-processing"  element={<LegalPage type="data-processing" />} />
+      <Route path="/*"                element={<Home />} />
     </Routes>
   );
 };

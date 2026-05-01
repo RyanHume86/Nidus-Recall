@@ -5815,7 +5815,7 @@ exports[`view snapshots > SettingsView 1`] = `
       </div>
     </div>
     <div
-      style="display: flex; gap: 4px; background: rgb(244, 247, 245); border-radius: 10px; padding: 3px; margin-bottom: 20px;"
+      style="display: flex; gap: 4px; background: rgb(244, 247, 245); border-radius: 10px; padding: 3px; margin-bottom: 20px; flex-wrap: wrap;"
     >
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: rgb(223, 232, 227); color: rgb(28, 40, 32); box-shadow: 0 1px 4px rgba(28,40,32,0.08); transition: all 0.14s;"
@@ -5831,6 +5831,11 @@ exports[`view snapshots > SettingsView 1`] = `
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
       >
         Data
+      </button>
+      <button
+        style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
+      >
+        Privacy
       </button>
     </div>
     <div
