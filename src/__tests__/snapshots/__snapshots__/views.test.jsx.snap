@@ -3588,6 +3588,7 @@ exports[`modal snapshots > AIDiffModal: with clinical warning 1`] = `
           Review AI suggestion
         </span>
         <button
+          aria-label="Dismiss changes"
           style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
         >
           x
@@ -3780,6 +3781,7 @@ exports[`modal snapshots > AIDiffModal: without clinical warning 1`] = `
           Review AI suggestion
         </span>
         <button
+          aria-label="Dismiss changes"
           style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
         >
           x
@@ -3962,6 +3964,7 @@ exports[`modal snapshots > CardHistoryModal: empty history 1`] = `
             Edit history
           </span>
           <button
+            aria-label="Close history"
             style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
           >
             x
@@ -4015,6 +4018,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
           style="display: flex; align-items: center; gap: 8px;"
         >
           <button
+            aria-label="Close editor"
             style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
           >
             ×

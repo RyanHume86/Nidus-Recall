@@ -315,7 +315,7 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
       {intensityPts >= INTENSITY_BREAK && !breakDismissed && (
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, background:C.warningBg, border:`1px solid ${C.warning}40`, borderRadius:12, padding:"10px 14px", marginBottom:14 }}>
           <span style={{ fontSize:13, color:C.warningText, lineHeight:1.55 }}>You've been studying intensively. A short break may help consolidate what you've learned.</span>
-          <button onClick={()=>setBreakDismissed(true)} style={{ background:"none", border:"none", cursor:"pointer", color:C.warning, fontSize:18, lineHeight:1, padding:"0 0 0 4px", flexShrink:0, fontFamily:"inherit" }}>×</button>
+          <button aria-label="Dismiss break reminder" onClick={()=>setBreakDismissed(true)} style={{ background:"none", border:"none", cursor:"pointer", color:C.warning, fontSize:18, lineHeight:1, padding:"0 0 0 4px", flexShrink:0, fontFamily:"inherit" }}>×</button>
         </div>
       )}
 

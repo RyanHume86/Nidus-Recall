@@ -52,7 +52,7 @@ export function CardHistoryModal({ cardId, card, onClose, onRevert }) {
           <div>
             <div className="rapp-row rapp-sb rapp-mb16">
               <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Revert to v{revertTarget.version}?</span>
-              <button onClick={() => setRevertTarget(null)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+              <button aria-label="Cancel revert" onClick={() => setRevertTarget(null)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
             </div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>
               This will update the card to the content below. A new history entry will be saved so you can undo this later.
@@ -105,7 +105,7 @@ export function CardHistoryModal({ cardId, card, onClose, onRevert }) {
           <div>
             <div className="rapp-row rapp-sb rapp-mb16">
               <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit history</span>
-              <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+              <button aria-label="Close history" onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
             </div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>AI-assisted edits are logged here. The content before the first AI change is always preserved.</p>
             {loading && <p style={{ fontSize:13, color:C.textMut }}>Loading...</p>}
