@@ -39,7 +39,8 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
   const [side,       setSide]       = useState(0)   // 0=question, 1=answer+rating
   const [answerDraft,setAnswerDraft]= useState("")
   const [noteOpen,   setNoteOpen]   = useState(false)
-  const [stats,          setStats]          = useState({ reviewed:0, failed:0, newAdded:0 })
+  const [stats,          setStats]          = useState({ reviewed:0, failed:0, newAdded:0, ratingBreakdown:{ again:0, hard:0, good:0, easy:0 } })
+  const [contentTypeBreakdown, setContentTypeBreakdown] = useState({ Factual:0, Mechanism:0, "Clinical Reasoning":0, Anatomy:0, Pathology:0 })
   const [friction,       setFriction]       = useState("")
   const [lastAction,     setLastAction]     = useState(null)
   const [intensityPts,   setIntensityPts]   = useState(0)
@@ -109,11 +110,14 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
     }
     await onUpdateCards(updated)
     ratedCardIds.add(card.id)
+    const ct = card.contentType || 'Factual'
     setLastAction({ cardId:card.id, prevInterval:card.interval, prevNextReview:card.nextReview,
       prevReviewCount:card.reviewCount||0, prevStability:card.stability, prevDifficulty:card.difficulty,
       prevLastReview:card.lastReview, prevLapses:card.lapses||0,
-      statDelta:{ reviewed:isNew?0:1, failed, newAdded:isNew?1:0 }, phase, idx })
-    setStats(s => ({ reviewed:s.reviewed+(isNew?0:1), failed:s.failed+failed, newAdded:s.newAdded+(isNew?1:0) }))
+      statDelta:{ reviewed:isNew?0:1, failed, newAdded:isNew?1:0 }, phase, idx,
+      rating, contentType: ct })
+    setStats(s => ({ ...s, reviewed:s.reviewed+(isNew?0:1), failed:s.failed+failed, newAdded:s.newAdded+(isNew?1:0), ratingBreakdown:{ ...s.ratingBreakdown, [rating]:(s.ratingBreakdown[rating]||0)+1 } }))
+    setContentTypeBreakdown(b => ({ ...b, [ct]:(b[ct]||0)+1 }))
     setIntensityPts(p => p + (INTENSITY_WEIGHT[rating]||2))
     setIntensityCount(n => n + 1)
     advance(phase, idx)
@@ -128,13 +132,26 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
           difficulty:lastAction.prevDifficulty, lastReview:lastAction.prevLastReview, lapses:lastAction.prevLapses }
       : c)
     await onUpdateCards(restored)
-    setStats(s => ({ reviewed:s.reviewed-lastAction.statDelta.reviewed, failed:s.failed-lastAction.statDelta.failed, newAdded:s.newAdded-lastAction.statDelta.newAdded }))
+    setStats(s => ({ ...s, reviewed:s.reviewed-lastAction.statDelta.reviewed, failed:s.failed-lastAction.statDelta.failed, newAdded:s.newAdded-lastAction.statDelta.newAdded, ratingBreakdown:{ ...s.ratingBreakdown, [lastAction.rating]:Math.max(0,(s.ratingBreakdown[lastAction.rating]||0)-1) } }))
+    setContentTypeBreakdown(b => ({ ...b, [lastAction.contentType]:Math.max(0,(b[lastAction.contentType]||0)-1) }))
     setIdx(lastAction.idx); setPhase(lastAction.phase); setLastAction(null)
   }
 
   const handleClose = async () => {
-    const frictionNote = assembleFrictionNote(friction, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused })
-    await onSaveLog({ date:new Date().toISOString(), reviewed:stats.reviewed, failed:stats.failed, newAdded:stats.newAdded, frictionNote, status: "complete", intensity_score: intensityCount > 0 ? parseFloat((intensityPts/intensityCount).toFixed(1)) : 0 })
+    const frictionNote = assembleFrictionNote(friction)
+    await onSaveLog({
+      date: new Date().toISOString(),
+      reviewed:    stats.reviewed,
+      failed:      stats.failed,
+      newAdded:    stats.newAdded,
+      frictionNote,
+      status:      "complete",
+      intensity_score:      intensityCount > 0 ? parseFloat((intensityPts/intensityCount).toFixed(1)) : 0,
+      ratingBreakdown:      stats.ratingBreakdown,
+      contentTypeBreakdown,
+      fatigueFlag:          fatigueAlertsEnabled && fatigueScore >= 2,
+      focusedFlag:          focused,
+    })
     if (isFirstStudy && onFirstStudyComplete) onFirstStudyComplete()
 
     // Parameter fitting: run if >= 200 total reviews and fit conditions met.
