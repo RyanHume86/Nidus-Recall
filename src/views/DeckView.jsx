@@ -14,6 +14,7 @@ import { AnchorToggle } from "@/components/AnchorToggle"
 import { CardPicker } from "@/components/CardPicker"
 import { ImageUpload } from "@/components/cards/ImageUpload"
 import { EditCardModal } from "@/modals/EditCardModal"
+import { ContentTypeChips, readLastContentType } from "@/components/ContentTypeChips"
 
 const SORT_OPTIONS = [
   { value: "recent",      label: "Recent" },
@@ -23,7 +24,7 @@ const SORT_OPTIONS = [
 ]
 
 export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
-  const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
+  const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:readLastContentType(), stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic")
 
   const allTags = useMemo(() => {
@@ -185,9 +186,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
         </div>
         <div className="rapp-mb10">
           <label className="rapp-label">Type</label>
-          <select className="rapp-select" value={form.contentType} onChange={e=>setForm(f=>({...f,contentType:e.target.value}))}>
-            {["Factual","Mechanism","Clinical Reasoning","Anatomy","Pathology"].map(t=><option key={t}>{t}</option>)}
-          </select>
+          <ContentTypeChips value={form.contentType} onChange={v=>setForm(f=>({...f,contentType:v}))} />
         </div>
         <div className="rapp-mb10">
           <label className="rapp-label">Source (optional)</label>

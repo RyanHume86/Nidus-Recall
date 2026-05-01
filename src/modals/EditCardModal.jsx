@@ -9,6 +9,7 @@ import { AnchorToggle } from "@/components/AnchorToggle"
 import { CardPicker } from "@/components/CardPicker"
 import { AIDiffModal } from "@/modals/AIDiffModal"
 import { CardHistoryModal } from "@/modals/CardHistoryModal"
+import { ContentTypeChips } from "@/components/ContentTypeChips"
 
 export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory, inline = false }) {
   const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null, review_status:card.review_status||"unreviewed", accuracy_date:card.accuracy_date||"", accuracy_reviewer:card.accuracy_reviewer||"", guideline_version:card.guideline_version||"" })
@@ -125,9 +126,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
 
         <div className="rapp-mb12">
           <label className="rapp-label">Type</label>
-          <select className="rapp-select" value={form.contentType} onChange={e=>setForm(f=>({...f,contentType:e.target.value}))}>
-            {["Factual","Mechanism","Clinical Reasoning","Anatomy","Pathology"].map(t=><option key={t}>{t}</option>)}
-          </select>
+          <ContentTypeChips value={form.contentType} onChange={v=>setForm(f=>({...f,contentType:v}))} />
         </div>
 
         <div className="rapp-mb12">

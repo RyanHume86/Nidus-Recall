@@ -4144,25 +4144,72 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         >
           Type
         </label>
-        <select
-          class="rapp-select"
+        <div
+          aria-label="Content type"
+          role="group"
+          style="display: flex; flex-wrap: wrap; gap: 6px;"
         >
-          <option>
-            Factual
-          </option>
-          <option>
-            Mechanism
-          </option>
-          <option>
-            Clinical Reasoning
-          </option>
-          <option>
-            Anatomy
-          </option>
-          <option>
-            Pathology
-          </option>
-        </select>
+          <span
+            style="position: relative; display: inline-flex;"
+          >
+            <button
+              aria-pressed="false"
+              data-testid="ct-chip-Factual"
+              style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+              type="button"
+            >
+              Factual
+            </button>
+          </span>
+          <span
+            style="position: relative; display: inline-flex;"
+          >
+            <button
+              aria-pressed="true"
+              data-testid="ct-chip-Mechanism"
+              style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+              type="button"
+            >
+              Mechanism
+            </button>
+          </span>
+          <span
+            style="position: relative; display: inline-flex;"
+          >
+            <button
+              aria-pressed="false"
+              data-testid="ct-chip-Clinical-Reasoning"
+              style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+              type="button"
+            >
+              Clinical Reasoning
+            </button>
+          </span>
+          <span
+            style="position: relative; display: inline-flex;"
+          >
+            <button
+              aria-pressed="false"
+              data-testid="ct-chip-Anatomy"
+              style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+              type="button"
+            >
+              Anatomy
+            </button>
+          </span>
+          <span
+            style="position: relative; display: inline-flex;"
+          >
+            <button
+              aria-pressed="false"
+              data-testid="ct-chip-Pathology"
+              style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+              type="button"
+            >
+              Pathology
+            </button>
+          </span>
+        </div>
       </div>
       <div
         class="rapp-mb12"
@@ -4730,25 +4777,72 @@ exports[`view snapshots > DeckView: with cards 1`] = `
             >
               Type
             </label>
-            <select
-              class="rapp-select"
+            <div
+              aria-label="Content type"
+              role="group"
+              style="display: flex; flex-wrap: wrap; gap: 6px;"
             >
-              <option>
-                Factual
-              </option>
-              <option>
-                Mechanism
-              </option>
-              <option>
-                Clinical Reasoning
-              </option>
-              <option>
-                Anatomy
-              </option>
-              <option>
-                Pathology
-              </option>
-            </select>
+              <span
+                style="position: relative; display: inline-flex;"
+              >
+                <button
+                  aria-pressed="true"
+                  data-testid="ct-chip-Factual"
+                  style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+                  type="button"
+                >
+                  Factual
+                </button>
+              </span>
+              <span
+                style="position: relative; display: inline-flex;"
+              >
+                <button
+                  aria-pressed="false"
+                  data-testid="ct-chip-Mechanism"
+                  style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+                  type="button"
+                >
+                  Mechanism
+                </button>
+              </span>
+              <span
+                style="position: relative; display: inline-flex;"
+              >
+                <button
+                  aria-pressed="false"
+                  data-testid="ct-chip-Clinical-Reasoning"
+                  style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+                  type="button"
+                >
+                  Clinical Reasoning
+                </button>
+              </span>
+              <span
+                style="position: relative; display: inline-flex;"
+              >
+                <button
+                  aria-pressed="false"
+                  data-testid="ct-chip-Anatomy"
+                  style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+                  type="button"
+                >
+                  Anatomy
+                </button>
+              </span>
+              <span
+                style="position: relative; display: inline-flex;"
+              >
+                <button
+                  aria-pressed="false"
+                  data-testid="ct-chip-Pathology"
+                  style="padding: 4px 10px; border-radius: 20px; border: 1.5px solid rgb(207, 219, 213); background: rgb(223, 232, 227); color: rgb(28, 40, 32); font-size: 12px; font-weight: 400; cursor: pointer; font-family: inherit; transition: background 0.15s, border-color 0.15s;"
+                  type="button"
+                >
+                  Pathology
+                </button>
+              </span>
+            </div>
           </div>
           <div
             class="rapp-mb10"
