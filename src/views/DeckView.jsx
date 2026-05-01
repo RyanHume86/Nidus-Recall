@@ -12,7 +12,7 @@ import { TagInput } from "@/components/TagInput"
 import { NoteToggle } from "@/components/NoteToggle"
 import { AnchorToggle } from "@/components/AnchorToggle"
 import { CardPicker } from "@/components/CardPicker"
-import { ImageOcclusionEditor } from "@/components/ImageOcclusionEditor"
+import { ImageUpload } from "@/components/cards/ImageUpload"
 import { EditCardModal } from "@/modals/EditCardModal"
 
 export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
@@ -301,9 +301,11 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
         )}
         {addMode === "occlusion" && (
           <div className="rapp-fadein">
-            <ImageOcclusionEditor onSave={async (imgUrl, regions) => {
-              const newCards = createOcclusionCards(imgUrl, regions, deckName)
+            <ImageUpload onSave={async (imageId, imgUrl, regions) => {
+              const newCards = createOcclusionCards(imgUrl, regions, deckName, imageId)
               await onUpdateCards([...cards, ...newCards])
+              // Back-fill linkedCardIds on the Image entity after card IDs are known
+              storage.updateImageLinkedCards(imageId, newCards.map(c => c.id)).catch(() => {})
               setAddMode("basic")
               setSaved(true); setTimeout(()=>setSaved(false), 1200)
             }} />
