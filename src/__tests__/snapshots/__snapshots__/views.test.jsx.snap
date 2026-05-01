@@ -4094,7 +4094,9 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         >
           Tags
         </label>
-        <div>
+        <div
+          style="position: relative;"
+        >
           <div
             style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"
           >
@@ -4120,9 +4122,11 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
             </span>
           </div>
           <input
+            autocomplete="off"
             class="rapp-input"
-            maxlength="50"
-            placeholder="Add tag, Enter to confirm · 3 left"
+            data-testid="tag-input"
+            maxlength="60"
+            placeholder="Add tag · 3 left"
             style="font-size: 13px;"
             value=""
           />
@@ -4536,10 +4540,14 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         >
           Tags
         </label>
-        <div>
+        <div
+          style="position: relative;"
+        >
           <input
+            autocomplete="off"
             class="rapp-input"
-            maxlength="50"
+            data-testid="tag-input"
+            maxlength="60"
             placeholder="Add tag, Enter to confirm"
             style="font-size: 13px;"
             value=""
@@ -5287,6 +5295,29 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
            New Deck
         </button>
       </div>
+    </div>
+    <div
+      class="rapp-mb16"
+      data-testid="tag-filter-bar"
+      style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;"
+    >
+      <span
+        style="font-size: 11px; font-weight: 600; color: rgb(74, 107, 92); letter-spacing: 0.06em; text-transform: uppercase; margin-right: 2px;"
+      >
+        Tags
+      </span>
+      <button
+        data-testid="tag-filter-diabetes"
+        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s;"
+      >
+        diabetes
+      </button>
+      <button
+        data-testid="tag-filter-pharm"
+        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s;"
+      >
+        pharm
+      </button>
     </div>
     <div
       class="rapp-mb20"
