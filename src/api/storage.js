@@ -23,6 +23,7 @@
  */
 
 import { base44 } from "@/api/base44Client"
+import { requireAuth } from "@/lib/api/withAuth"
 
 // ── In-memory state (rebuilt on each loadAll call) ────────────────────────────
 let entityIdMap  = new Map()  // clientId  to Base44 entity id
@@ -54,6 +55,7 @@ let syncLock = Promise.resolve()
 export const ensureDeck = async (name) => {
   if (deckNameToId.has(name)) return deckNameToId.get(name)
   if (deckPending.has(name))  return deckPending.get(name)
+  requireAuth('create deck')
   const p = base44.entities.Deck.create({ title: name })
     .then(entity => {
       deckNameToId.set(name, entity.id)
@@ -273,6 +275,7 @@ export const loadCardsPage = async (skip, limit = 500) => {
  * several cards quickly) won't race against entityIdMap.
  */
 export const syncCards = (updatedCards) => {
+  requireAuth('sync cards')
   syncLock = syncLock.then(() => _doSync(updatedCards))
   return syncLock
 }
@@ -348,6 +351,7 @@ const _doSync = async (updatedCards) => {
  * created card that has not been migrated). Skips write if nothing changed.
  */
 export const syncCardState = async (clientId, stateFields) => {
+  requireAuth('sync card state')
   const entityId = cardStateEntityIdMap.get(clientId)
   const payload = {
     cardClientId:       clientId,
@@ -414,6 +418,7 @@ export const getUserSchedulerParams = () => userSchedulerParams
  * reviewCount: total review count at time of fit
  */
 export const saveUserSchedulerParams = async (params, reviewCount) => {
+  requireAuth('save scheduler params')
   const payload = {
     params,
     lastFitDate:      new Date().toISOString().split('T')[0],
@@ -456,6 +461,7 @@ export const listCardStates = async () => {
  * Append a completed session entry to Base44. Returns the created entity.
  */
 export const appendLog = async (entry) => {
+  requireAuth('append session log')
   const entity = await base44.entities.SessionLog.create({
     date:           entry.date,
     reviewed:       entry.reviewed       || 0,
@@ -472,6 +478,7 @@ export const appendLog = async (entry) => {
  * Update an existing session log entry.
  */
 export const updateLog = async (entityId, updates) => {
+  requireAuth('update session log')
   await base44.entities.SessionLog.update(entityId, updates)
 }
 
@@ -480,6 +487,7 @@ export const updateLog = async (entityId, updates) => {
  * and writes to the Deck entity.
  */
 export const adjustDeckCount = async (deckTitle, delta) => {
+  requireAuth('adjust deck count')
   if (!deckTitle || !deckNameToId.has(deckTitle)) return
   const current = deckCountCache.get(deckTitle) || 0
   const next = Math.max(0, current + delta)
@@ -492,6 +500,7 @@ export const adjustDeckCount = async (deckTitle, delta) => {
  * Recalculate and write the exact card_count for a deck based on all Active cards.
  */
 export const recalculateDeckCount = async (deckTitle, allCards) => {
+  requireAuth('recalculate deck count')
   if (!deckTitle || !deckNameToId.has(deckTitle)) return
   const count = allCards.filter(c => c.deck === deckTitle && c.status === "Active").length
   deckCountCache.set(deckTitle, count)
@@ -506,6 +515,7 @@ export const recalculateDeckCount = async (deckTitle, allCards) => {
  * Reads existing records to compute the next sequential version number.
  */
 export const saveCardHistory = async (cardId, snapshot, modifiedBy = 'ai', aiModel = null) => {
+  requireAuth('save card history')
   let version = 1
   try {
     const existing = await base44.entities.CardHistory.filter({ card_id: cardId })
