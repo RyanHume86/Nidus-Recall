@@ -34,10 +34,10 @@ export const C = {
 }
 
 // ─── Field length constants ────────────────────────────────────────────────────
-export const FRONT_MAX     = 500
-export const BACK_MAX      = 1000
-export const NOTE_MAX      = 500
-export const ANCHOR_MAX    = 400
+export const FRONT_MAX     = 1500
+export const BACK_MAX      = 3000
+export const NOTE_MAX      = 5000
+export const ANCHOR_MAX    = 600
 export const SOURCE_MAX    = 200
 export const TAG_MAX_LEN   = 50
 export const TAG_MAX_COUNT = 5
