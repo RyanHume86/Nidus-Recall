@@ -9,7 +9,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   const [mode, setMode] = useState("srs")
   const [interleavedDecks, setInterleavedDecks] = useState([])
   const [focused, setFocused] = useState(false)
-  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true } = settings||{}
+  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30 } = settings||{}
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
   const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
@@ -18,6 +18,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   // sleepWindowActive: true when sleepPrefersReviews is on AND we are in the sleep window.
   // When active, new cards are capped to 0 for this session.
   const sleepWindowActive = !!(settings?.sleepPrefersReviews && isInSleepWindow(settings))
+  const matureCount = matureModeEnabled ? filtered.filter(c => isActive(c) && c.stability != null && c.stability >= matureCardThreshold).length : 0
   const effectiveNewCount = sleepWindowActive ? 0 : newCount
   const canStart  = mode==="srs" ? (dueCount>0||effectiveNewCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
 
@@ -51,9 +52,12 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
 
       {mode==="srs" && (
         <div className="rapp-card rapp-mb20">
-          <div className="rapp-row" style={{ gap:28 }}>
+          <div className="rapp-row" style={{ gap:28 }} data-testid="srs-stats-row">
             <div><span style={{ fontSize:22, fontWeight:700, color:dueCount>0?C.accent:C.textMut }}>{dueCount}</span><span className="rapp-ts"> due</span></div>
             <div><span style={{ fontSize:22, fontWeight:700, color:(sleepWindowActive?0:newCount)>0?C.text:C.textMut }}>{sleepWindowActive ? 0 : newCount}</span><span className="rapp-ts"> new</span></div>
+            {matureModeEnabled && matureCount > 0 && (
+              <div data-testid="mature-count"><span style={{ fontSize:22, fontWeight:700, color:C.textMut }}>{matureCount}</span><span className="rapp-ts"> mature</span></div>
+            )}
           </div>
           {sleepWindowActive && (dueCount>0||newCount>0) && (
             <p style={{ fontSize:12, color:C.textMut, marginTop:10, lineHeight:1.6 }}>

@@ -252,11 +252,49 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
           </div>
         ) : null
       })()}
-      <div className="rapp-stat-row rapp-mb20">
+      <div className="rapp-stat-row rapp-mb20" data-testid="session-summary-stats">
         <div className="rapp-stat-box"><div className="rapp-stat-num">{stats.reviewed}</div><div className="rapp-stat-lbl">Reviewed</div></div>
         <div className="rapp-stat-box"><div className="rapp-stat-num" style={{ color:stats.failed>0?C.again:C.textMut }}>{stats.failed}</div><div className="rapp-stat-lbl">Failed</div></div>
         <div className="rapp-stat-box"><div className="rapp-stat-num" style={{ color:C.accent }}>{stats.newAdded}</div><div className="rapp-stat-lbl">New cards</div></div>
       </div>
+      {stats.reviewed > 0 && (() => {
+        const rb = stats.ratingBreakdown
+        const total = rb.again+rb.hard+rb.good+rb.easy
+        const COLORS = { again:"#E05050", hard:"#D48830", good:"#2D6E52", easy:"#2E7B88" }
+        return (
+          <div style={{ marginBottom:16 }} data-testid="rating-breakdown">
+            <div style={{ fontSize:11, fontWeight:600, color:C.textMut, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Rating breakdown</div>
+            <div style={{ display:"flex", height:8, borderRadius:4, overflow:"hidden", gap:1 }}>
+              {["again","hard","good","easy"].map(r => rb[r] > 0 ? (
+                <div key={r} style={{ flex:rb[r], background:COLORS[r] }} title={`${r}: ${rb[r]}`} />
+              ) : null)}
+            </div>
+            <div style={{ display:"flex", gap:12, marginTop:6, flexWrap:"wrap" }}>
+              {["again","hard","good","easy"].map(r => rb[r] > 0 ? (
+                <span key={r} style={{ fontSize:11, color:COLORS[r], fontWeight:500 }}>
+                  {r.charAt(0).toUpperCase()+r.slice(1)} {Math.round(rb[r]/total*100)}%
+                </span>
+              ) : null)}
+            </div>
+          </div>
+        )
+      })()}
+      {stats.reviewed > 0 && (() => {
+        const types = Object.entries(contentTypeBreakdown).filter(([,v]) => v > 0)
+        if (!types.length) return null
+        return (
+          <div style={{ marginBottom:16 }} data-testid="content-type-breakdown">
+            <div style={{ fontSize:11, fontWeight:600, color:C.textMut, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Content types reviewed</div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {types.map(([t,v]) => (
+                <span key={t} style={{ fontSize:11, padding:"2px 8px", borderRadius:10, background:C.elevated, color:C.text }}>
+                  {t} <strong>{v}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
       {(() => { const cal = computeCalibration(cards); return (
         <div style={{ fontSize:13, color:C.textMut, marginBottom:8 }}>
           Recall accuracy (30 days): {cal.score !== null ? <strong style={{ color:"var(--nidus-warm)" }}>{cal.score}%</strong> : <span>appears after 10 qualifying reviews</span>}
