@@ -26,7 +26,8 @@ import { base44 } from "@/api/base44Client"
 import { requireAuth } from "@/lib/api/withAuth"
 
 // ── In-memory state (rebuilt on each loadAll call) ────────────────────────────
-let entityIdMap  = new Map()  // clientId  to Base44 entity id
+let entityIdMap      = new Map()  // clientId  to Base44 entity id
+let entityToClientMap = new Map() // Base44 entity id to clientId (reverse of entityIdMap)
 let cardSnapshot = new Map()  // clientId  to last-synced card object (for diffing)
 let deckNameToId = new Map()  // deckTitle to Base44 Deck entity id
 let deckPending  = new Map()  // deckTitle to in-flight Deck.create Promise
@@ -165,7 +166,11 @@ const toEntityData = (card, deckId) => ({
   source:               card.source               || null,
   stakes_flag:          card.stakes_flag          || false,
   connects_to:          card.connects_to          || [],
-  prerequisite_card_id: card.prerequisite_card_id || null,
+  // Translate prerequisite clientId → entity ID for storage. Falls back to
+  // storing the clientId when the entity hasn't been synced yet (new card flow).
+  prerequisite_card_id: card.prerequisite_card_id
+    ? (entityIdMap.get(card.prerequisite_card_id) || card.prerequisite_card_id)
+    : null,
   cardType:             card.cardType             || "basic",
   clozeText:            card.clozeText             || null,
   clozeIndex:           card.clozeIndex            ?? null,
@@ -189,10 +194,10 @@ const toEntityData = (card, deckId) => ({
 export const loadAll = async () => {
   // Reset all maps and the sync lock
   entityIdMap.clear()
+  entityToClientMap.clear()
   cardSnapshot.clear()
   deckNameToId.clear()
   deckPending.clear()
-  deckCountCache.clear()
   deckParentMapMemo.clear()
   cardStateMap.clear()
   cardStateEntityIdMap.clear()
@@ -241,9 +246,20 @@ export const loadAll = async () => {
   const cards = cardEntities.map(e => {
     const card = toAppCard(e)
     entityIdMap.set(card.id, e.id)
+    entityToClientMap.set(e.id, card.id)
     cardSnapshot.set(card.id, { ...card })
     return card
   })
+
+  // Translate prerequisite_card_id from stored entity IDs back to clientIds.
+  // Legacy records that already store clientIds will pass through unchanged
+  // (entityToClientMap won't find them, so we fall back to the stored value).
+  for (const card of cards) {
+    if (card.prerequisite_card_id) {
+      const clientId = entityToClientMap.get(card.prerequisite_card_id)
+      if (clientId) card.prerequisite_card_id = clientId
+    }
+  }
 
   // Map log: sort by session date descending in JS (safer than relying on
   // created_date which mis-sorts batch-imported entries with old date values)
@@ -285,9 +301,16 @@ export const loadCardsPage = async (skip, limit = 500) => {
   const cards = entities.map(e => {
     const card = toAppCard(e)
     entityIdMap.set(card.id, e.id)
+    entityToClientMap.set(e.id, card.id)
     cardSnapshot.set(card.id, { ...card })
     return card
   })
+  for (const card of cards) {
+    if (card.prerequisite_card_id) {
+      const clientId = entityToClientMap.get(card.prerequisite_card_id)
+      if (clientId) card.prerequisite_card_id = clientId
+    }
+  }
   return { cards, hasMore: entities.length >= limit }
 }
 
@@ -346,6 +369,7 @@ const _doSync = async (updatedCards) => {
     ...createOps.map(({ card, deckId }) =>
       base44.entities.Flashcard.create(toEntityData(card, deckId)).then(entity => {
         entityIdMap.set(card.id, entity.id)
+        entityToClientMap.set(entity.id, card.id)
         cardSnapshot.set(card.id, { ...card })
       })
     ),
