@@ -5,6 +5,8 @@ import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginUnusedImports from "eslint-plugin-unused-imports";
 
 export default [
+  // Global ignores: generated/build artefacts that must never be linted.
+  { ignores: ["dev-dist/**", "dist/**", "node_modules/**", "coverage/**"] },
   {
     files: [
       "src/components/**/*.{js,mjs,cjs,jsx}",
