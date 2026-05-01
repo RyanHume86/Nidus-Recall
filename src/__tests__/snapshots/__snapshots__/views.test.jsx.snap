@@ -4427,7 +4427,9 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
 exports[`view snapshots > DeckView: with cards 1`] = `
 <div>
   <div
-    class="rapp-wrap rapp-fadein"
+    class="rapp-fadein"
+    data-testid="deck-view"
+    style="width: 100%;"
   >
     <div
       class="rapp-row rapp-sb rapp-mb24"
@@ -4436,6 +4438,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         class="rapp-row rapp-gap8"
       >
         <button
+          aria-label="Back to Library"
           style="background: none; border: medium; cursor: pointer; color: rgb(74, 107, 92); padding: 4px 8px 4px 0px; display: flex; align-items: center;"
         >
           <svg
@@ -4471,12 +4474,14 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         style="display: flex; gap: 8px; position: relative;"
       >
         <button
+          aria-label="Quick add a card with minimal fields"
           class="rapp-btn rapp-btn-ghost"
           style="padding: 7px 12px; font-size: 13px;"
         >
           ⚡ Quick add
         </button>
         <button
+          aria-label="Deck actions"
           class="rapp-btn rapp-btn-ghost"
           style="padding: 7px 12px; font-size: 13px;"
         >
@@ -4485,436 +4490,451 @@ exports[`view snapshots > DeckView: with cards 1`] = `
       </div>
     </div>
     <div
-      class="rapp-card rapp-mb24"
+      class="nid-deck-layout"
     >
       <div
-        class="rapp-row rapp-sb"
-        style="margin-bottom: 12px; align-items: center;"
+        class="nid-deck-left"
       >
         <div
-          class="rapp-sec-title"
-          style="margin-bottom: 0px;"
-        >
-          Add card
-        </div>
-        <div
-          style="display: flex; gap: 4px;"
-        >
-          <button
-            style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
-          >
-            basic
-          </button>
-          <button
-            style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
-          >
-            cloze
-          </button>
-          <button
-            style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
-          >
-            occlusion
-          </button>
-        </div>
-      </div>
-      <div
-        class="rapp-mb10"
-        style="margin-bottom: 10px;"
-      >
-        <label
-          class="rapp-label"
-        >
-          Front
-        </label>
-        <textarea
-          class="rapp-textarea"
-          maxlength="1500"
-          placeholder="Question or prompt that forces retrieval."
-          rows="2"
-        />
-        <div
-          class="nid-char-count"
-        >
-          0
-          /
-          1500
-        </div>
-      </div>
-      <div
-        class="rapp-mb10"
-        style="margin-bottom: 10px;"
-      >
-        <label
-          class="rapp-label"
-        >
-          Back
-        </label>
-        <textarea
-          class="rapp-textarea nid-back-input"
-          maxlength="3000"
-          placeholder="Concise answer: one idea only."
-          rows="2"
-        />
-        <div
-          class="nid-char-count"
-        >
-          0
-          /
-          3000
-        </div>
-      </div>
-      <div
-        class="rapp-mb10"
-        style="margin-bottom: 10px;"
-      >
-        <label
-          class="rapp-label"
-        >
-          Tags
-        </label>
-        <div
-          style="position: relative;"
+          class="rapp-mb10"
         >
           <input
-            autocomplete="off"
             class="rapp-input"
-            data-testid="tag-input"
-            maxlength="60"
-            placeholder="Add tag, Enter to confirm"
-            style="font-size: 13px;"
+            data-testid="deck-search"
+            placeholder="Search cards..."
             value=""
           />
         </div>
-      </div>
-      <div
-        class="rapp-mb10"
-        style="margin-bottom: 10px;"
-      >
-        <label
-          class="rapp-label"
-        >
-          Type
-        </label>
-        <select
-          class="rapp-select"
-        >
-          <option>
-            Factual
-          </option>
-          <option>
-            Mechanism
-          </option>
-          <option>
-            Clinical Reasoning
-          </option>
-          <option>
-            Anatomy
-          </option>
-          <option>
-            Pathology
-          </option>
-        </select>
-      </div>
-      <div
-        class="rapp-mb10"
-        style="margin-bottom: 10px;"
-      >
-        <label
-          class="rapp-label"
-        >
-          Source (optional)
-        </label>
-        <input
-          class="rapp-input"
-          maxlength="200"
-          placeholder="Article, chapter, guideline, or lecture this card came from."
-          value=""
-        />
-      </div>
-      <div
-        class="rapp-mb12"
-      >
         <div
-          class="rapp-row rapp-sb"
-          style="align-items: flex-start;"
+          class="rapp-row rapp-gap8 rapp-mb10"
+          style="flex-wrap: wrap; align-items: center;"
+        >
+          <button
+            style="padding: 5px 11px; border-radius: 8px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
+          >
+            active
+          </button>
+          <button
+            style="padding: 5px 11px; border-radius: 8px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
+          >
+            archived
+          </button>
+          <button
+            style="padding: 5px 11px; border-radius: 8px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
+          >
+            all
+          </button>
+          <select
+            class="rapp-select"
+            style="padding: 5px 10px; font-size: 12px; height: auto;"
+          >
+            <option
+              value=""
+            >
+              All tags
+            </option>
+            <option>
+              diabetes
+            </option>
+            <option>
+              pharm
+            </option>
+          </select>
+          <select
+            class="rapp-select"
+            data-testid="sort-select"
+            style="padding: 5px 10px; font-size: 12px; height: auto; margin-left: auto;"
+          >
+            <option
+              value="recent"
+            >
+              Recent
+            </option>
+            <option
+              value="front-az"
+            >
+              Front A–Z
+            </option>
+            <option
+              value="next-due"
+            >
+              Next due
+            </option>
+            <option
+              value="most-lapsed"
+            >
+              Most lapsed
+            </option>
+          </select>
+        </div>
+        <div
+          class="rapp-col"
+          data-testid="card-list"
+          style="gap: 8px;"
         >
           <div>
             <div
-              style="font-size: 13px; font-weight: 500; color: rgb(28, 40, 32);"
+              class="nid-card-row"
+              data-testid="card-row-card-1"
             >
-              Clinically critical
-            </div>
-            <div
-              style="font-size: 11px; color: rgb(74, 107, 92); margin-top: 2px; line-height: 1.5;"
-            >
-              High-stakes card: prioritised when study time is short.
-            </div>
-          </div>
-          <div
-            aria-checked="false"
-            role="switch"
-            style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s;"
-          >
-            <div
-              style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 8px; background: rgb(255, 255, 255); transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
-            />
-          </div>
-        </div>
-      </div>
-      <div
-        class="rapp-mb12"
-      >
-        <div>
-          <div
-            class="nid-note-toggle"
-          >
-            <svg
-              fill="none"
-              height="13"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-              viewBox="0 0 24 24"
-              width="13"
-            >
-              <polyline
-                points="6 9 12 15 18 9"
-              />
-            </svg>
-            <span>
-              Note / Context
-            </span>
-            <span
-              style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
-            >
-              (optional)
-            </span>
-          </div>
-        </div>
-      </div>
-      <div
-        class="rapp-mb12"
-      >
-        <div>
-          <div
-            class="nid-note-toggle"
-          >
-            <svg
-              fill="none"
-              height="13"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-              viewBox="0 0 24 24"
-              width="13"
-            >
-              <polyline
-                points="6 9 12 15 18 9"
-              />
-            </svg>
-            <span>
-              Memory anchor
-            </span>
-            <span
-              style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
-            >
-              (optional)
-            </span>
-            <span
-              style="margin-left: auto; font-size: 12px; color: rgb(74, 107, 92); cursor: default;"
-              title="Anchoring a personal memory to a card significantly improves long-term recall."
-            >
-              ⓘ
-            </span>
-          </div>
-        </div>
-      </div>
-      <div
-        class="rapp-mb12"
-      >
-        <div
-          class="nid-note-toggle"
-        >
-          <svg
-            fill="none"
-            height="13"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-            viewBox="0 0 24 24"
-            width="13"
-          >
-            <polyline
-              points="6 9 12 15 18 9"
-            />
-          </svg>
-          <span>
-            Connects to
-          </span>
-          <span
-            style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
-          >
-            (optional)
-          </span>
-        </div>
-      </div>
-      <div
-        class="rapp-mb16"
-      >
-        <div
-          class="nid-note-toggle"
-        >
-          <svg
-            fill="none"
-            height="13"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-            viewBox="0 0 24 24"
-            width="13"
-          >
-            <polyline
-              points="6 9 12 15 18 9"
-            />
-          </svg>
-          <span>
-            Requires (prerequisite)
-          </span>
-          <span
-            style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
-          >
-            (optional)
-          </span>
-        </div>
-      </div>
-      <div
-        class="rapp-row rapp-gap8"
-      >
-        <button
-          class="rapp-btn rapp-btn-primary rapp-flex1"
-          disabled=""
-        >
-          Add card
-        </button>
-      </div>
-    </div>
-    <div
-      class="rapp-mb12"
-    >
-      <input
-        class="rapp-input"
-        placeholder="Search cards..."
-        value=""
-      />
-    </div>
-    <div
-      class="rapp-row rapp-gap8 rapp-mb16"
-      style="flex-wrap: wrap;"
-    >
-      <button
-        style="padding: 6px 13px; border-radius: 8px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
-      >
-        active
-      </button>
-      <button
-        style="padding: 6px 13px; border-radius: 8px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
-      >
-        archived
-      </button>
-      <button
-        style="padding: 6px 13px; border-radius: 8px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; text-transform: capitalize;"
-      >
-        all
-      </button>
-      <button
-        style="padding: 6px 13px; border-radius: 8px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.14s; margin-left: auto;"
-      >
-        Group by source
-      </button>
-    </div>
-    <div
-      class="rapp-col"
-      style="gap: 10px;"
-    >
-      <div>
-        <div
-          class="rapp-card-item"
-        >
-          <div
-            class="rapp-row rapp-sb"
-            style="gap: 10px;"
-          >
-            <p
-              class="rapp-card-item-q"
-              style="flex: 1 1 0%;"
-            >
-              What is the mechanism of metformin?
-            </p>
-            <div
-              class="rapp-row rapp-gap8"
-              style="flex-shrink: 0;"
-            >
-              <button
-                style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+              <div
+                style="flex: 1 1 0%; min-width: 0px;"
               >
-                Edit
-              </button>
-              <button
-                style="background: none; border: medium; cursor: pointer; font-size: 12px; color: rgb(74, 107, 92); padding: 8px 6px; font-family: inherit;"
+                <div
+                  class="nid-card-row-front"
+                >
+                  What is the mechanism of metformin?
+                </div>
+                <div
+                  class="nid-card-row-meta"
+                >
+                  <span
+                    class="nid-ct-chip"
+                    style="margin-bottom: 0px; font-size: 10px; padding: 1px 7px;"
+                  >
+                    Mechanism
+                  </span>
+                  <span
+                    class="nid-card-row-date"
+                  >
+                    Last: 
+                    2026-01-10
+                  </span>
+                  <span
+                    class="nid-card-row-date"
+                  >
+                    Due: 
+                    2026-01-15
+                  </span>
+                </div>
+              </div>
+              <div
+                style="display: flex; flex-shrink: 0; align-items: center;"
               >
-                Archive
-              </button>
+                <button
+                  style="background: none; border: medium; cursor: pointer; font-size: 11px; color: rgb(74, 107, 92); padding: 6px; font-family: inherit;"
+                >
+                  Archive
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="nid-deck-right"
+        data-testid="deck-right-panel"
+      >
+        <div
+          class="nid-deck-right-panel"
+        >
+          <div
+            style="font-size: 14px; font-weight: 600; color: rgb(28, 40, 32); margin-bottom: 14px;"
+          >
+            Add card
+          </div>
+          <div
+            style="font-size: 14px; font-weight: 600; color: rgb(28, 40, 32); margin-bottom: 14px; display: flex; gap: 8px;"
+          >
+            <button
+              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
+            >
+              basic
+            </button>
+            <button
+              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
+            >
+              cloze
+            </button>
+            <button
+              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
+            >
+              occlusion
+            </button>
+          </div>
+          <div
+            class="rapp-mb10"
+          >
+            <label
+              class="rapp-label"
+            >
+              Front
+            </label>
+            <textarea
+              class="rapp-textarea"
+              maxlength="1500"
+              placeholder="Question or prompt that forces retrieval."
+              rows="2"
+            />
+            <div
+              class="nid-char-count"
+            >
+              0
+              /
+              1500
+            </div>
+          </div>
+          <div
+            class="rapp-mb10"
+          >
+            <label
+              class="rapp-label"
+            >
+              Back
+            </label>
+            <textarea
+              class="rapp-textarea nid-back-input"
+              maxlength="3000"
+              placeholder="Concise answer: one idea only."
+              rows="2"
+            />
+            <div
+              class="nid-char-count"
+            >
+              0
+              /
+              3000
+            </div>
+          </div>
+          <div
+            class="rapp-mb10"
+          >
+            <label
+              class="rapp-label"
+            >
+              Tags
+            </label>
+            <div
+              style="position: relative;"
+            >
+              <input
+                autocomplete="off"
+                class="rapp-input"
+                data-testid="tag-input"
+                maxlength="60"
+                placeholder="Add tag, Enter to confirm"
+                style="font-size: 13px;"
+                value=""
+              />
+            </div>
+          </div>
+          <div
+            class="rapp-mb10"
+          >
+            <label
+              class="rapp-label"
+            >
+              Type
+            </label>
+            <select
+              class="rapp-select"
+            >
+              <option>
+                Factual
+              </option>
+              <option>
+                Mechanism
+              </option>
+              <option>
+                Clinical Reasoning
+              </option>
+              <option>
+                Anatomy
+              </option>
+              <option>
+                Pathology
+              </option>
+            </select>
+          </div>
+          <div
+            class="rapp-mb10"
+          >
+            <label
+              class="rapp-label"
+            >
+              Source (optional)
+            </label>
+            <input
+              class="rapp-input"
+              maxlength="200"
+              placeholder="Article, chapter, guideline, or lecture."
+              value=""
+            />
+          </div>
+          <div
+            class="rapp-mb12"
+          >
+            <div
+              class="rapp-row rapp-sb"
+              style="align-items: flex-start;"
+            >
+              <div>
+                <div
+                  style="font-size: 13px; font-weight: 500; color: rgb(28, 40, 32);"
+                >
+                  Clinically critical
+                </div>
+                <div
+                  style="font-size: 11px; color: rgb(74, 107, 92); margin-top: 2px; line-height: 1.5;"
+                >
+                  High-stakes card: prioritised when study time is short.
+                </div>
+              </div>
+              <div
+                aria-checked="false"
+                role="switch"
+                style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s;"
+              >
+                <div
+                  style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 8px; background: rgb(255, 255, 255); transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="rapp-mb12"
+          >
+            <div>
+              <div
+                class="nid-note-toggle"
+              >
+                <svg
+                  fill="none"
+                  height="13"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+                  viewBox="0 0 24 24"
+                  width="13"
+                >
+                  <polyline
+                    points="6 9 12 15 18 9"
+                  />
+                </svg>
+                <span>
+                  Note / Context
+                </span>
+                <span
+                  style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
+                >
+                  (optional)
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="rapp-mb12"
+          >
+            <div>
+              <div
+                class="nid-note-toggle"
+              >
+                <svg
+                  fill="none"
+                  height="13"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+                  viewBox="0 0 24 24"
+                  width="13"
+                >
+                  <polyline
+                    points="6 9 12 15 18 9"
+                  />
+                </svg>
+                <span>
+                  Memory anchor
+                </span>
+                <span
+                  style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
+                >
+                  (optional)
+                </span>
+                <span
+                  style="margin-left: auto; font-size: 12px; color: rgb(74, 107, 92); cursor: default;"
+                  title="Anchoring a personal memory to a card significantly improves long-term recall."
+                >
+                  ⓘ
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            class="rapp-mb12"
+          >
+            <div
+              class="nid-note-toggle"
+            >
               <svg
                 fill="none"
-                height="14"
+                height="13"
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
                 style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
                 viewBox="0 0 24 24"
-                width="14"
+                width="13"
               >
                 <polyline
                   points="6 9 12 15 18 9"
                 />
               </svg>
+              <span>
+                Connects to
+              </span>
+              <span
+                style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
+              >
+                (optional)
+              </span>
             </div>
           </div>
           <div
-            class="rapp-row rapp-mt8"
-            style="gap: 6px; flex-wrap: wrap; align-items: center;"
+            class="rapp-mb16"
           >
-            <span
-              class="nid-ct-chip"
-              style="margin-bottom: 0px;"
+            <div
+              class="nid-note-toggle"
             >
-              Mechanism
-            </span>
-            <span
-              class="nid-tag"
+              <svg
+                fill="none"
+                height="13"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+                viewBox="0 0 24 24"
+                width="13"
+              >
+                <polyline
+                  points="6 9 12 15 18 9"
+                />
+              </svg>
+              <span>
+                Requires (prerequisite)
+              </span>
+              <span
+                style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
+              >
+                (optional)
+              </span>
+            </div>
+          </div>
+          <div
+            style="position: sticky; bottom: 0px; padding-top: 8px; background: inherit;"
+          >
+            <button
+              class="rapp-btn rapp-btn-primary"
+              disabled=""
+              style="width: 100%;"
             >
-              pharm
-            </span>
-            <span
-              class="nid-tag"
-            >
-              diabetes
-            </span>
-            <span
-              class="rapp-ts"
-            >
-              · Due 
-              2026-01-15
-            </span>
+              Add card
+            </button>
           </div>
         </div>
       </div>
