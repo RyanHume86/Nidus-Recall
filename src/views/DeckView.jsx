@@ -15,6 +15,8 @@ import { CardPicker } from "@/components/CardPicker"
 import { ImageUpload } from "@/components/cards/ImageUpload"
 import { EditCardModal } from "@/modals/EditCardModal"
 import { ContentTypeChips, readLastContentType } from "@/components/ContentTypeChips"
+import { EmptyState } from "@/components/EmptyState"
+import { CardSkeleton } from "@/components/CardSkeleton"
 
 const SORT_OPTIONS = [
   { value: "recent",      label: "Recent" },
@@ -23,7 +25,7 @@ const SORT_OPTIONS = [
   { value: "most-lapsed", label: "Most lapsed" },
 ]
 
-export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
+export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck, cardsLoading = false }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:readLastContentType(), stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic")
 
@@ -389,10 +391,16 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
           </div>
 
           {/* Card list */}
-          {filtered.length === 0 ? (
-            <div className="rapp-empty" data-testid="deck-empty">
-              {search ? "No cards match that search." : deckCards.length===0 ? "No cards yet. Add your first card →" : "No cards match this filter."}
-            </div>
+          {cardsLoading && deckCards.length === 0 ? (
+            <CardSkeleton count={5} />
+          ) : filtered.length === 0 ? (
+            search ? (
+              <EmptyState icon="🔍" title="No cards match" body={`No cards contain "${search}".`} />
+            ) : deckCards.length === 0 ? (
+              <EmptyState icon="🃏" title="No cards yet" body="Use the panel on the right to add your first card to this deck." />
+            ) : (
+              <EmptyState icon="🔍" title="No cards match this filter" body="Try a different filter or search term." />
+            )
           ) : (
             <CardList
               filtered={filtered}

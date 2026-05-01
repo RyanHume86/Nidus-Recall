@@ -8,6 +8,7 @@ import { buildDeckTree } from "@/lib/deck-tree"
 import { isInSleepWindow, sleepBannerIsDismissed, sleepBannerDismiss } from "@/lib/settings"
 import { getDue, getNew, isActive } from "@/lib/fsrs"
 import { OnboardingView } from "@/views/OnboardingView"
+import { EmptyState } from "@/components/EmptyState"
 
 export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap }) {
   const [search,         setSearch]         = useState("")
@@ -166,7 +167,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
           onCreateSampleDeck={onCreateSampleDeck}
         />
       ) : visible.length === 0 && search ? (
-        <div className="rapp-empty">No decks match "{search}"</div>
+        <EmptyState icon="🔍" title="No decks match" body={`No decks contain "${search}".`} />
       ) : (
         <>
           {recentDecks.length > 0 && !search && (
