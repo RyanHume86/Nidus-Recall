@@ -117,6 +117,10 @@ const toAppCard = (entity) => {
     clozeText:            entity.clozeText             || null,
     clozeIndex:           entity.clozeIndex            ?? null,
     imageId:              entity.imageId               || null,
+    review_status:        entity.review_status         || 'unreviewed',
+    accuracy_date:        entity.accuracy_date         || null,
+    accuracy_reviewer:    entity.accuracy_reviewer     || null,
+    guideline_version:    entity.guideline_version     || null,
     // Merge from Image entity when imageId present; fall back to inline fields (legacy cards)
     imageUrl:             entity.imageId
                             ? (imageMap.get(entity.imageId)?.url || null)
@@ -166,6 +170,10 @@ const toEntityData = (card, deckId) => ({
   clozeText:            card.clozeText             || null,
   clozeIndex:           card.clozeIndex            ?? null,
   imageId:              card.imageId               || null,
+  review_status:        card.review_status         || 'unreviewed',
+  accuracy_date:        card.accuracy_date         || null,
+  accuracy_reviewer:    card.accuracy_reviewer     || null,
+  guideline_version:    card.guideline_version     || null,
   // Only store inline for legacy cards without an imageId reference
   imageUrl:             card.imageId ? null : (card.imageUrl || null),
   occlusionRegions:     card.imageId ? null : (card.occlusionRegions || null),
