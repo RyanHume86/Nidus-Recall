@@ -62,7 +62,7 @@ describe('DeckView layout', () => {
 
   it('shows empty state when no cards', () => {
     render(<DeckView {...baseProps()} />)
-    expect(screen.getByTestId('deck-empty')).toBeInTheDocument()
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument()
   })
 
   it('renders card rows for active cards', () => {
