@@ -3,14 +3,15 @@ import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import { ImportExportPanel } from "@/components/ImportExportPanel"
 
-export function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onImportAnki, onRefitParams, schedulerParams }) {
+export function SettingsView({ settings, onUpdateSettings, cards, decks, onExport, onImport, onImportCards, onImportAnki, onRefitParams, schedulerParams, onDeleteAccount }) {
   const {
     newCardCap=15, reviewCap=100, leechThreshold=5, retentionTarget=0.90, catchupDays=7,
     sleepBedtime=null, sleepWindowMinutes=90, sleepBannerEnabled=true, sleepPrefersReviews=true,
     matureModeEnabled=true, matureCardThreshold=30,
     fatigueAlertsEnabled=true, attentionDeclarationEnabled=true,
   } = settings||{}
-  const [activeTab, setActiveTab] = useState("study")
+  const [activeTab,        setActiveTab]        = useState("study")
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState(0) // 0=hidden,1=confirm,2=deleting
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [firstName, setFirstName] = useState(() => localStorage.getItem("nidus.firstName") || "")
   const [firstNameDraft, setFirstNameDraft] = useState(() => localStorage.getItem("nidus.firstName") || "")
@@ -37,10 +38,11 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
         <div className="rapp-pg-title">Settings</div>
       </div>
 
-      <div style={{ display:"flex", gap:4, background:C.bg, borderRadius:10, padding:3, marginBottom:20 }}>
-        {TAB("study", "Study")}
-        {TAB("sleep", "Sleep")}
-        {TAB("data",  "Data")}
+      <div style={{ display:"flex", gap:4, background:C.bg, borderRadius:10, padding:3, marginBottom:20, flexWrap:"wrap" }}>
+        {TAB("study",   "Study")}
+        {TAB("sleep",   "Sleep")}
+        {TAB("data",    "Data")}
+        {TAB("privacy", "Privacy")}
       </div>
 
       {activeTab === "study" && (
@@ -345,6 +347,85 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
 
       {activeTab === "data" && (
         <ImportExportPanel cards={cards} decks={decks} onExport={onExport} onImportFile={onImport} onImportCards={onImportCards} onImportAnki={onImportAnki} />
+      )}
+
+      {activeTab === "privacy" && (
+        <div className="rapp-fadein">
+          <div className="rapp-card rapp-mb16">
+            <div className="rapp-sec-title">Legal documents</div>
+            <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.65 }}>
+              Nidus Recall is committed to your privacy under the Protection of Personal Information Act (POPIA).
+            </p>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {[
+                { href:"/privacy",         label:"Privacy Policy" },
+                { href:"/terms",           label:"Terms of Use" },
+                { href:"/data-processing", label:"How we process your data" },
+              ].map(({ href, label }) => (
+                <a key={href} href={href} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize:13, color:C.accent, textDecoration:"none", display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ fontSize:11 }}>↗</span> {label}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div className="rapp-card rapp-mb16">
+            <div className="rapp-sec-title">Export my data</div>
+            <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.65 }}>
+              Download a full copy of your decks, flashcards, and session logs as a JSON file.
+            </p>
+            <button className="rapp-btn rapp-btn-ghost" style={{ width:"100%" }} onClick={onExport}
+              data-testid="export-data-btn">
+              Export my data
+            </button>
+          </div>
+
+          <div className="rapp-card">
+            <div className="rapp-sec-title" style={{ color:C.again }}>Delete my account</div>
+            <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.65 }}>
+              This will permanently delete all your flashcards, decks, and session logs. Your account record will be removed within 30 days.
+            </p>
+            {deleteConfirmStep === 0 && (
+              <button
+                onClick={() => setDeleteConfirmStep(1)}
+                data-testid="delete-account-btn"
+                style={{ width:"100%", padding:"10px", borderRadius:10, border:`1px solid ${C.again}40`,
+                  background:"transparent", color:C.again, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+                Delete my account
+              </button>
+            )}
+            {deleteConfirmStep === 1 && (
+              <div data-testid="delete-confirm-panel">
+                <p style={{ fontSize:13, color:C.again, marginBottom:12, fontWeight:500 }}>
+                  Are you sure? This cannot be undone.
+                </p>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button
+                    onClick={async () => {
+                      setDeleteConfirmStep(2)
+                      try { await onDeleteAccount?.() } catch (_) {}
+                    }}
+                    data-testid="delete-confirm-yes-btn"
+                    style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:C.againBg,
+                      color:C.again, fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    Yes, delete everything
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmStep(0)}
+                    data-testid="delete-cancel-btn"
+                    style={{ flex:1, padding:"10px", borderRadius:10, border:`1px solid ${C.border}`,
+                      background:"transparent", color:C.textSec, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {deleteConfirmStep === 2 && (
+              <p style={{ fontSize:13, color:C.textMut }}>Deleting your data…</p>
+            )}
+          </div>
+        </div>
       )}
 
       <div style={{ marginTop:32, paddingTop:16, borderTop:`1px solid ${C.border}`, textAlign:"center" }}>

@@ -443,6 +443,31 @@ export const listCardStates = async () => {
 }
 
 /**
+ * Delete all data owned by the current user across every entity.
+ * Called from the "Delete my account" flow in Settings > Privacy.
+ * Row-Level Security ensures only the caller's own records are touched.
+ * The account record itself is removed by Base44 within 30 days.
+ */
+export const deleteAllUserData = async () => {
+  requireAuth('delete user data')
+  const ENTITIES = ['Flashcard', 'Deck', 'SessionLog', 'CardState', 'CardHistory', 'UserSchedulerParams']
+  for (const name of ENTITIES) {
+    try {
+      const entity = base44.entities[name]
+      if (!entity) continue
+      const listFn = entity.list || entity.filter
+      if (!listFn) continue
+      const records = await listFn.call(entity, {}).catch(() => [])
+      const deleteFn = entity.delete
+      if (!deleteFn) continue
+      await Promise.all(records.map(r => deleteFn.call(entity, r.id).catch(() => {})))
+    } catch (_) {
+      // Best-effort: continue deleting other entities even if one fails
+    }
+  }
+}
+
+/**
  * Append a completed session entry to Base44. Returns the created entity.
  */
 export const appendLog = async (entry) => {
