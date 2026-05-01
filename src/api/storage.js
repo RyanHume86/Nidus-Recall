@@ -32,6 +32,9 @@ let deckNameToId = new Map()  // deckTitle to Base44 Deck entity id
 let deckPending  = new Map()  // deckTitle to in-flight Deck.create Promise
 let deckParentMapMemo = new Map()  // childDeckTitle to parentDeckTitle (from parentDeckId)
 
+// Image entity cache (imageEntityId → image record)
+let imageMap = new Map()
+
 // CardState maps (populated in loadAll from CardState entity)
 let cardStateMap         = new Map()  // clientId to CardState app object
 let cardStateEntityIdMap = new Map()  // clientId to CardState entity id
@@ -113,8 +116,14 @@ const toAppCard = (entity) => {
     cardType:             entity.cardType             || "basic",
     clozeText:            entity.clozeText             || null,
     clozeIndex:           entity.clozeIndex            ?? null,
-    imageUrl:             entity.imageUrl              || null,
-    occlusionRegions:     entity.occlusionRegions      || null,
+    imageId:              entity.imageId               || null,
+    // Merge from Image entity when imageId present; fall back to inline fields (legacy cards)
+    imageUrl:             entity.imageId
+                            ? (imageMap.get(entity.imageId)?.url || null)
+                            : (entity.imageUrl || null),
+    occlusionRegions:     entity.imageId
+                            ? (imageMap.get(entity.imageId)?.occlusionRegions || null)
+                            : (entity.occlusionRegions || null),
     occlusionRegionId:    entity.occlusionRegionId     || null,
   }
 
@@ -156,8 +165,10 @@ const toEntityData = (card, deckId) => ({
   cardType:             card.cardType             || "basic",
   clozeText:            card.clozeText             || null,
   clozeIndex:           card.clozeIndex            ?? null,
-  imageUrl:             card.imageUrl              || null,
-  occlusionRegions:     card.occlusionRegions      || null,
+  imageId:              card.imageId               || null,
+  // Only store inline for legacy cards without an imageId reference
+  imageUrl:             card.imageId ? null : (card.imageUrl || null),
+  occlusionRegions:     card.imageId ? null : (card.occlusionRegions || null),
   occlusionRegionId:    card.occlusionRegionId     || null,
 })
 
@@ -178,9 +189,14 @@ export const loadAll = async () => {
   cardStateMap.clear()
   cardStateEntityIdMap.clear()
   cardStateSnapshot.clear()
+  imageMap.clear()
   userSchedulerParams = null
   userSchedulerParamsId = null
   syncLock = Promise.resolve()
+
+  // Load Image entities first so toAppCard can merge imageUrl/occlusionRegions from imageId
+  const imageEntities = await base44.entities.Image.list().catch(() => [])
+  for (const img of imageEntities) imageMap.set(img.id, img)
 
   // Load CardState first so toAppCard can merge it
   const cardStateEntities = await base44.entities.CardState.list().catch(() => [])
@@ -450,7 +466,7 @@ export const listCardStates = async () => {
  */
 export const deleteAllUserData = async () => {
   requireAuth('delete user data')
-  const ENTITIES = ['Flashcard', 'Deck', 'SessionLog', 'CardState', 'CardHistory', 'UserSchedulerParams']
+  const ENTITIES = ['Flashcard', 'Deck', 'SessionLog', 'CardState', 'CardHistory', 'UserSchedulerParams', 'Image']
   for (const name of ENTITIES) {
     try {
       const entity = base44.entities[name]
@@ -465,6 +481,35 @@ export const deleteAllUserData = async () => {
       // Best-effort: continue deleting other entities even if one fails
     }
   }
+}
+
+/**
+ * Persist a compressed image to the Image entity.
+ * Returns the created entity (with .id = imageEntityId).
+ */
+export const saveImage = async (imageData) => {
+  requireAuth('save image')
+  const entity = await base44.entities.Image.create({
+    url:              imageData.url,
+    mimeType:         imageData.mimeType         || 'image/jpeg',
+    width:            imageData.width            ?? null,
+    height:           imageData.height           ?? null,
+    altText:          imageData.altText          || null,
+    occlusionRegions: imageData.occlusionRegions || [],
+    linkedCardIds:    imageData.linkedCardIds    || [],
+  })
+  imageMap.set(entity.id, entity)
+  return entity
+}
+
+/**
+ * Update the linkedCardIds on an Image entity after its occlusion cards are created.
+ */
+export const updateImageLinkedCards = async (imageEntityId, linkedCardIds) => {
+  requireAuth('update image')
+  await base44.entities.Image.update(imageEntityId, { linkedCardIds })
+  const existing = imageMap.get(imageEntityId)
+  if (existing) imageMap.set(imageEntityId, { ...existing, linkedCardIds })
 }
 
 /**
