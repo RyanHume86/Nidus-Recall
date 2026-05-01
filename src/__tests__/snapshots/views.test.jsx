@@ -312,12 +312,12 @@ describe('feature component snapshots', () => {
   })
 
   it('ReviewHeatmap: empty log', () => {
-    const { container } = render(<ReviewHeatmap log={[]} />)
+    const { container } = render(<ReviewHeatmap log={[]} today="2026-01-15" />)
     expect(container).toMatchSnapshot()
   })
 
   it('ReviewHeatmap: with activity', () => {
-    const { container } = render(<ReviewHeatmap log={LOG} />)
+    const { container } = render(<ReviewHeatmap log={LOG} today="2026-01-15" />)
     expect(container).toMatchSnapshot()
   })
 })

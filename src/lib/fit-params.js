@@ -1,4 +1,5 @@
 import * as storage from "@/api/storage"
+import { validateFsrsParams, FsrsParamValidationError } from "./fsrs.js"
 
 // fitSchedulerParams: retention target adjustment from observed recall accuracy,
 // with a background pass that tunes the forgetting-curve exponent (w[17]).
@@ -37,6 +38,18 @@ export const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
         const currentParams = storage.getUserSchedulerParams()?.params || DEFAULT_PARAMS
         const { params, loss, fitted } = tuneRetentionTarget(reviewLog, currentParams)
         if (fitted) {
+          try {
+            validateFsrsParams(params)
+          } catch (vErr) {
+            // Fitted params failed validation; do not persist, keep prior params.
+            console.warn(
+              '[Nidus Recall] Fitted FSRS params rejected; keeping prior params. Reason:',
+              vErr instanceof FsrsParamValidationError
+                ? `w[${vErr.index}] ${vErr.reason} (value=${vErr.value})`
+                : vErr.message,
+            )
+            return
+          }
           await storage.saveUserSchedulerParams(params, events.length)
           console.log('[Nidus Recall] Retention curve tuning complete. Loss:', loss)
         }
