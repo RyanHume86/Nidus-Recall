@@ -22,6 +22,7 @@ import { FreeStudyView } from "@/views/FreeStudyView"
 import { StatsView } from "@/views/StatsView"
 import { SettingsView } from "@/views/SettingsView"
 import { ReturnOnboardingCard } from "@/views/ReturnOnboardingCard"
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs"
 
 // ─── Root Component ───────────────────────────────────────────────────────────
 export default function Home() {
@@ -290,6 +291,9 @@ export default function Home() {
                 Dismiss
               </button>
             </div>
+          )}
+          {!inSession && (
+            <Breadcrumbs view={view} selectedDeck={selectedDeck} onNavigate={id => { if (id==="library") { setView("library"); setSelectedDeck(null) } else setView(id) }} />
           )}
           {view==="library" && (showReturnCard
             ? <ReturnOnboardingCard
