@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=junit",
-    "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm','public/sql-wasm.wasm')\" && node scripts/generate-icons.js"
+    "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm','public/sql-wasm.wasm')\" && node scripts/generate-icons.js",
+    "seed:onboarding": "tsx scripts/seed/onboarding-deck.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.27",
@@ -112,6 +113,7 @@
     "postcss": "^8.5.3",
     "sharp": "^0.33.5",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.2",
     "vite": "^6.1.0",
     "vite-plugin-pwa": "^0.21.0",
