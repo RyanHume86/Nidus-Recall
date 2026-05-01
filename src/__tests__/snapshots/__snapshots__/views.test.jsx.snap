@@ -4050,7 +4050,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         </label>
         <textarea
           class="rapp-textarea"
-          maxlength="500"
+          maxlength="1500"
           rows="3"
         >
           What is the mechanism of metformin?
@@ -4060,7 +4060,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         >
           35
           /
-          500
+          1500
         </div>
       </div>
       <div
@@ -4073,7 +4073,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         </label>
         <textarea
           class="rapp-textarea"
-          maxlength="1000"
+          maxlength="3000"
           rows="4"
         >
           Activates AMPK, inhibits hepatic gluconeogenesis.
@@ -4083,7 +4083,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         >
           49
           /
-          1000
+          3000
         </div>
       </div>
       <div
@@ -4273,7 +4273,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
           >
             <textarea
               class="rapp-textarea"
-              maxlength="500"
+              maxlength="5000"
               placeholder="Context, memory hook, or related concept."
               rows="2"
             >
@@ -4284,7 +4284,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
             >
               23
               /
-              500
+              5000
             </div>
           </div>
         </div>
@@ -4528,7 +4528,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         </label>
         <textarea
           class="rapp-textarea"
-          maxlength="500"
+          maxlength="1500"
           placeholder="Question or prompt that forces retrieval."
           rows="2"
         />
@@ -4537,7 +4537,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         >
           0
           /
-          500
+          1500
         </div>
       </div>
       <div
@@ -4551,7 +4551,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         </label>
         <textarea
           class="rapp-textarea nid-back-input"
-          maxlength="1000"
+          maxlength="3000"
           placeholder="Concise answer: one idea only."
           rows="2"
         />
@@ -4560,7 +4560,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
         >
           0
           /
-          1000
+          3000
         </div>
       </div>
       <div
