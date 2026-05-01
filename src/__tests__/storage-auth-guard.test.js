@@ -12,7 +12,7 @@ import { setAuthState } from '@/lib/api/withAuth'
 vi.mock('@/api/base44Client', () => ({
   base44: {
     entities: {
-      Deck:               { create: vi.fn().mockResolvedValue({ id: 'deck-1', title: 'Test' }), update: vi.fn().mockResolvedValue({}) },
+      Deck:               { create: vi.fn().mockResolvedValue({ id: 'deck-1', title: 'Test' }) },
       Flashcard:          { create: vi.fn().mockResolvedValue({ id: 'fc-1' }), update: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) },
       CardState:          { create: vi.fn().mockResolvedValue({ id: 'cs-1' }), update: vi.fn().mockResolvedValue({}) },
       SessionLog:         { create: vi.fn().mockResolvedValue({ id: 'sl-1' }), update: vi.fn().mockResolvedValue({}) },
@@ -36,8 +36,6 @@ import {
   saveUserSchedulerParams,
   appendLog,
   updateLog,
-  adjustDeckCount,
-  recalculateDeckCount,
   saveCardHistory,
 } from '@/api/storage'
 
@@ -83,14 +81,6 @@ describe('storage write-path auth guard', () => {
 
   it('updateLog — rejects when not authenticated', async () => {
     await expectAuthRequired(() => updateLog('log-1', { reviewed: 5 }))
-  })
-
-  it('adjustDeckCount — rejects when not authenticated', async () => {
-    await expectAuthRequired(() => adjustDeckCount('My Deck', 1))
-  })
-
-  it('recalculateDeckCount — rejects when not authenticated', async () => {
-    await expectAuthRequired(() => recalculateDeckCount('My Deck', []))
   })
 
   it('saveCardHistory — rejects when not authenticated', async () => {

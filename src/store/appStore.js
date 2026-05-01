@@ -177,7 +177,6 @@ export const useAppStore = create((set, get) => ({
     }))
     const sampleCards = [...basicCards, ...clozeCards, ...occlusionCards]
     await updateCards([...cards, ...sampleCards])
-    storage.adjustDeckCount(deckName, sampleCards.length).catch(() => {})
   },
 
   markSessionComplete: async () => {
