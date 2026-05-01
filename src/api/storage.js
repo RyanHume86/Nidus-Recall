@@ -198,7 +198,6 @@ export const loadAll = async () => {
   cardSnapshot.clear()
   deckNameToId.clear()
   deckPending.clear()
-  deckCountCache.clear()
   deckParentMapMemo.clear()
   cardStateMap.clear()
   cardStateEntityIdMap.clear()
