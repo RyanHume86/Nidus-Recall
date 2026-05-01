@@ -1,14 +1,15 @@
 import { useState } from "react"
 import { getGreeting } from "@/lib/greeting"
 import { C } from "@/lib/theme"
-import { getDueWithCatchup, getNew, isActive } from "@/lib/fsrs"
+import { getDueWithCatchup, getNew, isActive, getStakesDue } from "@/lib/fsrs"
 import { isInSleepWindow } from "@/lib/settings"
 
 export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFree, onStartInterleaved, cardsLoading }) {
   const [deck, setDeck] = useState("all")
   const [mode, setMode] = useState("srs")
   const [interleavedDecks, setInterleavedDecks] = useState([])
-  const [focused, setFocused] = useState(false)
+  const [focused,        setFocused]        = useState(false)
+  const [stakesOnly,     setStakesOnly]     = useState(false)
   const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30 } = settings||{}
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
@@ -18,7 +19,8 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   // sleepWindowActive: true when sleepPrefersReviews is on AND we are in the sleep window.
   // When active, new cards are capped to 0 for this session.
   const sleepWindowActive = !!(settings?.sleepPrefersReviews && isInSleepWindow(settings))
-  const matureCount = matureModeEnabled ? filtered.filter(c => isActive(c) && c.stability != null && c.stability >= matureCardThreshold).length : 0
+  const matureCount   = matureModeEnabled ? filtered.filter(c => isActive(c) && c.stability != null && c.stability >= matureCardThreshold).length : 0
+  const stakesDueCount = getStakesDue(filtered, cards).length
   const effectiveNewCount = sleepWindowActive ? 0 : newCount
   const canStart  = mode==="srs" ? (dueCount>0||effectiveNewCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
 
@@ -69,6 +71,20 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
               Reviewing before sleep consolidates memory during slow-wave sleep.
             </p>
           )}
+          {stakesDueCount > 0 && (
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:14, cursor:"pointer" }}
+              data-testid="stakes-only-toggle"
+              onClick={() => setStakesOnly(s=>!s)}>
+              <div style={{ width:18, height:18, borderRadius:4, border:`2px solid ${stakesOnly?C.accent:C.border}`, background:stakesOnly?C.accent:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.14s" }}>
+                {stakesOnly && <span style={{ color:"#fff", fontSize:12, lineHeight:1 }}>✓</span>}
+              </div>
+              <span style={{ fontSize:13, color:stakesOnly?C.text:C.textSec, userSelect:"none" }}>
+                {stakesOnly
+                  ? `Stakes only — ${stakesDueCount} critical card${stakesDueCount!==1?"s":""}`
+                  : `Focus on ${stakesDueCount} clinically critical card${stakesDueCount!==1?"s":""}`}
+              </span>
+            </div>
+          )}
           {attentionDeclarationEnabled && canStart && (
             <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:14, cursor:"pointer" }}
               onClick={() => setFocused(f=>!f)}>
@@ -118,7 +134,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
       )}
       <button className="rapp-btn rapp-btn-primary rapp-btn-full" disabled={!canStart || cardsLoading}
         onClick={() => {
-          if (mode==="srs") onStartSRS(deck, sleepWindowActive ? 0 : null, focused)
+          if (mode==="srs") onStartSRS(deck, sleepWindowActive ? 0 : null, focused, stakesOnly)
           else if (mode==="interleaved") onStartInterleaved(interleavedDecks)
           else onStartFree(deck)
         }}>

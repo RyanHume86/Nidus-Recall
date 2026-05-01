@@ -96,9 +96,18 @@ export const getDueWithCatchup = (cs, cap, days, allCards = null) => {
     return prereq.stability != null && prereq.stability >= 7
   })
   if (!all.length) return []
-  if (all.length <= cap) return all
-  return all.slice(0, Math.min(cap, Math.ceil(all.length / days)))
+  const effectiveCap = Math.min(cap, Math.ceil(all.length / days))
+  if (all.length <= effectiveCap) return all
+  // Stakes cards always survive the cap cut; non-stakes fill remaining slots
+  const stakes    = all.filter(c => c.stakes_flag)
+  const nonStakes = all.filter(c => !c.stakes_flag)
+  const stakesCapped = stakes.slice(0, effectiveCap)
+  const remaining    = Math.max(0, effectiveCap - stakesCapped.length)
+  return [...stakesCapped, ...nonStakes.slice(0, remaining)]
 }
+
+export const getStakesDue = (cs, allCards = null) =>
+  getDueWithCatchup(cs, Infinity, 1, allCards).filter(c => c.stakes_flag)
 
 export const buildReverseIndex = (cards) => {
   const index = {}
