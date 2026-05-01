@@ -5289,6 +5289,73 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
       </div>
     </div>
     <div
+      class="rapp-mb20"
+      data-testid="recent-decks"
+    >
+      <div
+        style="font-size: 11px; font-weight: 600; color: rgb(74, 107, 92); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px;"
+      >
+        Recent
+      </div>
+      <div
+        class="rapp-col"
+        style="gap: 10px;"
+      >
+        <div
+          class="nid-deck-card"
+          style="margin-left: 0px;"
+        >
+          <div
+            class="rapp-row rapp-sb"
+          >
+            <div
+              class="nid-deck-name"
+            >
+              Common Pharmacology: Essentials
+            </div>
+            <span
+              class="nid-deck-due"
+            >
+              1
+               due
+            </span>
+          </div>
+          <div
+            class="nid-deck-meta"
+          >
+            1
+             card
+          </div>
+        </div>
+        <div
+          class="nid-deck-card"
+          style="margin-left: 0px;"
+        >
+          <div
+            class="rapp-row rapp-sb"
+          >
+            <div
+              class="nid-deck-name"
+            >
+              Clinical Anatomy
+            </div>
+            <span
+              class="nid-deck-due"
+            >
+              1
+               due
+            </span>
+          </div>
+          <div
+            class="nid-deck-meta"
+          >
+            1
+             card
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
       class="rapp-col"
       style="gap: 12px;"
     >

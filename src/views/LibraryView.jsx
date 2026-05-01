@@ -28,6 +28,21 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
     return { name, total: dc.filter(isActive).length, due: getDue(dc).length, newCount: getNew(dc).length, archived: deckMeta[name]?.archived || false }
   }), [cards, decks, deckMeta])
 
+  const recentDecks = useMemo(() => {
+    const lastReviewByDeck = new Map()
+    for (const card of cards) {
+      if (card.lastReview && card.deck) {
+        const prev = lastReviewByDeck.get(card.deck)
+        if (!prev || card.lastReview > prev) lastReviewByDeck.set(card.deck, card.lastReview)
+      }
+    }
+    return Array.from(lastReviewByDeck.entries())
+      .sort((a, b) => b[1].localeCompare(a[1]))
+      .slice(0, 3)
+      .map(([name]) => deckStats.find(d => d.name === name))
+      .filter(Boolean)
+  }, [cards, deckStats])
+
   const visible = deckStats
     .filter(d => showArchived || !d.archived)
     .filter(d => !search || d.name.toLowerCase().includes(search.toLowerCase()))
@@ -103,7 +118,19 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       ) : visible.length === 0 && search ? (
         <div className="rapp-empty">No decks match "{search}"</div>
       ) : (
-        <DeckList visible={visible} deckParentMap={deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
+        <>
+          {recentDecks.length > 0 && !search && (
+            <div className="rapp-mb20" data-testid="recent-decks">
+              <div style={{ fontSize:11, fontWeight:600, color:C.textMut, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:10 }}>Recent</div>
+              <div className="rapp-col" style={{ gap:10 }}>
+                {recentDecks.map(d => (
+                  <DeckCard key={d.name} d={d} treeEntry={{ indent:0, displayName:d.name }} onSelectDeck={onSelectDeck} />
+                ))}
+              </div>
+            </div>
+          )}
+          <DeckList visible={visible} deckParentMap={deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
+        </>
       )}
 
       {archivedCount > 0 && (

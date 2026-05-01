@@ -160,7 +160,7 @@ describe('Flow 2 — Library: with decks shows deck names and New Deck button', 
         syncStatus="idle" lastSynced={null} deckParentMap={new Map()}
       />
     )
-    expect(screen.getByText(DECK_A)).toBeInTheDocument()
+    expect(screen.getAllByText(DECK_A).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /new deck/i })).toBeInTheDocument()
   })
 })
