@@ -24,7 +24,6 @@ const ONBOARDING_DECK = {
   color:       '#2D6E52',
   is_sample:   true,
   description: "A guided introduction to Nidus Recall's key features — active recall, scheduling, and card authoring tools.",
-  card_count:  5,
 }
 
 const ONBOARDING_CARDS = [

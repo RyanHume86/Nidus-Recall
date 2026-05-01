@@ -30,7 +30,6 @@ let entityIdMap  = new Map()  // clientId  to Base44 entity id
 let cardSnapshot = new Map()  // clientId  to last-synced card object (for diffing)
 let deckNameToId = new Map()  // deckTitle to Base44 Deck entity id
 let deckPending  = new Map()  // deckTitle to in-flight Deck.create Promise
-let deckCountCache = new Map()  // deckTitle to current card_count
 let deckParentMapMemo = new Map()  // childDeckTitle to parentDeckTitle (from parentDeckId)
 
 // CardState maps (populated in loadAll from CardState entity)
@@ -200,10 +199,8 @@ export const loadAll = async () => {
   const hasMore = cardEntities.length >= INIT_LIMIT
 
   // Build deck lookup maps; parentDeckId is available on deck entities after migration.
-  deckCountCache.clear()
   for (const d of deckEntities) {
     deckNameToId.set(d.title, d.id)
-    deckCountCache.set(d.title, d.card_count || 0)
   }
 
   // Build deckParentMap from parentDeckId relationships (post-migration).
@@ -331,18 +328,6 @@ const _doSync = async (updatedCards) => {
     ),
   ])
 
-  // Update deckCountCache for any deck that had creates or deletes
-  const affectedDecks = new Set([
-    ...createOps.map(({card}) => card.deck),
-    ...deleteOps.map(({ clientId }) => {
-      const snap = cardSnapshot.get(clientId)
-      return snap ? idToName().get(snap.deckId || "") : null
-    }).filter(Boolean)
-  ])
-  for (const deckName of affectedDecks) {
-    const count = updatedCards.filter(c => c.deck === deckName && c.status !== 'Archived' && c.status !== 'Parked').length
-    deckCountCache.set(deckName, count)
-  }
 }
 
 /**
@@ -480,32 +465,6 @@ export const appendLog = async (entry) => {
 export const updateLog = async (entityId, updates) => {
   requireAuth('update session log')
   await base44.entities.SessionLog.update(entityId, updates)
-}
-
-/**
- * Adjust a deck's card_count by delta (+1 or -1). Maintains the in-memory cache
- * and writes to the Deck entity.
- */
-export const adjustDeckCount = async (deckTitle, delta) => {
-  requireAuth('adjust deck count')
-  if (!deckTitle || !deckNameToId.has(deckTitle)) return
-  const current = deckCountCache.get(deckTitle) || 0
-  const next = Math.max(0, current + delta)
-  deckCountCache.set(deckTitle, next)
-  const deckId = deckNameToId.get(deckTitle)
-  await base44.entities.Deck.update(deckId, { card_count: next })
-}
-
-/**
- * Recalculate and write the exact card_count for a deck based on all Active cards.
- */
-export const recalculateDeckCount = async (deckTitle, allCards) => {
-  requireAuth('recalculate deck count')
-  if (!deckTitle || !deckNameToId.has(deckTitle)) return
-  const count = allCards.filter(c => c.deck === deckTitle && c.status === "Active").length
-  deckCountCache.set(deckTitle, count)
-  const deckId = deckNameToId.get(deckTitle)
-  await base44.entities.Deck.update(deckId, { card_count: count })
 }
 
 // ── CardHistory helpers ────────────────────────────────────────────────────────

@@ -66,13 +66,10 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
         connects_to: (c.connects_to || []).filter(id => id !== deletedId),
         prerequisite_card_id: c.prerequisite_card_id === deletedId ? null : c.prerequisite_card_id,
       }))
-    if (card.status === "Active") storage.adjustDeckCount(card.deck, -1).catch(()=>{})
     await onUpdateCards(updated); onClose()
   }
   const handleArchive = async () => {
     const next = card.status==="Archived" ? "Active" : "Archived"
-    if (next === "Archived") storage.adjustDeckCount(card.deck, -1).catch(()=>{})
-    else storage.adjustDeckCount(card.deck, 1).catch(()=>{})
     await onUpdateCards(cards.map(c => c.id===card.id ? { ...c, status:next } : c)); onClose()
   }
 

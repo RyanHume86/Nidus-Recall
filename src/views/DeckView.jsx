@@ -60,7 +60,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
       interval:1, reviewCount:0, lapses:0, createdAt:new Date().toISOString(),
     }
     await onUpdateCards([...cards, card])
-    storage.adjustDeckCount(deckName, 1).catch(()=>{})
     setForm({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
     setShowNote(false); setShowAnchor(false); setShowConnects(false); setShowPrereq(false)
     setSaved(true); setTimeout(()=>setSaved(false), 1200)
@@ -79,7 +78,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
     if (!qaFront.trim() || !qaBack.trim()) return
     const card = createQuickCard()
     await onUpdateCards([...cards, card])
-    storage.adjustDeckCount(deckName, 1).catch(()=>{})
     setQaFront(""); setQaBack(""); setQuickAdd(false)
   }
 
@@ -87,7 +85,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
     if (!qaFront.trim() || !qaBack.trim()) return
     const card = createQuickCard()
     await onUpdateCards([...cards, card])
-    storage.adjustDeckCount(deckName, 1).catch(()=>{})
     setQaFront(""); setQaBack("")
     setTimeout(() => qaFrontRef.current?.focus(), 50)
   }
@@ -125,7 +122,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", background:C.elevated, border:`1px solid ${C.border}`, borderRadius:12, padding:6, minWidth:160, zIndex:10, boxShadow:"0 4px 16px rgba(28,40,32,0.12)" }}>
               {[
                 { label:"Archive deck", action:()=>{ onArchiveDeck(deckName); setShowDeckMenu(false) } },
-                { label:"Sync card count", action:()=>{ storage.recalculateDeckCount(deckName, cards).catch(()=>{}); setShowDeckMenu(false) } },
               ].map((item,i) => (
                 <div key={i} onClick={item.action}
                   style={{ padding:"9px 14px", fontSize:13, cursor:"pointer", borderRadius:8, color:C.textSec, transition:"background 0.1s" }}
@@ -296,7 +292,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
                 const newCards = createClozeCards(clozeText, deckName)
                 if (!newCards.length) return
                 await onUpdateCards([...cards, ...newCards])
-                storage.adjustDeckCount(deckName, newCards.length).catch(()=>{})
                 setClozeText("")
                 setSaved(true); setTimeout(()=>setSaved(false), 1200)
               }}>
@@ -309,7 +304,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             <ImageOcclusionEditor onSave={async (imgUrl, regions) => {
               const newCards = createOcclusionCards(imgUrl, regions, deckName)
               await onUpdateCards([...cards, ...newCards])
-              storage.adjustDeckCount(deckName, newCards.length).catch(()=>{})
               setAddMode("basic")
               setSaved(true); setTimeout(()=>setSaved(false), 1200)
             }} />

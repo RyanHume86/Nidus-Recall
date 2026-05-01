@@ -23,7 +23,7 @@ export async function migrateUp(base44) {
     // Create parent deck if it does not exist.
     let parentId = nameToId.get(parentName)
     if (!parentId) {
-      const parent = await base44.entities.Deck.create({ title: parentName, card_count: 0 })
+      const parent = await base44.entities.Deck.create({ title: parentName })
       parentId = parent.id
       nameToId.set(parentName, parentId)
       created++
