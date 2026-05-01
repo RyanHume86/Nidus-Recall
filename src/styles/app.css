@@ -411,3 +411,27 @@
     .nid-deck-left    { flex: none; width: 100%; }
     .nid-deck-right   { flex: none; width: 100%; position: static; max-height: none; }
   }
+
+  /* ── Search modal: bottom sheet on mobile (Prompt 3.8) ─────────────────────── */
+  @media (max-width: 639px) {
+    .nid-search-backdrop { align-items: flex-end !important; padding: 0 !important; }
+    .nid-search-modal    { border-radius: 22px 22px 0 0 !important; max-height: 85vh !important; overflow-y: auto !important; }
+  }
+
+  /* ── Touch target minimums (Prompt 3.8) ────────────────────────────────────── */
+  @media (max-width: 639px) {
+    /* Nav items already have padding; ensure icon-only buttons meet 44px */
+    .rapp-bnav-item { min-height: 52px; }
+    /* Content-type chips: bigger tap target */
+    [role="group"][aria-label="Content type"] button { min-height: 36px; padding: 6px 12px; }
+    /* Card rows: taller hit area */
+    .nid-card-row { padding: 14px; }
+    /* Stat row: allow wrapping on very narrow screens */
+    .rapp-stat-row { flex-wrap: wrap; gap: 10px; }
+    /* Rating breakdown percentages: wrap gracefully */
+    [data-testid="rating-breakdown"] > div:last-child { flex-wrap: wrap; }
+  }
+
+  /* ── Breadcrumbs overflow guard (Prompt 3.8) ───────────────────────────────── */
+  nav[aria-label="Breadcrumb"] ol { flex-wrap: wrap; }
+  nav[aria-label="Breadcrumb"] { max-width: 100%; overflow: hidden; }

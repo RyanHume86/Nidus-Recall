@@ -65,11 +65,16 @@ export function SearchModal({ cards, decks, onNavigate, onClose }) {
   return (
     <div
       data-testid="search-modal-backdrop"
+      className="nid-search-backdrop"
       onClick={onClose}
       style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:400, display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"80px 24px 24px" }}
     >
       <div
         data-testid="search-modal"
+        className="nid-search-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
         onClick={e => e.stopPropagation()}
         style={{ background:C.surface, borderRadius:18, width:"100%", maxWidth:540, boxShadow:"0 12px 60px rgba(28,40,32,0.28)", overflow:"hidden" }}
       >
