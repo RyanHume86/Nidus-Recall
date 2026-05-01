@@ -9,8 +9,10 @@ import { Ico } from "@/lib/icons"
 import * as offlineStore from "@/lib/offline-store"
 import { isInstallable, triggerInstallPrompt } from "@/lib/pwa"
 import { useAppStore } from "@/store/appStore"
+import { useAuth } from "@/lib/AuthContext"
 import NidusLogo from "@/components/NidusLogo"
 import FirstRunOverlay from "@/components/FirstRunOverlay"
+import { SleepScheduleModal, sleepOnboardComplete } from "@/components/onboarding/SleepScheduleModal"
 import { LibraryView } from "@/views/LibraryView"
 import { DeckView } from "@/views/DeckView"
 import { StudySelectView } from "@/views/StudySelectView"
@@ -30,6 +32,10 @@ export default function Home() {
   const [sessionFocused,     setSessionFocused]     = useState(false)
   const [interleavedCards,   setInterleavedCards]   = useState(null)
   const [firstRunDone,       setFirstRunDone]       = useState(() => !!localStorage.getItem("nidus.firstRunSeen"))
+  const [sleepOnboardSeen,   setSleepOnboardSeen]   = useState(false)
+
+  // ── Auth (needed for sleep onboarding flag) ────────────────────────────────
+  const { user, isAuthenticated, authChecked } = useAuth()
 
   // ── Store: data + sync ─────────────────────────────────────────────────────
   const cards                   = useAppStore(s => s.cards)
@@ -175,6 +181,16 @@ export default function Home() {
   const dismissOnboarding = () => { if (lastSessionDate) localStorage.setItem(RETURN_ONBOARD_KEY, lastSessionDate) }
   const inSession       = view === "session" || view === "free-study"
 
+  // ── Sleep onboarding trigger ──────────────────────────────────────────────
+  // Show once per account/device after the first-run name overlay is done.
+  const showSleepModal = (
+    firstRunDone &&
+    ready &&
+    authChecked &&
+    !sleepOnboardSeen &&
+    !sleepOnboardComplete(user, isAuthenticated)
+  )
+
   const NAV = [
     { id: "library",      label: "Library",  icon: Ico.library, active: view === "library" || view === "deck" },
     { id: "study-select", label: "Study",    icon: Ico.study,   active: view === "study-select" },
@@ -205,6 +221,13 @@ export default function Home() {
   return (
     <>
       {!firstRunDone && <FirstRunOverlay onDone={() => setFirstRunDone(true)} />}
+      {showSleepModal && (
+        <SleepScheduleModal
+          settings={settings}
+          onUpdateSettings={updateSettings}
+          onDone={() => setSleepOnboardSeen(true)}
+        />
+      )}
       <div className="rapp">
         {!inSession && (
           <div className="rapp-sidebar">
