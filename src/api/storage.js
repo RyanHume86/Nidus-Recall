@@ -247,8 +247,12 @@ export const loadAll = async () => {
       failed:       e.failed       || 0,
       newAdded:     e.newAdded     || 0,
       frictionNote: e.frictionNote || "",
-      intensity_score: e.intensity_score ?? 0,
-      status:       e.status       || "complete",
+      intensity_score:      e.intensity_score      ?? 0,
+      status:               e.status               || "complete",
+      ratingBreakdown:      e.ratingBreakdown      || { again:0, hard:0, good:0, easy:0 },
+      contentTypeBreakdown: e.contentTypeBreakdown || {},
+      fatigueFlag:          e.fatigueFlag          || false,
+      focusedFlag:          e.focusedFlag          || false,
     }))
     .sort((a, b) => new Date(b.date) - new Date(a.date))
 
@@ -518,13 +522,17 @@ export const updateImageLinkedCards = async (imageEntityId, linkedCardIds) => {
 export const appendLog = async (entry) => {
   requireAuth('append session log')
   const entity = await base44.entities.SessionLog.create({
-    date:           entry.date,
-    reviewed:       entry.reviewed       || 0,
-    failed:         entry.failed         || 0,
-    newAdded:       entry.newAdded       || 0,
-    frictionNote:   entry.frictionNote   || "",
-    intensity_score: entry.intensity_score ?? 0,
-    status:         entry.status         || "complete",
+    date:                entry.date,
+    reviewed:            entry.reviewed             || 0,
+    failed:              entry.failed               || 0,
+    newAdded:            entry.newAdded             || 0,
+    frictionNote:        entry.frictionNote         || "",
+    intensity_score:     entry.intensity_score      ?? 0,
+    status:              entry.status               || "complete",
+    ratingBreakdown:     entry.ratingBreakdown      || { again:0, hard:0, good:0, easy:0 },
+    contentTypeBreakdown: entry.contentTypeBreakdown || {},
+    fatigueFlag:         entry.fatigueFlag          || false,
+    focusedFlag:         entry.focusedFlag          || false,
   })
   return entity
 }

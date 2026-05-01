@@ -77,15 +77,8 @@ export const computeFatigueScore = (log) => {
   return flags
 }
 
-// Assembles the final frictionNote for a session. User-written text is
-// preserved at the front; system markers are appended, never prepended or
-// overwritten. This is the single authoritative write point - intensity,
-// fatigue, and attention declaration must feed here rather than writing
-// frictionNote independently.
-export const assembleFrictionNote = (userText, { intensityPts, intensityCount, fatigueScore, fatigueAlertsEnabled, focused }) => {
-  const markers = []
-  if (intensityCount > 0) markers.push(`[Intensity: ${(intensityPts / intensityCount).toFixed(1)}]`)
-  if (fatigueAlertsEnabled && fatigueScore >= 2) markers.push("[Fatigue risk: elevated]")
-  if (focused) markers.push("[Focused: yes]")
-  return [userText.trim(), ...markers].filter(Boolean).join(" ")
-}
+// Returns the user-authored portion of the session note.
+// System flags (intensity, fatigue, focused) are now stored in dedicated
+// SessionLog fields (fatigueFlag, focusedFlag, intensity_score) and are no
+// longer embedded as text markers in frictionNote.
+export const assembleFrictionNote = (userText) => userText.trim()
