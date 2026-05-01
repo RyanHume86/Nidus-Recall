@@ -10358,6 +10358,7 @@ exports[`view snapshots > StudySelectView: with due cards 1`] = `
     >
       <div
         class="rapp-row"
+        data-testid="srs-stats-row"
         style="gap: 28px;"
       >
         <div>
