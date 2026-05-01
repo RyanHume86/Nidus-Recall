@@ -16,7 +16,8 @@
     "test:ci": "vitest run --reporter=junit",
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm','public/sql-wasm.wasm')\" && node scripts/generate-icons.js",
     "seed:onboarding": "tsx scripts/seed/onboarding-deck.ts",
-    "schema:apply-rls": "tsx scripts/schema/apply-rls.ts"
+    "schema:apply-rls": "tsx scripts/schema/apply-rls.ts",
+    "migrate:assign-anonymous": "tsx scripts/migrations/2026-05-assign-anonymous.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.27",
