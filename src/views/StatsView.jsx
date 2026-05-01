@@ -7,6 +7,7 @@ import { getDue, getNew, isActive } from "@/lib/fsrs"
 import { computeCalibration, buildCalibrationChart, computeFatigueScore } from "@/lib/stats"
 import { ReviewHeatmap } from "@/components/ReviewHeatmap"
 import VesicleDots from "@/components/VesicleDots"
+import { EmptyState } from "@/components/EmptyState"
 
 export function StatsView({ log, cards, decks, settings }) {
   const [selectedDeck, setSelectedDeck] = useState("all")
@@ -186,7 +187,7 @@ export function StatsView({ log, cards, decks, settings }) {
       </div>
 
       {log.length === 0 ? (
-        <div className="rapp-empty">No sessions recorded yet.</div>
+        <EmptyState icon="📊" title="No sessions yet" body="Complete your first study session to see progress here." />
       ) : (
         <>
           <div className="rapp-sec-title">Session history</div>

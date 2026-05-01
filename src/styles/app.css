@@ -164,8 +164,6 @@
   .rapp-card-item:hover { border-color: #BFD0CA; box-shadow: 0 2px 8px rgba(28,40,32,0.06); }
   .rapp-card-item-q { font-size: 14px; color: #1C2820; line-height: 1.55; }
 
-  .rapp-empty { text-align:center; padding:52px 24px; color:#4A6B5C; font-size:14px; line-height:1.75; }
-
   .rapp-badge {
     display: inline-flex; align-items: center; padding: 3px 9px;
     border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
