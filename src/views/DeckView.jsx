@@ -413,7 +413,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             <div className="nid-deck-right-panel">
               <div className="rapp-row rapp-sb rapp-mb16" style={{ alignItems:"center" }}>
                 <div style={{ fontSize:14, fontWeight:600, color:C.text }}>Edit card</div>
-                <button onClick={()=>setEditCard(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textMut, fontSize:18, lineHeight:1, padding:4 }}>✕</button>
+                <button aria-label="Close editor" onClick={()=>setEditCard(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textMut, fontSize:18, lineHeight:1, padding:4 }}>✕</button>
               </div>
               <EditCardModal
                 card={editCard}

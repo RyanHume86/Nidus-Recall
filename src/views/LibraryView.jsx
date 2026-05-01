@@ -117,7 +117,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
               placeholder="e.g. Anatomy, Research Methods..." />
             <button className="rapp-btn rapp-btn-primary" style={{ padding:"9px 14px", fontSize:13 }}
               onClick={doCreate} disabled={!newDeckName.trim()}>Create</button>
-            <button className="rapp-btn rapp-btn-ghost" style={{ padding:"9px 12px" }}
+            <button aria-label="Close deck creation" className="rapp-btn rapp-btn-ghost" style={{ padding:"9px 12px" }}
               onClick={() => { setShowCreateDeck(false); setNewDeckName("") }}>✕</button>
           </div>
         </div>
