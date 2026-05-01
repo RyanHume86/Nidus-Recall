@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import * as storage from "@/api/storage"
 import { C, FRONT_MAX, BACK_MAX, SOURCE_MAX } from "@/lib/theme"
@@ -18,6 +18,12 @@ import { EditCardModal } from "@/modals/EditCardModal"
 export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic") // "basic" | "cloze" | "occlusion"
+
+  const allTags = useMemo(() => {
+    const set = new Set()
+    for (const card of cards) for (const t of (card.tags || [])) set.add(t)
+    return [...set].sort()
+  }, [cards])
   const [clozeText, setClozeText] = useState("")
   const [showOcclusionEditor, setShowOcclusionEditor] = useState(false)
   const [showNote, setShowNote]   = useState(false)
@@ -185,7 +191,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
 
         <div className="rapp-mb10" style={{ marginBottom:10 }}>
           <label className="rapp-label">Tags</label>
-          <TagInput tags={form.tags} onChange={t=>setForm(f=>({...f,tags:t}))} />
+          <TagInput tags={form.tags} onChange={t=>setForm(f=>({...f,tags:t}))} allTags={allTags} />
         </div>
 
         <div className="rapp-mb10" style={{ marginBottom:10 }}>

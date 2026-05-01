@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import * as storage from "@/api/storage"
 import { C, FRONT_MAX, BACK_MAX, SOURCE_MAX } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
@@ -12,6 +12,11 @@ import { CardHistoryModal } from "@/modals/CardHistoryModal"
 
 export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
   const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null })
+  const allTags = useMemo(() => {
+    const set = new Set()
+    for (const c of (cards || [])) for (const t of (c.tags || [])) set.add(t)
+    return [...set].sort()
+  }, [cards])
   const [showNote, setShowNote]   = useState(!!(card.elaboration))
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
   const [showConnects, setShowConnects] = useState(!!(card.connects_to?.length))
@@ -117,7 +122,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
         </div>
         <div className="rapp-mb12">
           <label className="rapp-label">Tags</label>
-          <TagInput tags={form.tags} onChange={t=>setForm(f=>({...f,tags:t}))} />
+          <TagInput tags={form.tags} onChange={t=>setForm(f=>({...f,tags:t}))} allTags={allTags} />
         </div>
 
         <div className="rapp-mb12">

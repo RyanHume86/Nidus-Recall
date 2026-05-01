@@ -15,6 +15,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
   const [showCreateDeck, setShowCreateDeck] = useState(false)
   const [newDeckName,    setNewDeckName]    = useState("")
   const [bannerDismissed, setBannerDismissed] = useState(sleepBannerIsDismissed)
+  const [activeTag,      setActiveTag]      = useState(null)
   const newDeckRef = useRef(null)
   const deckListRef = useRef(null)
 
@@ -43,9 +44,27 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       .filter(Boolean)
   }, [cards, deckStats])
 
+  // All unique tags across every card, sorted alphabetically
+  const allTagsInLibrary = useMemo(() => {
+    const set = new Set()
+    for (const card of cards) for (const t of (card.tags || [])) set.add(t)
+    return [...set].sort()
+  }, [cards])
+
+  // Map: deckName → Set of tags on its cards (for tag filter)
+  const deckTagSets = useMemo(() => {
+    const map = new Map()
+    for (const card of cards) {
+      if (!map.has(card.deck)) map.set(card.deck, new Set())
+      for (const t of (card.tags || [])) map.get(card.deck).add(t)
+    }
+    return map
+  }, [cards])
+
   const visible = deckStats
     .filter(d => showArchived || !d.archived)
     .filter(d => !search || d.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(d => !activeTag || deckTagSets.get(d.name)?.has(activeTag))
 
   const archivedCount = deckStats.filter(d => d.archived).length
 
@@ -107,6 +126,37 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       {decks.length > 4 && (
         <div className="rapp-mb16">
           <input className="rapp-input" placeholder="Search decks..." value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+      )}
+
+      {allTagsInLibrary.length > 0 && (
+        <div className="rapp-mb16" data-testid="tag-filter-bar" style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+          <span style={{ fontSize:11, fontWeight:600, color:C.textMut, letterSpacing:'0.06em', textTransform:'uppercase', marginRight:2 }}>Tags</span>
+          {allTagsInLibrary.map(tag => (
+            <button
+              key={tag}
+              data-testid={`tag-filter-${tag}`}
+              onClick={() => setActiveTag(t => t === tag ? null : tag)}
+              style={{
+                padding: '3px 10px', fontSize: 12, borderRadius: 20, cursor: 'pointer',
+                fontFamily: 'inherit', border: `1px solid ${activeTag === tag ? C.accent : C.border}`,
+                background: activeTag === tag ? C.accent : 'transparent',
+                color: activeTag === tag ? '#fff' : C.textSec,
+                transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+              }}
+            >
+              {tag}
+            </button>
+          ))}
+          {activeTag && (
+            <button
+              data-testid="tag-filter-clear"
+              onClick={() => setActiveTag(null)}
+              style={{ padding:'3px 8px', fontSize:11, borderRadius:20, cursor:'pointer', fontFamily:'inherit', border:`1px solid ${C.border}`, background:'transparent', color:C.textMut }}
+            >
+              ✕ clear
+            </button>
+          )}
         </div>
       )}
 
