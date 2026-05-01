@@ -10,7 +10,7 @@ import { CardPicker } from "@/components/CardPicker"
 import { AIDiffModal } from "@/modals/AIDiffModal"
 import { CardHistoryModal } from "@/modals/CardHistoryModal"
 
-export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory }) {
+export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSaveHistory, inline = false }) {
   const [form, setForm]           = useState({ front:card.front||"", back:card.back||"", tags:card.tags||[], note:card.elaboration||"", anchor:card.anchor||"", source:card.source||"", contentType:card.contentType||"Factual", stakesFlag:card.stakes_flag||false, connects_to:card.connects_to||[], prerequisite_card_id:card.prerequisite_card_id||null, review_status:card.review_status||"unreviewed", accuracy_date:card.accuracy_date||"", accuracy_reviewer:card.accuracy_reviewer||"", guideline_version:card.guideline_version||"" })
   const allTags = useMemo(() => {
     const set = new Set()
@@ -79,11 +79,8 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
     await onUpdateCards(cards.map(c => c.id===card.id ? { ...c, status:next } : c)); onClose()
   }
 
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
-      className="rapp-modal-backdrop" onClick={e=>{ if(e.target===e.currentTarget) onClose() }}>
-      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
-        className="rapp-modal-inner">
+  const formContent = (
+    <>
         <div className="rapp-row rapp-sb rapp-mb20">
           <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
             <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit card</span>
@@ -310,6 +307,17 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
             </button>
           )}
         </div>
+    </>
+  )
+
+  if (inline) return formContent
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
+      className="rapp-modal-backdrop" onClick={e=>{ if(e.target===e.currentTarget) onClose() }}>
+      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
+        className="rapp-modal-inner">
+        {formContent}
       </div>
     </div>
   )
