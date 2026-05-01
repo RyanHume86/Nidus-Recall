@@ -15,13 +15,14 @@ import NidusLogo from "@/components/NidusLogo"
 const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
-export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
+export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, stakesOnly=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
   const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
   const [fatigueScore] = useState(() => computeFatigueScore(log))
 
-  const filtered = interleavedCards ? interleavedCards : studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
+  const baseFiltered = interleavedCards ? interleavedCards : studyDeckName ? cards.filter(c=>c.deck===studyDeckName) : cards
+  const filtered = stakesOnly ? baseFiltered.filter(c => c.stakes_flag) : baseFiltered
 
   const [dueBefore] = useState(() => {
     // Due cards before prerequisite filter (for detecting allGated)

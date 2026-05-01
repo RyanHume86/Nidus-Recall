@@ -33,6 +33,7 @@ export default function Home() {
   const [studyDeckName,      setStudyDeckName]      = useState(null)
   const [sessionCapOverride, setSessionCapOverride] = useState(null)
   const [sessionFocused,     setSessionFocused]     = useState(false)
+  const [sessionStakesOnly,  setSessionStakesOnly]  = useState(false)
   const [interleavedCards,   setInterleavedCards]   = useState(null)
   const [firstRunDone,       setFirstRunDone]       = useState(() => !!localStorage.getItem("nidus.firstRunSeen"))
   const [sleepOnboardSeen,   setSleepOnboardSeen]   = useState(false)
@@ -167,10 +168,11 @@ export default function Home() {
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
-  const startSRS = (deck, capOverride = null, focused = false) => {
+  const startSRS = (deck, capOverride = null, focused = false, stakesOnly = false) => {
     setStudyDeckName(deck === "all" ? null : deck)
     setSessionCapOverride(capOverride)
     setSessionFocused(focused)
+    setSessionStakesOnly(stakesOnly)
     setInterleavedCards(null)
     setView("session")
   }
@@ -341,7 +343,7 @@ export default function Home() {
           )}
           {view==="deck"         && <DeckView deckName={selectedDeck} cards={cards} onUpdateCards={updateCards} onBack={()=>setView("library")} decks={decks} settings={settings} onArchiveDeck={archiveDeck} cardsLoading={!cardsFullyLoaded} />}
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} cardsLoading={!cardsFullyLoaded} />}
-          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={incrementSessionsCompleted} />}
+          {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setSessionStakesOnly(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} stakesOnly={sessionStakesOnly} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={incrementSessionsCompleted} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
           {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
           {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} onImportAnki={handleApkgImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} onDeleteAccount={async()=>{ await storage.deleteAllUserData(); const { base44 } = await import('@/api/base44Client'); base44.auth.logout(window.location.origin) }} />}
