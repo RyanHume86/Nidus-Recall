@@ -23,6 +23,7 @@ import { StatsView } from "@/views/StatsView"
 import { SettingsView } from "@/views/SettingsView"
 import { ReturnOnboardingCard } from "@/views/ReturnOnboardingCard"
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs"
+import { SearchModal } from "@/modals/SearchModal"
 
 // ─── Root Component ───────────────────────────────────────────────────────────
 export default function Home() {
@@ -35,6 +36,7 @@ export default function Home() {
   const [interleavedCards,   setInterleavedCards]   = useState(null)
   const [firstRunDone,       setFirstRunDone]       = useState(() => !!localStorage.getItem("nidus.firstRunSeen"))
   const [sleepOnboardSeen,   setSleepOnboardSeen]   = useState(false)
+  const [searchOpen,         setSearchOpen]         = useState(false)
 
   // ── Auth (needed for sleep onboarding flag and agreement gate) ───────────────
   const { user, isAuthenticated, authChecked, checkUserAuth } = useAuth()
@@ -110,6 +112,20 @@ export default function Home() {
       cleanupReconnect()
     }
   }, [])
+
+  // ── Global / shortcut for search ──────────────────────────────────────────
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (view === "session" || view === "free-study") return
+      if (e.key !== "/") return
+      const tag = document.activeElement?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return
+      e.preventDefault()
+      setSearchOpen(true)
+    }
+    document.addEventListener("keydown", handleKey)
+    return () => document.removeEventListener("keydown", handleKey)
+  }, [view])
 
   // ── Import handlers ────────────────────────────────────────────────────────
   const handleImport = (file, onResult) => {
@@ -240,6 +256,16 @@ export default function Home() {
           onDone={() => setSleepOnboardSeen(true)}
         />
       )}
+      {searchOpen && (
+        <SearchModal
+          cards={cards}
+          decks={decks}
+          onNavigate={({ type, deck, cardId }) => {
+            if (deck) { setSelectedDeck(deck); setView("deck") }
+          }}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
       <div className="rapp">
         {!inSession && (
           <div className="rapp-sidebar">
@@ -250,7 +276,16 @@ export default function Home() {
                 {n.id==="study-select" && due.length>0 && <span className="rapp-nav-badge">{due.length}</span>}
               </div>
             ))}
-            <div className="rapp-sync" style={{ marginTop:"auto", color:syncStatus==="error"?C.again:syncStatus==="saved"?C.accent:C.textMut }}>
+            <div
+              className="rapp-nav-item"
+              onClick={() => setSearchOpen(true)}
+              title="Search (press /)"
+              aria-label="Search"
+              style={{ marginTop:"auto" }}
+            >
+              {Ico.search(17)}<span>Search</span>
+            </div>
+            <div className="rapp-sync" style={{ color:syncStatus==="error"?C.again:syncStatus==="saved"?C.accent:C.textMut }}>
               {syncStatus==="saving"&&"● Saving…"}
               {syncStatus==="saved" &&"✓ Saved"}
               {syncStatus==="error" &&"⚠ Sync failed"}
