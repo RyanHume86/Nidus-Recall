@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { C } from '@/lib/theme'
 import NidusLogo from '@/components/NidusLogo'
 
-const AGREEMENT_VERSION = 'v1.1'
+const AGREEMENT_VERSION = 'v1.2'
 
 /**
  * Shown once per account when agreement_accepted_at is null.
