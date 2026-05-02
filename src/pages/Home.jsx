@@ -96,8 +96,7 @@ export default function Home() {
       const incomplete = log.find(e => e.status === "in-progress")
       if (incomplete) setIncompleteSession(incomplete)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready])
+  }, [ready, log, incompleteSession])
 
   // ── Offline / PWA listeners ────────────────────────────────────────────────
   useEffect(() => {
