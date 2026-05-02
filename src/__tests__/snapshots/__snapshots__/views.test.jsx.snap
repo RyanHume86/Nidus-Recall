@@ -6076,7 +6076,7 @@ exports[`view snapshots > SettingsView 1`] = `
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
       >
-        Algorithm
+        Scheduling
       </button>
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
@@ -8136,7 +8136,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
       <div
         style="font-size: 14px; font-weight: 600; margin-bottom: 8px;"
       >
-        How FSRS scheduling works
+        How scheduling works
       </div>
       <div
         style="font-size: 13px; color: rgb(58, 82, 70); line-height: 1.75;"
@@ -8144,7 +8144,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
         <p
           style="margin-bottom: 8px;"
         >
-          The algorithm estimates how likely you are to recall each card, then schedules it just before that probability would drop below your target (default: 90%). Cards you know well drift out to months; cards you find hard come back in days.
+          Nidus estimates how likely you are to recall each card, then schedules it just before that probability drops below your target (default: 90%). Cards you know well drift out to months; cards you find hard come back in days.
         </p>
         <p>
           Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.
@@ -8166,7 +8166,7 @@ exports[`view snapshots > StatsView: empty log 1`] = `
           <strong>
             Week 1
           </strong>
-           — short intervals, high volume. The algorithm is learning you.
+           — short intervals, high volume. Nidus is learning your memory patterns.
         </div>
         <div>
           <strong>
@@ -10409,7 +10409,7 @@ exports[`view snapshots > StudySelectView: with due cards 1`] = `
         <div
           style="font-size: 12px; color: rgb(74, 107, 92); line-height: 1.55;"
         >
-          FSRS scheduling · records progress
+          Smart scheduling · records progress
         </div>
       </div>
       <div

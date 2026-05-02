@@ -92,11 +92,11 @@ export function StatsView({ log, cards, decks, settings }) {
             </div>
           </div>
           <div className="rapp-card rapp-mb16">
-            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>How FSRS scheduling works</div>
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>How scheduling works</div>
             <div style={{ fontSize:13, color:C.textSec, lineHeight:1.75 }}>
               <p style={{ marginBottom:8 }}>
-                The algorithm estimates how likely you are to recall each card,
-                then schedules it just before that probability would drop below your target (default: 90%).
+                Nidus estimates how likely you are to recall each card,
+                then schedules it just before that probability drops below your target (default: 90%).
                 Cards you know well drift out to months; cards you find hard come back in days.
               </p>
               <p>Reference: Open Spaced Repetition project, github.com/open-spaced-repetition.</p>
@@ -105,7 +105,7 @@ export function StatsView({ log, cards, decks, settings }) {
           <div className="rapp-card rapp-mb20">
             <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>What the first few months look like</div>
             <div style={{ display:'flex', gap:16, flexWrap:'wrap', fontSize:12, color:C.textSec }}>
-              <div><strong>Week 1</strong> — short intervals, high volume. The algorithm is learning you.</div>
+              <div><strong>Week 1</strong> — short intervals, high volume. Nidus is learning your memory patterns.</div>
               <div><strong>Week 4</strong> — familiar cards space out to 1–3 weeks. Daily load starts to settle.</div>
               <div><strong>Month 3</strong> — well-known cards reviewed monthly. New cards drive most of the workload.</div>
             </div>

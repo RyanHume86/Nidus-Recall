@@ -49,17 +49,17 @@ describe("SettingsView — tabs", () => {
     expect(screen.getByText("New cards per day")).toBeTruthy()
   })
 
-  it("renders algorithm tab when clicked", () => {
+  it("renders scheduling tab when clicked", () => {
     renderSettings()
-    fireEvent.click(screen.getByText("Algorithm"))
+    fireEvent.click(screen.getByText("Scheduling"))
     expect(screen.getByTestId("show-advanced-algo")).toBeTruthy()
   })
 
-  it("shows FSRS advanced controls when 'Show advanced' is clicked", () => {
+  it("shows advanced controls when 'Show advanced' is clicked", () => {
     renderSettings()
-    fireEvent.click(screen.getByText("Algorithm"))
+    fireEvent.click(screen.getByText("Scheduling"))
     fireEvent.click(screen.getByTestId("show-advanced-algo"))
-    expect(screen.getByText("Request retention")).toBeTruthy()
+    expect(screen.getByText("Recall target")).toBeTruthy()
     expect(screen.getByText("Maximum interval")).toBeTruthy()
   })
 

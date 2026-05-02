@@ -35,7 +35,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
 
       <div className="rapp-col" style={{ gap:10, marginBottom:20 }}>
         {[
-          { id:"srs",          title:"Spaced Repetition", sub:"FSRS scheduling · records progress" },
+          { id:"srs",          title:"Spaced Repetition", sub:"Smart scheduling · records progress" },
           { id:"interleaved",  title:"Interleaved Review", sub:"Mixes decks during the session. Often harder during practice, often better for long-term retention (Rohrer and Taylor, J Educ Psychol 2007; Birnbaum et al., Mem Cognit 2013)." },
           { id:"free",         title:"Free Study",         sub:"Browse cards freely · nothing recorded" },
         ].map(m => (

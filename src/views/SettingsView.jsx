@@ -101,9 +101,9 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
       </div>
 
       <div style={{ display:"flex", gap:4, background:C.bg, borderRadius:10, padding:3, marginBottom:20, flexWrap:"wrap" }}>
-        {["profile","schedule","algorithm","data","privacy"].map(t =>
-          TAB(t, t.charAt(0).toUpperCase() + t.slice(1))
-        )}
+        {[
+          ["profile","Profile"],["schedule","Schedule"],["scheduling","Scheduling"],["data","Data"],["privacy","Privacy"]
+        ].map(([id,label]) => TAB(id, label))}
       </div>
 
       {/* ── Profile ───────────────────────────────────────────────────────── */}
@@ -246,7 +246,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
               value={matureCardThreshold}
               min={14} max={90}
               onChange={v=>set({ matureCardThreshold:v })}
-              description="FSRS stability value at which a card is considered mature."
+              description="Days between reviews at which a card is considered mature."
             />
           </div>
 
@@ -314,13 +314,13 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
         </div>
       )}
 
-      {/* ── Algorithm ────────────────────────────────────────────────────── */}
-      {activeTab === "algorithm" && (
+      {/* ── Scheduling ───────────────────────────────────────────────────── */}
+      {activeTab === "scheduling" && (
         <div className="rapp-fadein">
           <div className="rapp-card rapp-mb16">
-            <div className="rapp-sec-title">FSRS-5 parameters</div>
+            <div className="rapp-sec-title">Scheduling parameters</div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:12, lineHeight:1.6 }}>
-              FSRS-5 uses published default parameters. Nidus adjusts only the retention target based on your observed recall accuracy.
+              Nidus uses sensible default scheduling parameters and adjusts your recall target as you build up review history.
             </p>
             {schedulerParams?.params ? (
               <div style={{ fontSize:12, color:C.textSec, fontFamily:"monospace", background:C.bg, borderRadius:8, padding:"10px 14px", lineHeight:2, wordBreak:"break-all" }}>
@@ -351,7 +351,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
               <div className="rapp-card rapp-mb16">
                 <div className="rapp-sec-title">Target retention</div>
                 <div className="rapp-row rapp-sb rapp-mb8">
-                  <label className="rapp-label" style={{ marginBottom:0 }}>Request retention</label>
+                  <label className="rapp-label" style={{ marginBottom:0 }}>Recall target</label>
                   <span style={{ fontSize:16, fontWeight:700, color:C.accent }}>{Math.round(retentionTarget*100)}%</span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
