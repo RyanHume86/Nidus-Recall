@@ -166,6 +166,22 @@ export const useAppStore = create((set, get) => ({
     set({ deckMeta: next })
   },
 
+  deleteDeck: async (name) => {
+    const { cards, decks, deckMeta, updateCards } = get()
+    const deletedAt = new Date().toISOString()
+    const updatedCards = cards.map(c =>
+      c.deck === name ? { ...c, status: 'Deleted', deletedAt } : c
+    )
+    const updatedDecks = decks.filter(d => d !== name)
+    const { [name]: _removed, ...updatedMeta } = deckMeta
+    deckMetaSet(updatedMeta)
+    set({ cards: updatedCards, decks: updatedDecks, deckMeta: updatedMeta })
+    await Promise.all([
+      updateCards(updatedCards),
+      storage.deleteDeck(name).catch(() => {}),
+    ])
+  },
+
   createSampleDeck: async () => {
     const { cards, decks, updateCards } = get()
     const deckName = 'Common Pharmacology: Essentials'

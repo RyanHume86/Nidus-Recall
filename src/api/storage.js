@@ -73,6 +73,19 @@ export const ensureDeck = async (name) => {
   return p
 }
 
+/**
+ * Delete a deck entity from the backend and remove it from the local lookup maps.
+ * Card soft-deletion is handled separately by the caller via syncCards.
+ */
+export const deleteDeck = async (name) => {
+  requireAuth('delete deck')
+  const deckId = deckNameToId.get(name)
+  if (!deckId) return
+  await base44.entities.Deck.delete(deckId)
+  deckNameToId.delete(name)
+  deckPending.delete(name)
+}
+
 // ── Entity to app object mapping ───────────────────────────────────────────────
 
 const idToName = () => new Map([...deckNameToId.entries()].map(([n, id]) => [id, n]))
@@ -289,7 +302,17 @@ export const loadAll = async () => {
     userSchedulerParamsId = paramRecords[0].id
   }
 
-  return { cards, deckNames, log, deckParentMap: new Map(deckParentMapMemo), hasMore }
+  // Purge soft-deleted cards older than 30 days from the in-memory set.
+  // Excluded cards stay in entityIdMap so the next syncCards call will
+  // hard-delete them from the backend.
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const liveCards = cards.filter(c => {
+    if (c.status !== 'Deleted') return true
+    if (!c.deletedAt) return false
+    return new Date(c.deletedAt).getTime() > thirtyDaysAgo
+  })
+
+  return { cards: liveCards, deckNames, log, deckParentMap: new Map(deckParentMapMemo), hasMore }
 }
 
 /**
