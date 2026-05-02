@@ -72,7 +72,7 @@ export const fitSchedulerParams = (allCards, currentRetentionTarget = 0.9) => {
   }
 }
 
-export const isActive = c => c.status !== 'Parked' && c.status !== 'Archived'
+export const isActive = c => c.status !== 'Parked' && c.status !== 'Archived' && c.status !== 'Deleted'
 
 const todayStr = () => {
   const d = new Date()

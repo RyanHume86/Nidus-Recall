@@ -14,6 +14,7 @@ import { AnchorToggle } from "@/components/AnchorToggle"
 import { CardPicker } from "@/components/CardPicker"
 import { ImageUpload } from "@/components/cards/ImageUpload"
 import { EditCardModal } from "@/modals/EditCardModal"
+import { DeleteDeckModal } from "@/modals/DeleteDeckModal"
 import { ContentTypeChips, readLastContentType } from "@/components/ContentTypeChips"
 import { EmptyState } from "@/components/EmptyState"
 import { CardSkeleton } from "@/components/CardSkeleton"
@@ -25,7 +26,7 @@ const SORT_OPTIONS = [
   { value: "most-lapsed", label: "Most lapsed" },
 ]
 
-export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck, cardsLoading = false, deckMeta = {} }) {
+export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck, onDeleteDeck, cardsLoading = false, deckMeta = {} }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:readLastContentType(), stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic")
 
@@ -51,6 +52,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   const [saved, setSaved]         = useState(false)
   const [showDeckMenu, setShowDeckMenu] = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  const [showDeleteDeck, setShowDeleteDeck] = useState(false)
   const [quickAdd, setQuickAdd]   = useState(false)
   const [qaFront, setQaFront]     = useState("")
   const [qaBack, setQaBack]       = useState("")
@@ -309,6 +311,17 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
       {/* Mobile modal for edit */}
       {mobileModalCard && <EditCardModal card={mobileModalCard} cards={cards} onUpdateCards={onUpdateCards} decks={decks} onClose={()=>setMobileModalCard(null)} onSaveHistory={storage.saveCardHistory} />}
 
+      {/* Delete deck modal */}
+      {showDeleteDeck && (
+        <DeleteDeckModal
+          deckName={deckName}
+          cardCount={cards.filter(c => c.deck === deckName && c.status !== 'Deleted').length}
+          activeReviewCount={cards.filter(c => c.deck === deckName && c.status === 'Active' && c.nextReview).length}
+          onConfirm={async () => { await onDeleteDeck(deckName); setShowDeleteDeck(false); onBack() }}
+          onClose={() => setShowDeleteDeck(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="rapp-row rapp-sb rapp-mb24">
         <div className="rapp-row rapp-gap8">
@@ -351,6 +364,16 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
                   onMouseEnter={e=>e.currentTarget.style.background=C.surface}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                   Archive deck
+                </div>
+              )}
+              {onDeleteDeck && (
+                <div
+                  data-testid="deck-menu-delete"
+                  onClick={()=>{ setShowDeckMenu(false); setShowDeleteDeck(true) }}
+                  style={{ padding:"9px 14px", fontSize:13, cursor:"pointer", borderRadius:8, color:C.again, transition:"background 0.1s", marginTop:2 }}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.againBg}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  Delete deck
                 </div>
               )}
             </div>

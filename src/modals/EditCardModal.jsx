@@ -66,13 +66,14 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
   }
   const handleDelete = async () => {
     const deletedId = card.id
-    const updated = cards
-      .filter(c => c.id !== deletedId)
-      .map(c => ({
-        ...c,
-        connects_to: (c.connects_to || []).filter(id => id !== deletedId),
-        prerequisite_card_id: c.prerequisite_card_id === deletedId ? null : c.prerequisite_card_id,
-      }))
+    const deletedAt = new Date().toISOString()
+    const updated = cards.map(c => c.id === deletedId
+      ? { ...c, status: 'Deleted', deletedAt }
+      : {
+          ...c,
+          connects_to: (c.connects_to || []).filter(id => id !== deletedId),
+          prerequisite_card_id: c.prerequisite_card_id === deletedId ? null : c.prerequisite_card_id,
+        })
     await onUpdateCards(updated); onClose()
   }
   const handleArchive = async () => {
