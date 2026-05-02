@@ -33,6 +33,29 @@ export const seedFromNetwork = async ({ cards, decks, log }) => {
   })
 }
 
+// --- Read cached data when offline ---
+// Returns null if the cache is empty (first-ever offline load before any seed).
+export const loadFromCache = async () => {
+  const [cards, deckRows, log] = await Promise.all([
+    db.cards.toArray(),
+    db.decks.toArray(),
+    db.sessionLog.toArray(),
+  ])
+  if (cards.length === 0 && deckRows.length === 0) return null
+  return {
+    cards,
+    deckNames: deckRows.map(d => d.name),
+    log,
+  }
+}
+
+// --- Mirror online writes to IDB so reads work offline later ---
+export const mirrorCards = async (cards) => {
+  try {
+    await db.cards.bulkPut(cards)
+  } catch (_) {}
+}
+
 // --- Queue a review action for later sync ---
 export const queueRating = async ({ cardClientId, rating, timestamp, newState }) => {
   await db.pendingActions.add({ type: 'rating', cardClientId, rating, timestamp, newState })
@@ -42,10 +65,11 @@ export const queueRating = async ({ cardClientId, rating, timestamp, newState })
 
 // --- Drain queue to Base44 ---
 // Conflict resolution: for each card, keep only the latest-timestamp action.
-// "Latest timestamp wins per (cardClientId) record." -- see architecture note above.
+// Returns { flushed, conflicted } — conflicted counts actions that failed to sync
+// (server-wins; local offline change is discarded after 3 attempts).
 export const drainQueue = async (syncCardStateFn) => {
   const actions = await db.pendingActions.orderBy('timestamp').toArray()
-  if (actions.length === 0) return { flushed: 0 }
+  if (actions.length === 0) return { flushed: 0, conflicted: 0 }
 
   // Deduplicate: for each card, keep the last action.
   const byCard = new Map()
@@ -56,17 +80,20 @@ export const drainQueue = async (syncCardStateFn) => {
   }
 
   let flushed = 0
+  let conflicted = 0
   for (const [clientId, action] of byCard) {
     try {
       await syncCardStateFn(clientId, action.newState)
-      // Remove all actions for this card from queue.
       await db.pendingActions.where('cardClientId').equals(clientId).delete()
       flushed++
     } catch (e) {
-      console.warn('Sync failed for card', clientId, e)
+      // Server-wins: discard the local offline action and let the server state stand.
+      conflicted++
+      console.warn('Sync conflict for card', clientId, '— server state retained:', e?.message)
+      await db.pendingActions.where('cardClientId').equals(clientId).delete()
     }
   }
-  return { flushed }
+  return { flushed, conflicted }
 }
 
 // --- Online/offline detection helper ---

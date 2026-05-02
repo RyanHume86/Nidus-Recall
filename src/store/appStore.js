@@ -68,6 +68,7 @@ export const useAppStore = create((set, get) => ({
       if (!_pendingCards) return
       try {
         await withRetry(() => storage.syncCards(_pendingCards), 3, 500)
+        offlineStore.mirrorCards(_pendingCards).catch(() => {})
         markSaved()
       } catch {
         const key = saveDraft(_pendingCards)
@@ -322,6 +323,21 @@ export const useAppStore = create((set, get) => ({
         })()
       }
     } catch {
+      // Network unavailable — attempt to boot from IndexedDB cache.
+      try {
+        const cached = await offlineStore.loadFromCache()
+        if (cached) {
+          set({
+            cards: cached.cards,
+            log: cached.log,
+            decks: [...new Set(cached.deckNames)],
+            cardsFullyLoaded: true,
+            ready: true,
+          })
+          get().initDrafts()
+          return
+        }
+      } catch (_) {}
       set({ ready: true, cardsFullyLoaded: true })
     }
   },
