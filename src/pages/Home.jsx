@@ -312,19 +312,19 @@ export default function Home() {
               <span>Offline: reviews will sync when reconnected.</span>
             </div>
           )}
-          {!installPromptDismissed && sessionsCompleted >= 1 && isInstallable() && !inSession && (
-            <div className="nid-install-prompt rapp-fadein" style={{ maxWidth:520 }}>
+          {!installPromptDismissed && sessionsCompleted >= 3 && isInstallable() && !inSession && (
+            <div data-testid="install-prompt" className="nid-install-prompt rapp-fadein" style={{ maxWidth:520 }}>
               <span style={{ flex:1, lineHeight:1.55 }}>Add Nidus Recall to your home screen for quick daily access.</span>
               <button className="rapp-btn rapp-btn-primary" style={{ padding:"7px 14px", fontSize:13, flexShrink:0 }}
                 onClick={async () => {
                   await triggerInstallPrompt()
                   setInstallPromptDismissed(true)
-                  localStorage.setItem('nidus-install-prompt-dismissed', 'true')
+                  localStorage.setItem('nidus-install-prompt-dismissed', Date.now().toString())
                 }}>Add</button>
               <button className="rapp-btn rapp-btn-ghost" style={{ padding:"7px 12px", fontSize:13, flexShrink:0 }}
                 onClick={() => {
                   setInstallPromptDismissed(true)
-                  localStorage.setItem('nidus-install-prompt-dismissed', 'true')
+                  localStorage.setItem('nidus-install-prompt-dismissed', Date.now().toString())
                 }}>Not now</button>
             </div>
           )}

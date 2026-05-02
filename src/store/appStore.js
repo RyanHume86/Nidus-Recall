@@ -32,10 +32,12 @@ export const useAppStore = create((set, get) => ({
 
   // ── PWA / network ────────────────────────────────────────────────────────────
   isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
-  installPromptDismissed:
-    typeof localStorage !== 'undefined'
-      ? localStorage.getItem('nidus-install-prompt-dismissed') === 'true'
-      : false,
+  // Dismissed if a timestamp is stored and it's within the last 30 days.
+  installPromptDismissed: (() => {
+    if (typeof localStorage === 'undefined') return false
+    const ts = parseInt(localStorage.getItem('nidus-install-prompt-dismissed') || '0', 10)
+    return ts > 0 && Date.now() - ts < 30 * 24 * 60 * 60 * 1000
+  })(),
 
   // ── Drafts (unsaved work from failed syncs) ───────────────────────────────────
   pendingDrafts: [],
