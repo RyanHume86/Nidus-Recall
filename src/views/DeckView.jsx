@@ -204,13 +204,14 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
               <div style={{ fontSize:13, fontWeight:500, color:form.stakesFlag?C.accent:C.text }}>Clinically critical</div>
               <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card: prioritised when study time is short.</div>
             </div>
-            <div role="switch" aria-checked={form.stakesFlag}
+            <button type="button" role="switch" aria-checked={form.stakesFlag} aria-label="Clinically critical"
               onClick={()=>setForm(f=>({...f,stakesFlag:!f.stakesFlag}))}
               style={{ width:40, height:22, borderRadius:11, cursor:"pointer", flexShrink:0, marginTop:2,
-                background:form.stakesFlag?C.accent:C.elevated, position:"relative", transition:"background 0.2s" }}>
+                background:form.stakesFlag?C.accent:C.elevated, position:"relative", transition:"background 0.2s",
+                border:"none", padding:0 }}>
               <div style={{ position:"absolute", top:3, left:form.stakesFlag?21:3, width:16, height:16, borderRadius:8,
                 background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
-            </div>
+            </button>
           </div>
         </div>
         <div className="rapp-mb12">
@@ -221,12 +222,12 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
         </div>
         {deckCards.length > 0 && (<>
           <div className="rapp-mb12">
-            <div className="nid-note-toggle" onClick={()=>setShowConnects(o=>!o)}>
+            <button type="button" className="nid-note-toggle" aria-expanded={showConnects} onClick={()=>setShowConnects(o=>!o)}>
               {Ico.chevron(13, showConnects)}
               <span>Connects to</span>
               <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-              {form.connects_to.length > 0 && !showConnects && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>● {form.connects_to.length}</span>}
-            </div>
+              {form.connects_to.length > 0 && !showConnects && <span aria-label={`${form.connects_to.length} linked`} style={{ fontSize:11, color:C.accent, marginLeft:6 }}>● {form.connects_to.length}</span>}
+            </button>
             {showConnects && (
               <div className="rapp-fadein" style={{ marginTop:8 }}>
                 <CardPicker allCards={deckCards} value={form.connects_to} onChange={v=>setForm(f=>({...f,connects_to:v}))} mode="multi" placeholder="Search cards to link..." />
@@ -234,12 +235,12 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             )}
           </div>
           <div className="rapp-mb16">
-            <div className="nid-note-toggle" onClick={()=>setShowPrereq(o=>!o)}>
+            <button type="button" className="nid-note-toggle" aria-expanded={showPrereq} onClick={()=>setShowPrereq(o=>!o)}>
               {Ico.chevron(13, showPrereq)}
               <span>Requires (prerequisite)</span>
               <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-              {form.prerequisite_card_id && !showPrereq && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
-            </div>
+              {form.prerequisite_card_id && !showPrereq && <span aria-label="Prerequisite set" style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
+            </button>
             {showPrereq && (
               <div className="rapp-fadein" style={{ marginTop:8 }}>
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:8, lineHeight:1.6 }}>This card should only be reviewed after:</p>
@@ -495,7 +496,7 @@ function CardList({ filtered, editCard, onCardClick, onArchiveCard, isArch, isLe
           <div className="nid-card-row-front">{front80}</div>
           <div className="nid-card-row-meta">
             {c.contentType && <span className="nid-ct-chip" style={{ marginBottom:0, fontSize:10, padding:"1px 7px" }}>{c.contentType}</span>}
-            {c.stakes_flag && <span title="High-stakes" style={{ color:C.accent, fontSize:13 }}>★</span>}
+            {c.stakes_flag && <span role="img" aria-label="High-stakes card" title="High-stakes" style={{ color:C.accent, fontSize:13 }}>★</span>}
             {c.lastReview && <span className="nid-card-row-date">Last: {c.lastReview}</span>}
             {c.nextReview && <span className="nid-card-row-date">Due: {c.nextReview}</span>}
             {!c.nextReview && isActive(c) && <span style={{ fontSize:11, color:C.accent, fontWeight:500 }}>New</span>}

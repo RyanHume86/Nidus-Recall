@@ -3577,12 +3577,16 @@ exports[`modal snapshots > AIDiffModal: with clinical warning 1`] = `
     style="position: fixed; inset: 0px; background: rgba(28, 40, 32, 0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 24px;"
   >
     <div
+      aria-labelledby="ai-diff-title"
+      aria-modal="true"
+      role="dialog"
       style="background: rgb(235, 240, 237); border-radius: 22px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 28px 24px; box-shadow: 0 8px 48px rgba(28,40,32,0.22);"
     >
       <div
         class="rapp-row rapp-sb rapp-mb20"
       >
         <span
+          id="ai-diff-title"
           style="font-size: 15px; font-weight: 600; color: rgb(28, 40, 32);"
         >
           Review AI suggestion
@@ -3591,7 +3595,7 @@ exports[`modal snapshots > AIDiffModal: with clinical warning 1`] = `
           aria-label="Dismiss changes"
           style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
         >
-          x
+          ×
         </button>
       </div>
       <div
@@ -3770,12 +3774,16 @@ exports[`modal snapshots > AIDiffModal: without clinical warning 1`] = `
     style="position: fixed; inset: 0px; background: rgba(28, 40, 32, 0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 24px;"
   >
     <div
+      aria-labelledby="ai-diff-title"
+      aria-modal="true"
+      role="dialog"
       style="background: rgb(235, 240, 237); border-radius: 22px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 28px 24px; box-shadow: 0 8px 48px rgba(28,40,32,0.22);"
     >
       <div
         class="rapp-row rapp-sb rapp-mb20"
       >
         <span
+          id="ai-diff-title"
           style="font-size: 15px; font-weight: 600; color: rgb(28, 40, 32);"
         >
           Review AI suggestion
@@ -3784,7 +3792,7 @@ exports[`modal snapshots > AIDiffModal: without clinical warning 1`] = `
           aria-label="Dismiss changes"
           style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
         >
-          x
+          ×
         </button>
       </div>
       <p
@@ -3952,6 +3960,9 @@ exports[`modal snapshots > CardHistoryModal: empty history 1`] = `
     style="position: fixed; inset: 0px; background: rgba(28, 40, 32, 0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 24px;"
   >
     <div
+      aria-label="Card history"
+      aria-modal="true"
+      role="dialog"
       style="background: rgb(235, 240, 237); border-radius: 22px; width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto; padding: 28px 24px; box-shadow: 0 8px 48px rgba(28,40,32,0.22);"
     >
       <div>
@@ -3967,7 +3978,7 @@ exports[`modal snapshots > CardHistoryModal: empty history 1`] = `
             aria-label="Close history"
             style="background: none; border: medium; cursor: pointer; font-size: 20px; color: rgb(74, 107, 92);"
           >
-            x
+            ×
           </button>
         </div>
         <p
@@ -3993,7 +4004,10 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
     style="position: fixed; inset: 0px; background: rgba(28, 40, 32, 0.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px;"
   >
     <div
+      aria-label="Edit card"
+      aria-modal="true"
       class="rapp-modal-inner"
+      role="dialog"
       style="background: rgb(235, 240, 237); border-radius: 22px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 28px 24px 36px; box-shadow: 0 8px 40px rgba(28,40,32,0.18);"
     >
       <div
@@ -4277,23 +4291,27 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
               High-stakes card: prioritised when study time is short.
             </div>
           </div>
-          <div
+          <button
             aria-checked="false"
+            aria-label="Clinically critical"
             role="switch"
-            style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s;"
+            style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s; border: medium; padding: 0px;"
+            type="button"
           >
             <div
               style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 8px; background: rgb(255, 255, 255); transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
             />
-          </div>
+          </button>
         </div>
       </div>
       <div
         class="rapp-mb12"
       >
         <div>
-          <div
+          <button
+            aria-expanded="true"
             class="nid-note-toggle"
+            type="button"
           >
             <svg
               fill="none"
@@ -4318,7 +4336,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
             >
               (optional)
             </span>
-          </div>
+          </button>
           <div
             class="rapp-fadein"
           >
@@ -4344,8 +4362,10 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
         class="rapp-mb12"
       >
         <div>
-          <div
+          <button
+            aria-expanded="false"
             class="nid-note-toggle"
+            type="button"
           >
             <svg
               fill="none"
@@ -4371,19 +4391,22 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
               (optional)
             </span>
             <span
+              aria-hidden="true"
               style="margin-left: auto; font-size: 12px; color: rgb(74, 107, 92); cursor: default;"
               title="Anchoring a personal memory to a card significantly improves long-term recall."
             >
               ⓘ
             </span>
-          </div>
+          </button>
         </div>
       </div>
       <div
         class="rapp-mb12"
       >
-        <div
+        <button
+          aria-expanded="false"
           class="nid-note-toggle"
+          type="button"
         >
           <svg
             fill="none"
@@ -4408,13 +4431,15 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
           >
             (optional)
           </span>
-        </div>
+        </button>
       </div>
       <div
         class="rapp-mb16"
       >
-        <div
+        <button
+          aria-expanded="false"
           class="nid-note-toggle"
+          type="button"
         >
           <svg
             fill="none"
@@ -4439,7 +4464,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
           >
             (optional)
           </span>
-        </div>
+        </button>
       </div>
       <div
         style="margin-bottom: 14px;"
@@ -4883,23 +4908,27 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                   High-stakes card: prioritised when study time is short.
                 </div>
               </div>
-              <div
+              <button
                 aria-checked="false"
+                aria-label="Clinically critical"
                 role="switch"
-                style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s;"
+                style="width: 40px; height: 22px; border-radius: 11px; cursor: pointer; flex-shrink: 0; margin-top: 2px; background: rgb(223, 232, 227); position: relative; transition: background 0.2s; border: medium; padding: 0px;"
+                type="button"
               >
                 <div
                   style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 8px; background: rgb(255, 255, 255); transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
                 />
-              </div>
+              </button>
             </div>
           </div>
           <div
             class="rapp-mb12"
           >
             <div>
-              <div
+              <button
+                aria-expanded="false"
                 class="nid-note-toggle"
+                type="button"
               >
                 <svg
                   fill="none"
@@ -4924,15 +4953,17 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                 >
                   (optional)
                 </span>
-              </div>
+              </button>
             </div>
           </div>
           <div
             class="rapp-mb12"
           >
             <div>
-              <div
+              <button
+                aria-expanded="false"
                 class="nid-note-toggle"
+                type="button"
               >
                 <svg
                   fill="none"
@@ -4958,19 +4989,22 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                   (optional)
                 </span>
                 <span
+                  aria-hidden="true"
                   style="margin-left: auto; font-size: 12px; color: rgb(74, 107, 92); cursor: default;"
                   title="Anchoring a personal memory to a card significantly improves long-term recall."
                 >
                   ⓘ
                 </span>
-              </div>
+              </button>
             </div>
           </div>
           <div
             class="rapp-mb12"
           >
-            <div
+            <button
+              aria-expanded="false"
               class="nid-note-toggle"
+              type="button"
             >
               <svg
                 fill="none"
@@ -4995,13 +5029,15 @@ exports[`view snapshots > DeckView: with cards 1`] = `
               >
                 (optional)
               </span>
-            </div>
+            </button>
           </div>
           <div
             class="rapp-mb16"
           >
-            <div
+            <button
+              aria-expanded="false"
               class="nid-note-toggle"
+              type="button"
             >
               <svg
                 fill="none"
@@ -5026,7 +5062,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
               >
                 (optional)
               </span>
-            </div>
+            </button>
           </div>
           <div
             style="position: sticky; bottom: 0px; padding-top: 8px; background: inherit;"

@@ -56,14 +56,15 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
 
   const set = (patch) => onUpdateSettings({ ...(settings||{}), ...patch })
 
-  const Toggle = ({ checked, onChange, testId }) => (
-    <div role="switch" aria-checked={checked} data-testid={testId}
+  const Toggle = ({ checked, onChange, testId, label }) => (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} data-testid={testId}
       onClick={onChange}
       style={{ width:40, height:22, borderRadius:11, cursor:"pointer", flexShrink:0, marginLeft:16,
-        background:checked?C.accent:C.elevated, position:"relative", transition:"background 0.2s" }}>
+        background:checked?C.accent:C.elevated, position:"relative", transition:"background 0.2s",
+        border:"none", padding:0 }}>
       <div style={{ position:"absolute", top:3, left:checked?21:3, width:16, height:16, borderRadius:8,
         background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
-    </div>
+    </button>
   )
 
   const SliderField = ({ label, value, min, max, step=1, onChange, description, color }) => (
@@ -199,7 +200,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   Shows a focused-session checkbox on the study start screen.
                 </p>
               </div>
-              <Toggle checked={attentionDeclarationEnabled} testId="toggle-attention"
+              <Toggle checked={attentionDeclarationEnabled} testId="toggle-attention" label="Focus mode prompt"
                 onChange={()=>set({ attentionDeclarationEnabled:!attentionDeclarationEnabled })} />
             </div>
 
@@ -210,7 +211,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   After high-intensity sessions, prompts you to note friction or take a break.
                 </p>
               </div>
-              <Toggle checked={intensityPromptsEnabled} testId="toggle-intensity-prompts"
+              <Toggle checked={intensityPromptsEnabled} testId="toggle-intensity-prompts" label="Intensity check-ins"
                 onChange={()=>set({ intensityPromptsEnabled:!intensityPromptsEnabled })} />
             </div>
 
@@ -236,7 +237,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   Mature cards show an expanded prompt encouraging connected recall.
                 </p>
               </div>
-              <Toggle checked={matureModeEnabled} testId="toggle-mature-mode"
+              <Toggle checked={matureModeEnabled} testId="toggle-mature-mode" label="Mature cards in free study"
                 onChange={()=>set({ matureModeEnabled:!matureModeEnabled })} />
             </div>
             <SliderField
@@ -280,7 +281,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                 <label className="rapp-label" style={{ marginBottom:0 }}>Sleep review reminder</label>
                 <p style={{ fontSize:12, color:C.textMut, marginTop:4, lineHeight:1.6 }}>Banner on Library during review window.</p>
               </div>
-              <Toggle checked={sleepBannerEnabled}
+              <Toggle checked={sleepBannerEnabled} label="Sleep reminder banner"
                 onChange={()=>set({ sleepBannerEnabled:!sleepBannerEnabled })} />
             </div>
 
@@ -291,7 +292,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   Pauses new cards during the pre-bedtime window (Diekelmann and Born, 2010).
                 </p>
               </div>
-              <Toggle checked={sleepPrefersReviews}
+              <Toggle checked={sleepPrefersReviews} label="Prefer reviews before bed"
                 onChange={()=>set({ sleepPrefersReviews:!sleepPrefersReviews })} />
             </div>
           </div>
@@ -305,7 +306,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   Warns when session patterns suggest study fatigue over the last 14 days.
                 </p>
               </div>
-              <Toggle checked={fatigueAlertsEnabled} testId="toggle-fatigue"
+              <Toggle checked={fatigueAlertsEnabled} testId="toggle-fatigue" label="Fatigue alerts"
                 onChange={()=>set({ fatigueAlertsEnabled:!fatigueAlertsEnabled })} />
             </div>
           </div>
