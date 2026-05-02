@@ -17,6 +17,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
   const [newDeckName,    setNewDeckName]    = useState("")
   const [bannerDismissed, setBannerDismissed] = useState(sleepBannerIsDismissed)
   const [activeTag,      setActiveTag]      = useState(null)
+  const [flatView,       setFlatView]       = useState(false)
   const newDeckRef = useRef(null)
   const deckListRef = useRef(null)
 
@@ -45,11 +46,11 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       .filter(Boolean)
   }, [cards, deckStats])
 
-  // All unique tags across every card, sorted alphabetically
+  // All unique tags across every card, sorted by card count descending
   const allTagsInLibrary = useMemo(() => {
-    const set = new Set()
-    for (const card of cards) for (const t of (card.tags || [])) set.add(t)
-    return [...set].sort()
+    const counts = new Map()
+    for (const card of cards) for (const t of (card.tags || [])) counts.set(t, (counts.get(t) || 0) + 1)
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   }, [cards])
 
   // Map: deckName → Set of tags on its cards (for tag filter)
@@ -133,7 +134,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
       {allTagsInLibrary.length > 0 && (
         <div className="rapp-mb16" data-testid="tag-filter-bar" style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
           <span style={{ fontSize:11, fontWeight:600, color:C.textMut, letterSpacing:'0.06em', textTransform:'uppercase', marginRight:2 }}>Tags</span>
-          {allTagsInLibrary.map(tag => (
+          {allTagsInLibrary.map(([tag, count]) => (
             <button
               key={tag}
               data-testid={`tag-filter-${tag}`}
@@ -144,9 +145,11 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
                 background: activeTag === tag ? C.accent : 'transparent',
                 color: activeTag === tag ? '#fff' : C.textSec,
                 transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+                display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
               {tag}
+              <span style={{ fontSize:10, opacity:0.7, fontWeight:600 }}>{count}</span>
             </button>
           ))}
           {activeTag && (
@@ -180,7 +183,21 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
               </div>
             </div>
           )}
-          <DeckList visible={visible} deckParentMap={deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <span style={{ fontSize:11, fontWeight:600, color:C.textMut, letterSpacing:"0.06em", textTransform:"uppercase" }}>
+              {activeTag ? `Tagged: ${activeTag}` : "All decks"}
+            </span>
+            {deckParentMap?.size > 0 && (
+              <button
+                data-testid="flat-tree-toggle"
+                onClick={() => setFlatView(v=>!v)}
+                style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:8, padding:"3px 9px", fontSize:11, cursor:"pointer", color:C.textMut, fontFamily:"inherit" }}
+              >
+                {flatView ? "Tree" : "Flat"}
+              </button>
+            )}
+          </div>
+          <DeckList visible={visible} deckParentMap={flatView ? new Map() : deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
         </>
       )}
 

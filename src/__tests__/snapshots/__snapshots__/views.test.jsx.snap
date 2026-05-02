@@ -5458,15 +5458,25 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
       </span>
       <button
         data-testid="tag-filter-diabetes"
-        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s;"
+        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s; display: flex; align-items: center; gap: 5px;"
       >
         diabetes
+        <span
+          style="font-size: 10px; opacity: 0.7; font-weight: 600;"
+        >
+          2
+        </span>
       </button>
       <button
         data-testid="tag-filter-pharm"
-        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s;"
+        style="padding: 3px 10px; font-size: 12px; border-radius: 20px; cursor: pointer; font-family: inherit; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); transition: background 0.12s, color 0.12s, border-color 0.12s; display: flex; align-items: center; gap: 5px;"
       >
         pharm
+        <span
+          style="font-size: 10px; opacity: 0.7; font-weight: 600;"
+        >
+          2
+        </span>
       </button>
     </div>
     <div
@@ -5535,6 +5545,15 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
           </div>
         </div>
       </div>
+    </div>
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"
+    >
+      <span
+        style="font-size: 11px; font-weight: 600; color: rgb(74, 107, 92); letter-spacing: 0.06em; text-transform: uppercase;"
+      >
+        All decks
+      </span>
     </div>
     <div
       class="rapp-col"
