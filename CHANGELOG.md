@@ -1,3 +1,62 @@
+## Session 14 (2026-05-02) — v0.7.0
+
+### Bug fixes, UX cleanup, and safeguards
+
+Six PRs shipping across eight workstream items.
+
+#### Item 4 — CI test failures fixed (PR #56)
+
+Five failing tests on CI runners resolved:
+
+- `LegalPage` tests were synchronous but the component had been refactored to fetch content via `useEffect`. Tests now mock `globalThis.fetch` and use `waitFor`.
+- Snapshot timezone drift (`02:00` locally vs `00:00` on CI) fixed by adding `env: { TZ: 'UTC' }` to `vite.config.js` test block; snapshots regenerated.
+
+#### Item 1 — Deck and card deletion with safeguards (PR #57)
+
+- Cards use soft-delete: deleted cards gain `status: 'Deleted'` and a `deletedAt` timestamp. Cards deleted more than 30 days ago are purged from `loadAll`.
+- `DeleteDeckModal` component: shows deck name, card count, and active review count. A checkbox must be ticked before the delete button enables.
+- `appStore.deleteDeck` action soft-deletes all cards in the deck and removes the deck from state and `deckMetaSet`.
+- `src/api/storage.js`: `deleteDeck(name)` export added.
+
+#### Item 3 — Card type help text and Image Occlusion rename (PR #58)
+
+- "Occlusion" button renamed to "Image Occlusion" in the Add Card panel.
+- Contextual help text appears below the card-type selector for Basic, Cloze, and Image Occlusion modes.
+
+#### Item 6 — Privacy gate re-prompt race condition fixed (PR #59)
+
+- `agreementAcceptedLocally` state flag prevents the agreement gate re-appearing when the API response races the local write.
+- `AGREEMENT_VERSION` constant enables automatic re-prompting when the policy version changes.
+
+#### Item 7 — Maximum interval cap at 365 days (PR #60)
+
+- `MAX_INTERVAL_CAP = 365` constant exported from `src/lib/settings.js`.
+- `settingsGet()` migrates any stored value above 365 down to 365.
+- `SettingsView` slider and number input bounded to `[30, 365]`.
+- `SessionView` enforces the cap at scheduling time (both the stored interval and the button-label preview).
+
+#### Item 5 — Plain-language copy rewrite (PR #61)
+
+- Settings "Algorithm" tab renamed to "Scheduling".
+- "FSRS-5 parameters" section renamed to "Scheduling parameters".
+- "Request retention" label renamed to "Recall target".
+- "FSRS stability value at which a card is considered mature" rewritten as "Days between reviews at which a card is considered mature".
+- StatsView: "How FSRS scheduling works" becomes "How scheduling works"; "The algorithm estimates" becomes "Nidus estimates"; "The algorithm is learning you" becomes "Nidus is learning your memory patterns".
+- StudySelectView: "FSRS scheduling" sub-label becomes "Smart scheduling".
+
+#### Item 8 — Notion and Excel import guides (PR #62)
+
+- Collapsible "How to set up" guides added to both the Notion and Excel tabs in the Import & Export panel.
+- Notion guide: step-by-step integration setup, database connection, and required column list.
+- Excel guide: required column list, supported formats, and a link to a downloadable CSV template.
+- `public/nidus-recall-template.csv` committed with example cards and all supported column headers.
+
+#### Item 2 — Outstanding
+
+Deletion of the deck named "Happy" is a manual UI action that cannot be performed from the dev environment and must be done by the user in the live app.
+
+---
+
 ## Session 13 (2026-04-27)
 
 ### Brand, onboarding & voice
