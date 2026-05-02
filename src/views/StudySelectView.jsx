@@ -10,11 +10,13 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   const [interleavedDecks, setInterleavedDecks] = useState([])
   const [focused,        setFocused]        = useState(false)
   const [stakesOnly,     setStakesOnly]     = useState(false)
-  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30 } = settings||{}
+  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30, dailyNewCardLimit=20, dailyReviewLimit=200 } = settings||{}
+  const effectiveNewCap    = Math.min(newCardCap, dailyNewCardLimit)
+  const effectiveReviewCap = Math.min(reviewCap, dailyReviewLimit)
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
-  const dueCount  = getDueWithCatchup(filtered, reviewCap, catchupDays, cards).length
-  const newCount  = getNew(filtered).slice(0, newCardCap).length
+  const dueCount  = getDueWithCatchup(filtered, effectiveReviewCap, catchupDays, cards).length
+  const newCount  = getNew(filtered).slice(0, effectiveNewCap).length
   const freeCount = filtered.filter(isActive).length
   // sleepWindowActive: true when sleepPrefersReviews is on AND we are in the sleep window.
   // When active, new cards are capped to 0 for this session.
@@ -22,7 +24,7 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   const matureCount   = matureModeEnabled ? filtered.filter(c => isActive(c) && c.stability != null && c.stability >= matureCardThreshold).length : 0
   const stakesDueCount = getStakesDue(filtered, cards).length
   const effectiveNewCount = sleepWindowActive ? 0 : newCount
-  const canStart  = mode==="srs" ? (dueCount>0||effectiveNewCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), reviewCap, catchupDays, cards).length > 0) : freeCount>0
+  const canStart  = mode==="srs" ? (dueCount>0||effectiveNewCount>0) : mode==="interleaved" ? (getDueWithCatchup(cards.filter(c=>interleavedDecks.length===0||interleavedDecks.includes(c.deck)), effectiveReviewCap, catchupDays, cards).length > 0) : freeCount>0
 
   return (
     <div className="rapp-wrap rapp-fadein">

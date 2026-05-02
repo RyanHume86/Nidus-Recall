@@ -315,7 +315,8 @@ describe('Flow 11 — SettingsView: study tab renders settings controls', () => 
     )
     // "Settings" heading always present
     expect(screen.getByText('Settings')).toBeInTheDocument()
-    // Study tab is active by default and shows the new-card cap label
+    // Navigate to Schedule tab which shows daily limits
+    fireEvent.click(screen.getByText('Schedule'))
     expect(screen.getByText(/new cards per day/i)).toBeInTheDocument()
   })
 })
