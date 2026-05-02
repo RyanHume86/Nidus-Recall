@@ -1,3 +1,15 @@
+## Session 15 (2026-05-02)
+
+### POPIA notice moved from front page into Terms of Use (PR #64)
+
+- Removed the POPIA commitment paragraph from the `AgreementGate` first-load modal.
+- Added a new section 7 "POPIA and Personal Information" to `src/content/legal/terms.md` (Version 1.1, effective 2 May 2026). The section covers: data minimisation, no third-party sale, user rights (access/correct/delete via Settings), cross-border transfer basis under POPIA Section 72, and the Information Regulator complaint route.
+- `AGREEMENT_VERSION` bumped from `v1.0` to `v1.1`. Any user whose stored version is `v1.0` (or null) will be re-prompted on next load -- correct behaviour when legal content materially changes.
+- Existing sections 7 (Governing Law) and 8 (Changes) renumbered to 8 and 9.
+- `popia.test.jsx` version assertion updated; `consent-persist.test.js` needed no changes (it imports the constant rather than hard-coding a string).
+
+---
+
 ## Session 14 (2026-05-02) — v0.7.0
 
 ### Bug fixes, UX cleanup, and safeguards
