@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-/* eslint-env node */
+/* global process */
 import { isInstallable, triggerInstallPrompt } from '@/lib/pwa'
 
 // ── Install prompt dismissal (30-day logic) ────────────────────────────────

@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Suppress SW SecurityErrors before any other listener (including vite-plugin) can see them.
+      window.addEventListener('unhandledrejection', function(e) {
+        var r = e.reason;
+        if (r === undefined || r === null) { e.preventDefault(); return; }
+        if (r instanceof DOMException || r.name === 'SecurityError') { e.preventDefault(); return; }
+        if (typeof r.message !== 'string') { e.preventDefault(); }
+      }, true);
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
