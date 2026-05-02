@@ -6041,12 +6041,17 @@ exports[`view snapshots > SettingsView 1`] = `
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: rgb(223, 232, 227); color: rgb(28, 40, 32); box-shadow: 0 1px 4px rgba(28,40,32,0.08); transition: all 0.14s;"
       >
-        Study
+        Profile
       </button>
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
       >
-        Sleep
+        Schedule
+      </button>
+      <button
+        style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
+      >
+        Algorithm
       </button>
       <button
         style="padding: 7px 14px; border-radius: 8px; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; background: transparent; color: rgb(74, 107, 92); box-shadow: none; transition: all 0.14s;"
@@ -6068,10 +6073,10 @@ exports[`view snapshots > SettingsView 1`] = `
         <div
           class="rapp-sec-title"
         >
-          About you
+          Profile
         </div>
         <div
-          class="rapp-mb4"
+          class="rapp-mb16"
         >
           <label
             class="rapp-label"
@@ -6080,15 +6085,15 @@ exports[`view snapshots > SettingsView 1`] = `
           </label>
           <input
             class="rapp-input"
+            data-testid="first-name-input"
             maxlength="60"
             placeholder="Used for greetings"
-            style="width: 100%;"
             value=""
           />
           <p
             style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
           >
-            Just your first name. Saved locally, never shared.
+            Saved locally. Not shared with anyone.
           </p>
         </div>
       </div>
@@ -6098,175 +6103,124 @@ exports[`view snapshots > SettingsView 1`] = `
         <div
           class="rapp-sec-title"
         >
-          Daily limits
+          Time zone
         </div>
-        <div
-          class="rapp-mb20"
+        <select
+          class="rapp-select"
+          data-testid="timezone-select"
         >
-          <div
-            class="rapp-row rapp-sb rapp-mb8"
+          <option
+            value="Africa/Johannesburg"
           >
-            <label
-              class="rapp-label"
-              style="margin-bottom: 0px;"
-            >
-              New cards per day
-            </label>
-            <span
-              style="font-size: 16px; font-weight: 700; color: rgb(28, 40, 32);"
-            >
-              15
-            </span>
-          </div>
-          <div
-            style="display: flex; align-items: center; gap: 8px;"
+            Africa/Johannesburg
+          </option>
+          <option
+            value="Africa/Nairobi"
           >
-            <input
-              class="rapp-slider"
-              max="100"
-              min="5"
-              step="5"
-              style="flex: 1 1 0%;"
-              type="range"
-              value="15"
-            />
-            <input
-              class="rapp-input"
-              max="100"
-              min="5"
-              step="5"
-              style="width: 56px; text-align: right;"
-              type="number"
-              value="15"
-            />
-          </div>
-          <p
-            style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
+            Africa/Nairobi
+          </option>
+          <option
+            value="Africa/Lagos"
           >
-            Start at 15 and raise once a sustainable routine is established. Reference: Wozniak, supermemo.com graduated introduction guidelines.
-          </p>
-        </div>
-        <div
-          class="rapp-mb20"
+            Africa/Lagos
+          </option>
+          <option
+            value="America/New_York"
+          >
+            America/New York
+          </option>
+          <option
+            value="America/Chicago"
+          >
+            America/Chicago
+          </option>
+          <option
+            value="America/Denver"
+          >
+            America/Denver
+          </option>
+          <option
+            value="America/Los_Angeles"
+          >
+            America/Los Angeles
+          </option>
+          <option
+            value="America/Sao_Paulo"
+          >
+            America/Sao Paulo
+          </option>
+          <option
+            value="Europe/London"
+          >
+            Europe/London
+          </option>
+          <option
+            value="Europe/Paris"
+          >
+            Europe/Paris
+          </option>
+          <option
+            value="Europe/Berlin"
+          >
+            Europe/Berlin
+          </option>
+          <option
+            value="Europe/Moscow"
+          >
+            Europe/Moscow
+          </option>
+          <option
+            value="Asia/Dubai"
+          >
+            Asia/Dubai
+          </option>
+          <option
+            value="Asia/Kolkata"
+          >
+            Asia/Kolkata
+          </option>
+          <option
+            value="Asia/Singapore"
+          >
+            Asia/Singapore
+          </option>
+          <option
+            value="Asia/Tokyo"
+          >
+            Asia/Tokyo
+          </option>
+          <option
+            value="Asia/Shanghai"
+          >
+            Asia/Shanghai
+          </option>
+          <option
+            value="Australia/Sydney"
+          >
+            Australia/Sydney
+          </option>
+          <option
+            value="Pacific/Auckland"
+          >
+            Pacific/Auckland
+          </option>
+          <option
+            value="UTC"
+          >
+            UTC
+          </option>
+        </select>
+        <p
+          style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
         >
-          <div
-            class="rapp-row rapp-sb rapp-mb8"
-          >
-            <label
-              class="rapp-label"
-              style="margin-bottom: 0px;"
-            >
-              Reviews per day
-            </label>
-            <span
-              style="font-size: 16px; font-weight: 700; color: rgb(28, 40, 32);"
-            >
-              100
-            </span>
-          </div>
-          <div
-            style="display: flex; align-items: center; gap: 8px;"
-          >
-            <input
-              class="rapp-slider"
-              max="500"
-              min="20"
-              step="10"
-              style="flex: 1 1 0%;"
-              type="range"
-              value="100"
-            />
-            <input
-              class="rapp-input"
-              max="500"
-              min="20"
-              step="10"
-              style="width: 56px; text-align: right;"
-              type="number"
-              value="100"
-            />
-          </div>
-          <p
-            style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
-          >
-            100 reviews per day supports a manageable workload. Reference: Anki community defaults.
-          </p>
-        </div>
-        <div>
-          <div
-            class="rapp-row rapp-sb rapp-mb8"
-          >
-            <label
-              class="rapp-label"
-              style="margin-bottom: 0px;"
-            >
-              Catch-up spread (days)
-            </label>
-            <span
-              style="font-size: 16px; font-weight: 700; color: rgb(28, 40, 32);"
-            >
-              7
-            </span>
-          </div>
-          <div
-            style="display: flex; align-items: center; gap: 8px;"
-          >
-            <input
-              class="rapp-slider"
-              max="14"
-              min="1"
-              style="flex: 1 1 0%;"
-              type="range"
-              value="7"
-            />
-            <input
-              class="rapp-input"
-              max="14"
-              min="1"
-              step="1"
-              style="width: 56px; text-align: right;"
-              type="number"
-              value="7"
-            />
-          </div>
-          <p
-            style="font-size: 12px; color: rgb(74, 107, 92); margin-top: 6px; line-height: 1.6;"
-          >
-            Overdue cards are spread across this many days to avoid overwhelming sessions.
-          </p>
-        </div>
+          Detected: 
+          Africa/Johannesburg
+          . Affects how sleep-window times are calculated.
+        </p>
       </div>
-      <div
-        style="margin-top: 4px; margin-bottom: 12px;"
-      >
-        <button
-          style="display: flex; align-items: center; gap: 6px; background: none; border: medium; cursor: pointer; font-family: inherit; font-size: 13px; color: rgb(74, 107, 92); padding: 6px 0px;"
-        >
-          <svg
-            fill="none"
-            height="12"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
-            viewBox="0 0 24 24"
-            width="12"
-          >
-            <polyline
-              points="6 9 12 15 18 9"
-            />
-          </svg>
-          <span
-            style="font-weight: 500;"
-          >
-            Advanced: adjust after you have used the app for a few weeks
-          </span>
-        </button>
-      </div>
-       
     </div>
     <div
+      data-testid="about-section"
       style="margin-top: 32px; padding-top: 16px; border-top: 1px solid rgb(207, 219, 213); text-align: center;"
     >
       <span
@@ -6274,6 +6228,14 @@ exports[`view snapshots > SettingsView 1`] = `
       >
         Nidus Recall v0.6.0
       </span>
+      <a
+        href="https://nidusrecall.com/feedback"
+        rel="noopener noreferrer"
+        style="display: block; font-size: 11px; color: rgb(45, 110, 82); margin-top: 4px; text-decoration: none;"
+        target="_blank"
+      >
+        Send feedback ↗
+      </a>
     </div>
   </div>
 </div>
