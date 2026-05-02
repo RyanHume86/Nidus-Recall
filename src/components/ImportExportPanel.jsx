@@ -14,6 +14,8 @@ const getAnkiModule = async () => {
 
 export function ImportExportPanel({ cards, decks, onImportFile, onImportCards, onExport, onImportAnki }) {
   const [tab,          setTab]         = useState("notion")
+  const [notionGuide,  setNotionGuide] = useState(false)
+  const [excelGuide,   setExcelGuide]  = useState(false)
   const [notionToken,  setNotionToken] = useState(()=>notionGet().token||"")
   const [notionDb,     setNotionDb]    = useState(()=>notionGet().db||"")
   const [notionStatus, setNotionStatus]= useState("")
@@ -152,9 +154,42 @@ export function ImportExportPanel({ cards, decks, onImportFile, onImportCards, o
 
       {tab==="notion" && (
         <div className="rapp-fadein">
-          <p style={{ fontSize:13, color:C.textSec, lineHeight:1.7, marginBottom:16 }}>
+          <p style={{ fontSize:13, color:C.textSec, lineHeight:1.7, marginBottom:8 }}>
             Sync with a Notion database. Create an <strong>Internal Integration</strong> at notion.so/profile/integrations, then add it to your database via &#8943; Connections.
           </p>
+          <div style={{ marginBottom:16 }}>
+            <button data-testid="notion-guide-toggle"
+              onClick={()=>setNotionGuide(g=>!g)}
+              style={{ background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:C.accent, padding:0, textDecoration:"underline" }}>
+              {notionGuide ? "Hide setup guide" : "How to set up Notion import"}
+            </button>
+            {notionGuide && (
+              <div data-testid="notion-guide" className="rapp-fadein" style={{ marginTop:10, fontSize:13, color:C.textSec, lineHeight:1.75, background:C.bg, borderRadius:10, padding:"12px 14px" }}>
+                <p style={{ fontWeight:600, marginBottom:6 }}>Step 1 — Create an integration</p>
+                <ol style={{ margin:"0 0 10px 18px", padding:0 }}>
+                  <li>Go to <strong>notion.so/profile/integrations</strong> and click <em>New integration</em>.</li>
+                  <li>Give it any name (e.g. "Nidus Recall"), set type to <em>Internal</em>, and save.</li>
+                  <li>Copy the <strong>Internal Integration Secret</strong> (starts with <code>secret_</code>). Paste it into the Integration token field below.</li>
+                </ol>
+                <p style={{ fontWeight:600, marginBottom:6 }}>Step 2 — Connect your database</p>
+                <ol style={{ margin:"0 0 10px 18px", padding:0 }}>
+                  <li>Open the Notion database you want to use (create a new one if needed).</li>
+                  <li>Click the <strong>&#8943;</strong> menu in the top-right, choose <em>Connections</em>, and add your integration.</li>
+                  <li>Copy the database URL from your browser&apos;s address bar and paste it into the Database ID or URL field below.</li>
+                </ol>
+                <p style={{ fontWeight:600, marginBottom:6 }}>Step 3 — Set up your database columns</p>
+                <p style={{ marginBottom:6 }}>Your Notion database needs at minimum two columns. Nidus will create any missing ones automatically on first export.</p>
+                <div style={{ fontFamily:"monospace", fontSize:12, background:C.elevated, borderRadius:6, padding:"8px 10px", marginBottom:6 }}>
+                  <div><strong>Front</strong> — Title property (the question or prompt)</div>
+                  <div><strong>Back</strong> — Text property (the answer)</div>
+                  <div><strong>Deck</strong> — Select property (which deck the card belongs to)</div>
+                  <div><strong>Content Type</strong> — Select property (Factual, Procedural, Conceptual)</div>
+                  <div><strong>Status</strong> — Select property (Active, Parked, Archived)</div>
+                </div>
+                <p>Click <strong>Test</strong> below to verify the connection, then use <strong>Import</strong> or <strong>Export</strong> to sync your cards.</p>
+              </div>
+            )}
+          </div>
           <div className="rapp-mb12">
             <label className="rapp-label">Integration token</label>
             <input className="rapp-input" type="password" placeholder="secret_..." value={notionToken}
@@ -182,9 +217,38 @@ export function ImportExportPanel({ cards, decks, onImportFile, onImportCards, o
 
       {tab==="excel" && (
         <div className="rapp-fadein">
-          <p style={{ fontSize:13, color:C.textSec, lineHeight:1.7, marginBottom:16 }}>
+          <p style={{ fontSize:13, color:C.textSec, lineHeight:1.7, marginBottom:8 }}>
             Export all cards to <strong>.xlsx</strong>. Edit in Excel or Google Sheets, then re-import. All scheduling fields are preserved.
           </p>
+          <div style={{ marginBottom:16 }}>
+            <button data-testid="excel-guide-toggle"
+              onClick={()=>setExcelGuide(g=>!g)}
+              style={{ background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:C.accent, padding:0, textDecoration:"underline" }}>
+              {excelGuide ? "Hide setup guide" : "How to import from Excel or Google Sheets"}
+            </button>
+            {excelGuide && (
+              <div data-testid="excel-guide" className="rapp-fadein" style={{ marginTop:10, fontSize:13, color:C.textSec, lineHeight:1.75, background:C.bg, borderRadius:10, padding:"12px 14px" }}>
+                <p style={{ fontWeight:600, marginBottom:6 }}>Creating cards from a spreadsheet</p>
+                <p style={{ marginBottom:8 }}>Your spreadsheet needs a header row with at least <strong>Front</strong> and <strong>Back</strong> columns. All other columns are optional.</p>
+                <div style={{ fontFamily:"monospace", fontSize:12, background:C.elevated, borderRadius:6, padding:"8px 10px", marginBottom:10 }}>
+                  <div><strong>Front</strong> &mdash; required. The question or prompt.</div>
+                  <div><strong>Back</strong> &mdash; required. The answer.</div>
+                  <div><strong>Deck</strong> &mdash; optional. Defaults to &ldquo;General&rdquo; if blank.</div>
+                  <div><strong>Content Type</strong> &mdash; optional. Factual, Procedural, or Conceptual.</div>
+                  <div><strong>Elaboration</strong> &mdash; optional. Extra context shown on the card back.</div>
+                </div>
+                <p style={{ marginBottom:8 }}>
+                  <a href="/nidus-recall-template.csv" download="nidus-recall-template.csv"
+                    style={{ color:C.accent, textDecoration:"underline" }}
+                    data-testid="excel-template-download">
+                    Download a sample template
+                  </a>
+                  {" "}to get started. Open it in Excel or Google Sheets, fill in your cards, save as .xlsx, and import below.
+                </p>
+                <p>Supported file formats: <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.ods</strong>, <strong>.csv</strong></p>
+              </div>
+            )}
+          </div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:12 }}>
             <button className="rapp-btn rapp-btn-primary" style={{ padding:"9px 18px", fontSize:13 }} onClick={exportCsv}>&#8595; Download .xlsx</button>
             <button className="rapp-btn rapp-btn-ghost"   style={{ padding:"9px 18px", fontSize:13 }} onClick={()=>csvRef.current?.click()}>&#8593; Import .xlsx</button>
