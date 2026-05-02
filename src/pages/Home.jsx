@@ -8,6 +8,7 @@ import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import * as offlineStore from "@/lib/offline-store"
 import { isInstallable, triggerInstallPrompt } from "@/lib/pwa"
+import { isUnsupportedBrowser } from "@/lib/browser-support"
 import { useAppStore } from "@/store/appStore"
 import { useAuth } from "@/lib/AuthContext"
 import NidusLogo from "@/components/NidusLogo"
@@ -299,6 +300,12 @@ export default function Home() {
         )}
 
         <div className={`rapp-main${inSession?" rapp-main-full":""}`}>
+          {isUnsupportedBrowser() && (
+            <div data-testid="unsupported-browser-banner"
+              style={{ background:"#FFF3CD", border:"1px solid #D4A820", borderRadius:12, padding:"10px 14px", marginBottom:16, maxWidth:520, fontSize:13, color:"#7a5a10", lineHeight:1.55 }}>
+              Your browser may not display Nidus Recall correctly. Please use Chrome, Edge, Firefox, or Safari 16.4 or later.
+            </div>
+          )}
           {isOffline && !inSession && (
             <div className="nid-offline-banner rapp-fadein" style={{ maxWidth:520 }}>
               <div className="nid-offline-dot" />

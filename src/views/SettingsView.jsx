@@ -490,6 +490,9 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
       {/* ── About (always visible footer) ────────────────────────────────── */}
       <div data-testid="about-section" style={{ marginTop:32, paddingTop:16, borderTop:`1px solid ${C.border}`, textAlign:"center" }}>
         <span style={{ fontSize:11, color:C.textMut }}>Nidus Recall v0.6.0</span>
+        <div style={{ fontSize:11, color:C.textMut, marginTop:2 }}>
+          Supported: Chrome 110+, Edge 110+, Firefox 110+, Safari 16.4+, Samsung Internet 21+
+        </div>
         <a href="https://nidusrecall.com/feedback" target="_blank" rel="noopener noreferrer"
           style={{ display:"block", fontSize:11, color:C.accent, marginTop:4, textDecoration:"none" }}>
           Send feedback ↗
