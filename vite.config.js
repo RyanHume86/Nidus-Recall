@@ -18,6 +18,8 @@ export default defineConfig({
     outputFile: process.env.CI ? 'test-results/junit.xml' : undefined,
     // Exclude Playwright E2E tests — they require a running browser via @playwright/test.
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
+    // Pin timezone to UTC so snapshot assertions are identical on all machines and CI.
+    env: { TZ: 'UTC' },
   },
   // assetsInclude: include .wasm so Vite handles sql.js WASM correctly.
   assetsInclude: ['**/*.wasm'],

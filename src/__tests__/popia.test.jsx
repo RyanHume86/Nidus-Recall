@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -44,24 +44,44 @@ const SETTINGS = {
 
 beforeEach(() => vi.clearAllMocks())
 
+// ── fetch mock for LegalPage (content is loaded via fetch in useEffect) ───────
+
+const MOCK_CONTENT = {
+  '/src/content/legal/privacy.md':
+    '# Privacy Policy\n\nPOPIA compliance document.\n\nThis policy covers data processing.',
+  '/src/content/legal/terms.md':
+    '# Terms of Use\n\nFor educational use only.\n\nPlease read carefully.',
+  '/src/content/legal/data-processing.md':
+    '# Data Processing\n\nHow we handle your data.',
+}
+
+function setupFetchMock() {
+  vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+    const text = MOCK_CONTENT[url] ?? ''
+    return Promise.resolve({ ok: true, text: () => Promise.resolve(text) })
+  })
+}
+
 // ── Legal page tests ──────────────────────────────────────────────────────────
 
 describe('LegalPage — legal pages render', () => {
-  it('renders Privacy Policy content', () => {
+  beforeEach(() => { setupFetchMock(); vi.clearAllMocks(); setupFetchMock() })
+
+  it('renders Privacy Policy content', async () => {
     render(<LegalPage type="privacy" />)
-    expect(screen.getAllByText(/Privacy Policy/i).length).toBeGreaterThan(0)
+    await waitFor(() => expect(screen.getAllByText(/Privacy Policy/i).length).toBeGreaterThan(0))
     expect(screen.getAllByText(/POPIA/i).length).toBeGreaterThan(0)
   })
 
-  it('renders Terms of Use content', () => {
+  it('renders Terms of Use content', async () => {
     render(<LegalPage type="terms" />)
-    expect(screen.getAllByText(/Terms of Use/i).length).toBeGreaterThan(0)
+    await waitFor(() => expect(screen.getAllByText(/Terms of Use/i).length).toBeGreaterThan(0))
     expect(screen.getAllByText(/educational/i).length).toBeGreaterThan(0)
   })
 
-  it('renders Data Processing content', () => {
+  it('renders Data Processing content', async () => {
     render(<LegalPage type="data-processing" />)
-    expect(screen.getByText('Data Processing')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/Data Processing/)).toBeInTheDocument())
   })
 
   it('renders "Back to app" link on all pages', () => {
