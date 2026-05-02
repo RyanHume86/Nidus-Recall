@@ -2,12 +2,16 @@
 <html lang="en">
   <head>
     <script>
-      // Suppress SW SecurityErrors before any other listener (including vite-plugin) can see them.
+      // Suppress unhandled rejections that crash the base44 error handler.
+      // Must be first — runs before any module script or vite-plugin injections.
       window.addEventListener('unhandledrejection', function(e) {
         var r = e.reason;
+        // Suppress anything the base44 handler can't safely process
         if (r === undefined || r === null) { e.preventDefault(); return; }
-        if (r instanceof DOMException || r.name === 'SecurityError') { e.preventDefault(); return; }
-        if (typeof r.message !== 'string') { e.preventDefault(); }
+        if (typeof r === 'string') { e.preventDefault(); return; }
+        if (r instanceof DOMException) { e.preventDefault(); return; }
+        if (r && (r.name === 'SecurityError' || r.name === 'AbortError')) { e.preventDefault(); return; }
+        if (typeof r.message !== 'string') { e.preventDefault(); return; }
       }, true);
     </script>
     <meta charset="UTF-8" />
