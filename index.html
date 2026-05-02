@@ -2,21 +2,27 @@
 <html lang="en">
   <head>
     <script>
-      // Suppress unhandled rejections that crash the base44 vite-plugin error handler.
-      // Runs in capture phase — fires before any other listener including the vite-plugin.
+      // 1. Patch navigator.serviceWorker.register so ALL SW registrations silently swallow
+      //    SecurityErrors — including the vite-plugin's own dev-sw.js registration which
+      //    fires before any module script and cannot be caught by unhandledrejection.
+      (function() {
+        if (!('serviceWorker' in navigator)) return;
+        var _orig = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+        navigator.serviceWorker.register = function(scriptURL, options) {
+          return _orig(scriptURL, options).catch(function() {});
+        };
+      })();
+
+      // 2. Catch-all for any other unhandled rejections that crash the vite-plugin
+      //    error handler (it calls .match() on reason without guarding).
       window.addEventListener('unhandledrejection', function(e) {
         var r = e.reason;
-        // Always suppress: null/undefined reason crashes the handler's .match() call
         if (r == null) { e.preventDefault(); return; }
-        // Suppress plain strings (no .message to inspect)
         if (typeof r === 'string') { e.preventDefault(); return; }
-        // Suppress known harmless error types
         if (r instanceof DOMException) { e.preventDefault(); return; }
         if (r && (r.name === 'SecurityError' || r.name === 'AbortError' || r.name === 'NotAllowedError')) { e.preventDefault(); return; }
-        // Suppress anything whose message is not a plain string (handler calls .match() on it)
         if (!r || typeof r.message !== 'string') { e.preventDefault(); return; }
-        // Suppress ServiceWorker-related errors by message content
-        if (r.message && (r.message.indexOf('ServiceWorker') !== -1 || r.message.indexOf('service worker') !== -1)) { e.preventDefault(); return; }
+        if (r.message.indexOf('ServiceWorker') !== -1 || r.message.indexOf('service worker') !== -1) { e.preventDefault(); return; }
       }, true);
     </script>
     <meta charset="UTF-8" />
