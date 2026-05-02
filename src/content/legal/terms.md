@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Nidus Recall** — Version 1.0 · Effective 1 May 2026
+**Nidus Recall** — Version 1.1 · Effective 2 May 2026
 
 ---
 
@@ -67,16 +67,32 @@ This limitation does not exclude liability for gross negligence or wilful miscon
 
 ---
 
-## 7. Governing Law
+## 7. POPIA and Personal Information
+
+Nidus Recall stores your flashcards and study data. We are committed to protecting your personal information under the **Protection of Personal Information Act, 2013 (POPIA)**.
+
+By using Nidus Recall you acknowledge that we collect and process personal information as set out in the Privacy Policy. Key points:
+
+- We collect only what is necessary to provide the spaced-repetition service (account credentials, flashcard content, and study statistics).
+- Your data is not sold or shared with third parties except as described in the Privacy Policy.
+- You have the right to access, correct, or delete your personal information at any time via Settings → Privacy.
+- Cross-border transfers to our infrastructure provider (Base44, United States) are governed by Standard Contractual Clauses in terms of POPIA Section 72.
+- If you believe we have violated your rights under POPIA, you may lodge a complaint with the **Information Regulator (South Africa)** at www.inforegulator.org.za.
+
+For the full statement of your rights under POPIA Sections 23-25, see the [Privacy Policy](/privacy).
+
+---
+
+## 8. Governing Law
 
 These Terms are governed by the laws of the Republic of South Africa. Any disputes will be subject to the jurisdiction of South African courts.
 
 ---
 
-## 8. Changes
+## 9. Changes
 
 We may update these Terms at any time. We will provide in-app notice of material changes before they take effect.
 
 ---
 
-*Last updated: 1 May 2026*
+*Last updated: 2 May 2026*

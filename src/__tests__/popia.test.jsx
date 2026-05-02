@@ -50,7 +50,7 @@ const MOCK_CONTENT = {
   '/src/content/legal/privacy.md':
     '# Privacy Policy\n\nPOPIA compliance document.\n\nThis policy covers data processing.',
   '/src/content/legal/terms.md':
-    '# Terms of Use\n\nFor educational use only.\n\nPlease read carefully.',
+    '# Terms of Use\n\nFor educational use only.\n\n## POPIA and Personal Information\n\nWe are committed to protecting your personal information under POPIA.',
   '/src/content/legal/data-processing.md':
     '# Data Processing\n\nHow we handle your data.',
 }
@@ -112,7 +112,7 @@ describe('AgreementGate — sign-up consent gate', () => {
     render(<AgreementGate onAccept={onAccept} />)
     fireEvent.click(screen.getByTestId('agreement-checkbox'))
     fireEvent.click(screen.getByTestId('agreement-continue-btn'))
-    expect(onAccept).toHaveBeenCalledWith('v1.0')
+    expect(onAccept).toHaveBeenCalledWith('v1.1')
   })
 
   it('links to Privacy Policy and Terms of Use', () => {
