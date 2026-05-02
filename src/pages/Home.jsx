@@ -107,8 +107,12 @@ export default function Home() {
     window.addEventListener('offline', handleOffline)
     const cleanupReconnect = offlineStore.onReconnect(async () => {
       try {
-        const { flushed } = await offlineStore.drainQueue(storage.syncCardState)
-        if (flushed > 0) useAppStore.setState({ syncStatus: `Synced ${flushed} offline rating${flushed !== 1 ? 's' : ''}` })
+        const { flushed, conflicted } = await offlineStore.drainQueue(storage.syncCardState)
+        if (flushed > 0 && conflicted === 0) {
+          useAppStore.setState({ syncStatus: `Synced ${flushed} offline rating${flushed !== 1 ? 's' : ''}` })
+        } else if (conflicted > 0) {
+          useAppStore.setState({ syncStatus: `Synced ${flushed} rating${flushed !== 1 ? 's' : ''}; ${conflicted} conflict${conflicted !== 1 ? 's' : ''} resolved (server state kept)` })
+        }
       } catch (_) {}
     })
     return () => {
