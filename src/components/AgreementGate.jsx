@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { C } from '@/lib/theme'
 import NidusLogo from '@/components/NidusLogo'
 
-const AGREEMENT_VERSION = 'v1.0'
+const AGREEMENT_VERSION = 'v1.1'
 
 /**
  * Shown once per account when agreement_accepted_at is null.
@@ -41,11 +41,6 @@ export function AgreementGate({ onAccept }) {
         <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 10, letterSpacing: '-0.3px' }}>
           Before you continue
         </h2>
-        <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, marginBottom: 20 }}>
-          Nidus Recall stores your flashcards and study data. We are committed to protecting
-          your privacy under the{' '}
-          <strong style={{ color: C.text }}>Protection of Personal Information Act (POPIA)</strong>.
-        </p>
         <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, marginBottom: 24 }}>
           Please read our documents before continuing:
         </p>
