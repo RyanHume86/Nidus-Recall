@@ -38,13 +38,21 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            // Cache Base44 API responses stale-while-revalidate.
-            // Only GET requests are cached; mutations are always network-first.
+            // API entity reads: stale-while-revalidate, 5-minute max age.
             urlPattern: /^https:\/\/api\.base44\.app\/.*/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'base44-api-cache',
-              expiration: { maxAgeSeconds: 86400 },
+              expiration: { maxAgeSeconds: 300 },
+            },
+          },
+          {
+            // Images: cache-first, 30-day expiry.
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: { maxAgeSeconds: 2592000, maxEntries: 100 },
             },
           },
         ],
@@ -56,12 +64,13 @@ export default defineConfig({
         short_name: 'Nidus',
         description: 'Spaced repetition for postgraduate learners.',
         theme_color: '#2D6E52',
-        background_color: '#F5F0EB',
+        background_color: '#FFFFFF',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/library',
         icons: [
-          { src: '/icons/icon-192.svg', sizes: 'any', type: 'image/svg+xml' },
-          { src: '/icons/icon-512.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
       devOptions: { enabled: true },

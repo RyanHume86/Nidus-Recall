@@ -2,10 +2,10 @@
   "name": "Nidus Recall",
   "short_name": "Nidus",
   "description": "Spaced repetition for postgraduate learners.",
-  "start_url": "/",
+  "start_url": "/library",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F5F0EB",
+  "background_color": "#FFFFFF",
   "theme_color": "#2D6E52",
   "icons": [
     {
