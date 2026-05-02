@@ -6,6 +6,7 @@ import { migrateNotionCredentials } from '@/api/notionSettings'
 import { genId } from '@/lib/dates'
 import { createClozeCards } from '@/lib/cloze'
 import { createOcclusionCards } from '@/lib/occlusion'
+import { withRetry, saveDraft, loadDrafts, clearDraft, clearAllDrafts } from '@/lib/draft-persistence'
 
 // Timer IDs stored as plain object fields — Zustand supports non-serializable values.
 // These do not trigger re-renders when mutated via get().
@@ -36,6 +37,9 @@ export const useAppStore = create((set, get) => ({
       ? localStorage.getItem('nidus-install-prompt-dismissed') === 'true'
       : false,
 
+  // ── Drafts (unsaved work from failed syncs) ───────────────────────────────────
+  pendingDrafts: [],
+
   // ── Internal timer refs (non-reactive) ───────────────────────────────────────
   _pendingCards: null,
   _saveTimer: null,
@@ -57,9 +61,17 @@ export const useAppStore = create((set, get) => ({
     const { _saveTimer, _cardStateTimer, markSaved } = get()
     if (_saveTimer) clearTimeout(_saveTimer)
     if (_cardStateTimer) clearTimeout(_cardStateTimer)
-    const newSaveTimer = setTimeout(() => {
+    const newSaveTimer = setTimeout(async () => {
       const { _pendingCards } = get()
-      if (_pendingCards) storage.syncCards(_pendingCards).then(markSaved).catch(() => set({ syncStatus: 'error' }))
+      if (!_pendingCards) return
+      try {
+        await withRetry(() => storage.syncCards(_pendingCards), 3, 500)
+        markSaved()
+      } catch {
+        const key = saveDraft(_pendingCards)
+        const drafts = loadDrafts()
+        set({ syncStatus: 'error', pendingDrafts: drafts })
+      }
     }, 800)
     const newCardStateTimer = setTimeout(() => {
       const { _pendingCards } = get()
@@ -76,15 +88,53 @@ export const useAppStore = create((set, get) => ({
     if (_pendingCards) {
       set({ syncStatus: 'saving' })
       try {
-        await Promise.all([
+        await withRetry(() => Promise.all([
           storage.syncCards(_pendingCards),
           storage.syncCardStates(_pendingCards),
-        ])
+        ]), 3, 500)
         markSaved()
       } catch {
-        set({ syncStatus: 'error' })
+        const key = saveDraft(_pendingCards)
+        const drafts = loadDrafts()
+        set({ syncStatus: 'error', pendingDrafts: drafts })
       }
     }
+  },
+
+  // Load any drafts from localStorage into state on app init
+  initDrafts: () => {
+    const drafts = loadDrafts()
+    if (drafts.length > 0) set({ pendingDrafts: drafts })
+  },
+
+  // Restore a draft: attempt to sync, then clear it
+  restoreDraft: async (draftKey) => {
+    const { pendingDrafts, markSaved } = get()
+    const draft = pendingDrafts.find(d => d.key === draftKey)
+    if (!draft) return
+    set({ syncStatus: 'saving' })
+    try {
+      await withRetry(() => storage.syncCards(draft.cards), 3, 500)
+      clearDraft(draftKey)
+      const remaining = loadDrafts()
+      set({ cards: draft.cards, pendingDrafts: remaining, syncStatus: 'idle' })
+      markSaved()
+    } catch {
+      set({ syncStatus: 'error' })
+    }
+  },
+
+  // Discard a draft (user chose not to restore)
+  discardDraft: (draftKey) => {
+    clearDraft(draftKey)
+    const remaining = loadDrafts()
+    set({ pendingDrafts: remaining })
+  },
+
+  // Discard all drafts
+  discardAllDrafts: () => {
+    clearAllDrafts()
+    set({ pendingDrafts: [] })
   },
 
   addLog: async (entry) => {
@@ -248,6 +298,7 @@ export const useAppStore = create((set, get) => ({
         // Migration errors are non-fatal; app continues normally.
       }
       set({ ready: true })
+      get().initDrafts()
       offlineStore.seedFromNetwork({ cards: rc, decks: deckNames, log: rl }).catch(() => {})
       migrateNotionCredentials().catch(() => {})
       // Background: fetch remaining cards in 500-card chunks after ready.
