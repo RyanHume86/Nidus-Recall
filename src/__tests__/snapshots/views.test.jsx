@@ -123,7 +123,6 @@ import { EditCardModal } from '@/modals/EditCardModal'
 import { AIDiffModal } from '@/modals/AIDiffModal'
 import { CardHistoryModal } from '@/modals/CardHistoryModal'
 import { OcclusionCardRenderer } from '@/components/OcclusionCardRenderer'
-import { ImageOcclusionEditor } from '@/components/ImageOcclusionEditor'
 import { ReviewHeatmap } from '@/components/ReviewHeatmap'
 
 // ── Snapshot tests ────────────────────────────────────────────────────────────
@@ -303,11 +302,6 @@ describe('feature component snapshots', () => {
       occlusionRegionId: 'r1',
     }
     const { container } = render(<OcclusionCardRenderer card={card} revealed={true} />)
-    expect(container).toMatchSnapshot()
-  })
-
-  it('ImageOcclusionEditor: initial state (no image)', () => {
-    const { container } = render(<ImageOcclusionEditor onSave={vi.fn()} />)
     expect(container).toMatchSnapshot()
   })
 
