@@ -22,10 +22,11 @@ export const scheduleFSRS = (card, rating, retentionTarget = 0.9, schedulerParam
   })
   const f = fsrs(params)
 
+  const isNew = !card.reviewCount
   const tsCard = {
     due:            card.nextReview ? new Date(card.nextReview) : now,
     stability:      card.stability  ?? 0,
-    difficulty:     card.difficulty ?? 0,
+    difficulty:     isNew ? 0 : (card.difficulty ?? 0),
     elapsed_days:   card.lastReview
       ? Math.max(0, Math.floor((now - new Date(card.lastReview)) / 86400000))
       : 0,
