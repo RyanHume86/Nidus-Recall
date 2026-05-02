@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, lazy, Suspense } from "react"
 import * as storage from "@/api/storage"
 import { getDue, getDueWithCatchup, getNew } from "@/lib/fsrs"
 import { localDateStr } from "@/lib/dates"
@@ -20,7 +20,7 @@ import { DeckView } from "@/views/DeckView"
 import { StudySelectView } from "@/views/StudySelectView"
 import { SessionView } from "@/views/SessionView"
 import { FreeStudyView } from "@/views/FreeStudyView"
-import { StatsView } from "@/views/StatsView"
+const StatsView = lazy(() => import("@/views/StatsView").then(m => ({ default: m.StatsView })))
 import { SettingsView } from "@/views/SettingsView"
 import { ReturnOnboardingCard } from "@/views/ReturnOnboardingCard"
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs"
@@ -375,7 +375,7 @@ export default function Home() {
           {view==="study-select" && <StudySelectView cards={cards} decks={decks} settings={settings} onStartSRS={startSRS} onStartFree={startFree} onStartInterleaved={startInterleaved} cardsLoading={!cardsFullyLoaded} />}
           {view==="session"      && <SessionView cards={cards} onUpdateCards={updateCards} onSaveLog={async e=>{await flushCards();await addLog(e)}} onDone={()=>{ setSessionCapOverride(null); setSessionFocused(false); setSessionStakesOnly(false); setInterleavedCards(null); setView("study-select") }} settings={settings} studyDeckName={studyDeckName} log={log} capOverride={sessionCapOverride} focused={sessionFocused} stakesOnly={sessionStakesOnly} isFirstStudy={!settings?.first_study_completed} onFirstStudyComplete={()=>updateSettings({...settings,first_study_completed:true})} onFitParams={newTarget=>updateSettings({...settings, retentionTarget:newTarget})} interleavedCards={interleavedCards} onSessionCompleted={incrementSessionsCompleted} />}
           {view==="free-study"   && <FreeStudyView cards={cards} studyDeckName={studyDeckName} onDone={()=>setView("study-select")} settings={settings} />}
-          {view==="stats"        && <StatsView log={log} cards={cards} decks={decks} settings={settings} />}
+          {view==="stats"        && <Suspense fallback={<div style={{padding:40,textAlign:'center',color:'#888'}}>Loading…</div>}><StatsView log={log} cards={cards} decks={decks} settings={settings} /></Suspense>}
           {view==="settings"     && <SettingsView settings={settings} onUpdateSettings={updateSettings} cards={cards} decks={decks} onExport={handleExport} onImport={handleImport} onImportCards={handleImportCards} onImportAnki={handleApkgImportCards} schedulerParams={storage.getUserSchedulerParams()} onRefitParams={()=>{ const r=fitSchedulerParams(cards,settings.retentionTarget); if(r.changed) updateSettings({...settings,retentionTarget:r.retentionTarget}); storage.saveUserSchedulerParams(storage.getUserSchedulerParams()?.params||null,r.reviewCount).catch(()=>{}) }} onDeleteAccount={async()=>{ await storage.deleteAllUserData(); const { base44 } = await import('@/api/base44Client'); base44.auth.logout(window.location.origin) }} user={user} />}
         </div>
 
