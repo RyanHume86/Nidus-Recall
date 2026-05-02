@@ -19,7 +19,6 @@ export default defineConfig({
     // Exclude Playwright E2E tests — they require a running browser via @playwright/test.
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
   },
-  logLevel: 'error', // Suppress warnings, only show errors
   // assetsInclude: include .wasm so Vite handles sql.js WASM correctly.
   assetsInclude: ['**/*.wasm'],
   plugins: [
