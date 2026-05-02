@@ -5,14 +5,14 @@ import { CharCount } from "@/components/CharCount"
 export function AnchorToggle({ value, onChange, open, onToggle }) {
   return (
     <div>
-      <div className="nid-note-toggle" onClick={onToggle}>
+      <button type="button" className="nid-note-toggle" aria-expanded={open} onClick={onToggle}>
         {Ico.chevron(13, open)}
         <span>Memory anchor</span>
         <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-        {value && !open && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
+        {value && !open && <span aria-label="Has content" style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
         <span style={{ marginLeft:"auto", fontSize:12, color:C.textMut, cursor:"default" }}
-          title="Anchoring a personal memory to a card significantly improves long-term recall.">ⓘ</span>
-      </div>
+          title="Anchoring a personal memory to a card significantly improves long-term recall." aria-hidden="true">ⓘ</span>
+      </button>
       {open && (
         <div className="rapp-fadein">
           <textarea className="rapp-textarea" rows={3} value={value} maxLength={ANCHOR_MAX}

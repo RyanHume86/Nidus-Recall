@@ -20,10 +20,10 @@ export function AIDiffModal({ original, proposed, isClinical, onApprove, onEdit,
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:640, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="ai-diff-title" style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:640, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
         <div className="rapp-row rapp-sb rapp-mb20">
-          <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Review AI suggestion</span>
-          <button aria-label="Dismiss changes" onClick={onReject} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+          <span id="ai-diff-title" style={{ fontSize:15, fontWeight:600, color:C.text }}>Review AI suggestion</span>
+          <button aria-label="Dismiss changes" onClick={onReject} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
         </div>
         {isClinical && (
           <div className="nid-clinical-warn">

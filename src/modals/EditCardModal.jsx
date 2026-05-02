@@ -185,13 +185,14 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
               <div style={{ fontSize:13, fontWeight:500, color:form.stakesFlag?C.accent:C.text }}>Clinically critical</div>
               <div style={{ fontSize:11, color:C.textMut, marginTop:2, lineHeight:1.5 }}>High-stakes card: prioritised when study time is short.</div>
             </div>
-            <div role="switch" aria-checked={form.stakesFlag}
+            <button type="button" role="switch" aria-checked={form.stakesFlag} aria-label="Clinically critical"
               onClick={()=>setForm(f=>({...f,stakesFlag:!f.stakesFlag}))}
               style={{ width:40, height:22, borderRadius:11, cursor:"pointer", flexShrink:0, marginTop:2,
-                background:form.stakesFlag?C.accent:C.elevated, position:"relative", transition:"background 0.2s" }}>
+                background:form.stakesFlag?C.accent:C.elevated, position:"relative", transition:"background 0.2s",
+                border:"none", padding:0 }}>
               <div style={{ position:"absolute", top:3, left:form.stakesFlag?21:3, width:16, height:16, borderRadius:8,
                 background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 3px rgba(0,0,0,0.2)" }} />
-            </div>
+            </button>
           </div>
         </div>
 
@@ -202,12 +203,12 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
           <AnchorToggle value={form.anchor} onChange={v=>setForm(f=>({...f,anchor:v}))} open={showAnchor} onToggle={()=>setShowAnchor(o=>!o)} />
         </div>
         <div className="rapp-mb12">
-          <div className="nid-note-toggle" onClick={()=>setShowConnects(o=>!o)}>
+          <button type="button" className="nid-note-toggle" aria-expanded={showConnects} onClick={()=>setShowConnects(o=>!o)}>
             {Ico.chevron(13, showConnects)}
             <span>Connects to</span>
             <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-            {form.connects_to.length > 0 && !showConnects && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>● {form.connects_to.length}</span>}
-          </div>
+            {form.connects_to.length > 0 && !showConnects && <span aria-label={`${form.connects_to.length} linked`} style={{ fontSize:11, color:C.accent, marginLeft:6 }}>● {form.connects_to.length}</span>}
+          </button>
           {showConnects && (
             <div className="rapp-fadein" style={{ marginTop:8 }}>
               <CardPicker allCards={cards.filter(c=>c.id!==card.id)} value={form.connects_to} onChange={v=>setForm(f=>({...f,connects_to:v}))} mode="multi" excludeId={card.id} placeholder="Search cards to link…" />
@@ -216,12 +217,12 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
         </div>
         {cards.filter(c=>c.id!==card.id).length > 0 && (
           <div className="rapp-mb16">
-            <div className="nid-note-toggle" onClick={()=>setShowPrereq(o=>!o)}>
+            <button type="button" className="nid-note-toggle" aria-expanded={showPrereq} onClick={()=>setShowPrereq(o=>!o)}>
               {Ico.chevron(13, showPrereq)}
               <span>Requires (prerequisite)</span>
               <span style={{ fontSize:11, color:C.textMut, marginLeft:4 }}>(optional)</span>
-              {form.prerequisite_card_id && !showPrereq && <span style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
-            </div>
+              {form.prerequisite_card_id && !showPrereq && <span aria-label="Prerequisite set" style={{ fontSize:11, color:C.accent, marginLeft:6 }}>●</span>}
+            </button>
             {showPrereq && (
               <div className="rapp-fadein" style={{ marginTop:8 }}>
                 <p style={{ fontSize:12, color:C.textMut, marginBottom:8, lineHeight:1.6 }}>This card should only be reviewed after:</p>
@@ -314,7 +315,8 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}
       className="rapp-modal-backdrop" onClick={e=>{ if(e.target===e.currentTarget) onClose() }}>
-      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
+      <div role="dialog" aria-modal="true" aria-label="Edit card"
+        style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"90vh", overflowY:"auto", padding:"28px 24px 36px", boxShadow:"0 8px 40px rgba(28,40,32,0.18)" }}
         className="rapp-modal-inner">
         {formContent}
       </div>

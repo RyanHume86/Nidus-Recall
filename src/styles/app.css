@@ -263,8 +263,11 @@
   .nid-note-toggle {
     display:flex; align-items:center; gap:6px; font-size:12px; color:#4A6B5C;
     cursor:pointer; padding:8px 0; user-select:none; transition:color 0.14s;
+    /* Reset button styles so the element looks the same as the former div */
+    background:none; border:none; width:100%; text-align:left; font-family:inherit;
   }
   .nid-note-toggle:hover { color:#3A5246; }
+  .nid-note-toggle:focus-visible { outline:2px solid #2D6E52; outline-offset:2px; border-radius:4px; }
   .nid-note-body {
     background:#EBF0ED; border-radius:10px; padding:12px 14px; font-size:13px;
     color:#3A5246; line-height:1.7; white-space:pre-wrap; margin-top:4px;

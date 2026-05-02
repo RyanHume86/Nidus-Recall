@@ -45,14 +45,14 @@ export function CardHistoryModal({ cardId, card, onClose, onRevert }) {
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(28,40,32,0.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"80vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
+      <div role="dialog" aria-modal="true" aria-label={revertTarget ? `Revert to version ${revertTarget.version}` : "Card history"} style={{ background:C.surface, borderRadius:22, width:"100%", maxWidth:480, maxHeight:"80vh", overflowY:"auto", padding:"28px 24px", boxShadow:"0 8px 48px rgba(28,40,32,0.22)" }}>
 
         {revertTarget ? (
           /* ── Revert confirmation pane ── */
           <div>
             <div className="rapp-row rapp-sb rapp-mb16">
               <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Revert to v{revertTarget.version}?</span>
-              <button aria-label="Cancel revert" onClick={() => setRevertTarget(null)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+              <button aria-label="Cancel revert" onClick={() => setRevertTarget(null)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
             </div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>
               This will update the card to the content below. A new history entry will be saved so you can undo this later.
@@ -105,7 +105,7 @@ export function CardHistoryModal({ cardId, card, onClose, onRevert }) {
           <div>
             <div className="rapp-row rapp-sb rapp-mb16">
               <span style={{ fontSize:15, fontWeight:600, color:C.text }}>Edit history</span>
-              <button aria-label="Close history" onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>x</button>
+              <button aria-label="Close history" onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:20, color:C.textMut }}>×</button>
             </div>
             <p style={{ fontSize:12, color:C.textMut, marginBottom:14, lineHeight:1.6 }}>AI-assisted edits are logged here. The content before the first AI change is always preserved.</p>
             {loading && <p style={{ fontSize:13, color:C.textMut }}>Loading...</p>}
