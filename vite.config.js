@@ -75,7 +75,11 @@ export default defineConfig({
           { src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
-      devOptions: { enabled: true },
+      // Only enable the dev service worker during local development.
+      // Leaving this true in production compiles a Workbox dev-mode SW that
+      // disables all caching, silently breaking offline-first behaviour for
+      // every production user. (audit finding SEC-01)
+      devOptions: { enabled: process.env.NODE_ENV !== 'production' },
     }),
   ]
 });
