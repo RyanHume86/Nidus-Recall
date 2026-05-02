@@ -2,6 +2,7 @@
  * Tests for Phase 6 AI-assist safety features.
  * Run with: npx vitest run src/__tests__/aiAssist.test.js
  */
+/* eslint-env node */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/api/base44Client', () => ({
@@ -135,8 +136,9 @@ describe('landing page (public/landing.html)', () => {
   let html
 
   beforeEach(async () => {
-    const mod = await import('../../public/landing.html?raw')
-    html = mod.default
+    const { readFileSync } = await import('fs')
+    const { resolve } = await import('path')
+    html = readFileSync(resolve(process.cwd(), 'public/landing.html'), 'utf-8')
   })
 
   const required = [

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+/* global global */
 import { saveDraft, loadDrafts, clearDraft, clearAllDrafts, withRetry } from "@/lib/draft-persistence"
 
 // ── Mock localStorage ─────────────────────────────────────────────────────────
