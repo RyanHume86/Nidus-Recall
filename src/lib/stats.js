@@ -82,3 +82,83 @@ export const computeFatigueScore = (log) => {
 // SessionLog fields (fatigueFlag, focusedFlag, intensity_score) and are no
 // longer embedded as text markers in frictionNote.
 export const assembleFrictionNote = (userText) => userText.trim()
+
+// Compute current review streak (consecutive days with >=1 review, back from today).
+export const computeStreak = (log) => {
+  const days = new Set(log.map(e => e.date?.split('T')[0]).filter(Boolean))
+  let streak = 0
+  const today = new Date()
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    if (days.has(key)) streak++
+    else if (i > 0) break  // gap found; stop (allow missing today if yesterday reviewed)
+    else continue           // today not yet reviewed; keep going to check yesterday
+  }
+  return streak
+}
+
+// Compute 7-day retention % = (good+easy) / total from ratingBreakdown fields.
+export const computeSevenDayRetention = (log) => {
+  const cut7 = new Date(Date.now() - 7 * 86400000).toISOString()
+  const last7 = log.filter(e => e.date >= cut7)
+  const rb = last7.reduce((acc, e) => {
+    const r = e.ratingBreakdown || {}
+    acc.again += r.again || 0; acc.hard += r.hard || 0
+    acc.good  += r.good  || 0; acc.easy += r.easy || 0
+    return acc
+  }, { again: 0, hard: 0, good: 0, easy: 0 })
+  const total = rb.again + rb.hard + rb.good + rb.easy
+  return total > 0 ? Math.round((rb.good + rb.easy) / total * 100) : null
+}
+
+// Build 30-day forecast: how many active cards fall due on each of the next 30 days.
+// Day 0 = today; includes overdue cards in today's bar.
+export const buildForecast = (cards, activeFilter) => {
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
+  const activeCards = cards.filter(activeFilter)
+  const result = []
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() + i)
+    const key = d.toISOString().split('T')[0]
+    const due = i === 0
+      ? activeCards.filter(c => c.nextReview && c.nextReview <= todayStr).length
+      : activeCards.filter(c => c.nextReview?.startsWith(key)).length
+    result.push({ date: d.toLocaleDateString("en-GB", { day:"numeric", month:"short" }), due, key })
+  }
+  return result
+}
+
+// Maturity distribution: bucket active cards by stability tier.
+export const buildMaturityBuckets = (cards, activeFilter) => {
+  return cards.filter(activeFilter).reduce((acc, c) => {
+    if (!c.reviewCount || c.reviewCount === 0) acc.new++
+    else if (c.stability == null || c.stability < 7) acc.learning++
+    else if (c.stability < 30) acc.young++
+    else acc.mature++
+    return acc
+  }, { new: 0, learning: 0, young: 0, mature: 0 })
+}
+
+// Content-type breakdown from last N days of sessions.
+export const buildContentTypeBreakdown = (log, days = 30) => {
+  const cut = new Date(Date.now() - days * 86400000).toISOString()
+  return log.filter(e => e.date >= cut).reduce((acc, e) => {
+    for (const [k, v] of Object.entries(e.contentTypeBreakdown || {})) {
+      if (v > 0) acc[k] = (acc[k] || 0) + v
+    }
+    return acc
+  }, {})
+}
+
+// Always-covered: % of stakes_flag=true active cards reviewed in the past 7 days.
+export const computeAlwaysCovered = (cards, activeFilter) => {
+  const stakeCards = cards.filter(c => activeFilter(c) && c.stakes_flag)
+  if (stakeCards.length === 0) return null
+  const cut7 = new Date(Date.now() - 7 * 86400000).toISOString()
+  const covered = stakeCards.filter(c => c.lastReview && c.lastReview >= cut7).length
+  return { covered, total: stakeCards.length, pct: Math.round(covered / stakeCards.length * 100) }
+}
