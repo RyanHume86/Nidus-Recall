@@ -1,29 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`feature component snapshots > ImageOcclusionEditor: initial state (no image) 1`] = `
-<div>
-  <div
-    style="outline: none;"
-    tabindex="0"
-  >
-    <div
-      class="rapp-mb12"
-    >
-      <label
-        class="rapp-label"
-      >
-        Image file
-      </label>
-      <input
-        accept="image/*"
-        style="width: 100%; font-size: 13px; color: rgb(28, 40, 32); font-family: inherit; padding: 8px 0px; cursor: pointer;"
-        type="file"
-      />
-    </div>
-  </div>
-</div>
-`;
-
 exports[`feature component snapshots > OcclusionCardRenderer: back side (revealed) 1`] = `
 <div>
   <div
@@ -5454,7 +5430,7 @@ exports[`view snapshots > LibraryView: with decks and cards 1`] = `
           >
             ✓
              
-            Synced 106d ago
+            Synced 107d ago
           </div>
         </div>
         <button

@@ -1,10 +1,10 @@
 /**
- * FSRS regression baseline (frozen 2026-04-27).
+ * FSRS regression baseline (updated 2026-05-02 for ts-fsrs v5).
  *
  * Purpose: any future change to the scheduler that alters numeric outputs
  * will fail this suite, signalling a behaviour drift that must be reviewed.
  *
- * Expected values were captured by running scheduleFSRS against ts-fsrs 4.x
+ * Expected values were captured by running scheduleFSRS against ts-fsrs 5.x
  * with a fixed NOW of 2026-01-15T09:00:00.000Z.
  * Do NOT update these values unless you have confirmed the change is intentional
  * AND have manually verified the new outputs against the FSRS-5 spec.
@@ -51,107 +51,107 @@ const check = (card, rating, retention, params, expected) => {
 describe('FSRS regression baseline', () => {
   describe('new card -- all four ratings', () => {
     it('again', () => check(newCard(), 'again', 0.9, null,
-      { stability: 0.40255, difficulty: 7.1949, interval: 1 }))
+      { stability: 0.212, difficulty: 6.4133, interval: 1 }))
     it('hard',  () => check(newCard(), 'hard',  0.9, null,
-      { stability: 1.18385, difficulty: 6.4883, interval: 1 }))
+      { stability: 1.2931, difficulty: 5.11217071, interval: 1 }))
     it('good',  () => check(newCard(), 'good',  0.9, null,
-      { stability: 3.173,   difficulty: 5.2824, interval: 1 }))
+      { stability: 2.3065, difficulty: 2.11810397, interval: 1 }))
     it('easy',  () => check(newCard(), 'easy',  0.9, null,
-      { stability: 15.69105, difficulty: 3.2245, interval: 16 }))
+      { stability: 8.2956, difficulty: 1, interval: 8 }))
   })
 
   describe('young reviewed card (interval=5, reviewCount=3) -- all four ratings', () => {
     it('again', () => check(reviewedCard(), 'again', 0.9, null,
-      { stability: 1.35288839, difficulty: 6.94321487, interval: 1 }))
+      { stability: 0.9018031, difficulty: 8.50610897, interval: 1 }))
     it('hard',  () => check(reviewedCard(), 'hard',  0.9, null,
-      { stability: 7.14916816, difficulty: 6.21637379, interval: 7 }))
+      { stability: 11.22379753, difficulty: 6.99791867, interval: 11 }))
     it('good',  () => check(reviewedCard(), 'good',  0.9, null,
-      { stability: 15.94349097, difficulty: 5.48953271, interval: 16 }))
+      { stability: 15.68024198, difficulty: 5.48972837, interval: 16 }))
     it('easy',  () => check(reviewedCard(), 'easy',  0.9, null,
-      { stability: 38.7137493, difficulty: 4.76269163, interval: 39 }))
+      { stability: 25.43947521, difficulty: 3.98153807, interval: 25 }))
   })
 
   describe('mature card (interval=30, reviewCount=12) -- all four ratings', () => {
     it('again', () => check(matureCard(), 'again', 0.9, null,
-      { stability: 3.53421669, difficulty: 6.60703511, interval: 1 }))
+      { stability: 2.27401015, difficulty: 8.34176237, interval: 1 }))
     it('hard',  () => check(matureCard(), 'hard',  0.9, null,
-      { stability: 41.99992246, difficulty: 5.7994339, interval: 42 }))
+      { stability: 60.8109308, difficulty: 6.66599536, interval: 61 }))
     it('good',  () => check(matureCard(), 'good',  0.9, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 88 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 83 }))
     it('easy',  () => check(matureCard(), 'easy',  0.9, null,
-      { stability: 208.80763786, difficulty: 4.18423151, interval: 209 }))
+      { stability: 130.1808984, difficulty: 3.31446137, interval: 130 }))
   })
 
   describe('high lapse count card (lapses=5) -- all four ratings', () => {
     it('again', () => check(lapsedCard(), 'again', 0.9, null,
-      { stability: 0.83547722, difficulty: 8.48964176, interval: 1 }))
+      { stability: 0.55786378, difficulty: 9.26210333, interval: 1 }))
     it('hard',  () => check(lapsedCard(), 'hard',  0.9, null,
-      { stability: 3.08196422, difficulty: 8.13429724, interval: 3 }))
+      { stability: 4.55641389, difficulty: 8.52476585, interval: 5 }))
     it('good',  () => check(lapsedCard(), 'good',  0.9, null,
-      { stability: 6.34174608, difficulty: 7.77895271, interval: 6 }))
+      { stability: 6.18449266, difficulty: 7.78742837, interval: 6 }))
     it('easy',  () => check(lapsedCard(), 'easy',  0.9, null,
-      { stability: 14.78197243, difficulty: 7.42360818, interval: 15 }))
+      { stability: 9.74984631, difficulty: 7.05009088, interval: 10 }))
   })
 
   describe('retention target 0.70 (minimum boundary)', () => {
     it('new card good',    () => check(newCard(),      'good', 0.70, null,
-      { stability: 3.173, difficulty: 5.28243442, interval: 1 }))
+      { stability: 2.3065, difficulty: 2.11810397, interval: 1 }))
     it('young card good',  () => check(reviewedCard(), 'good', 0.70, null,
-      { stability: 15.94349097, difficulty: 5.48953271, interval: 71 }))
+      { stability: 15.68024198, difficulty: 5.48972837, interval: 146 }))
     it('mature card good', () => check(matureCard(),   'good', 0.70, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 393 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 767 }))
     it('lapsed card good', () => check(lapsedCard(),   'good', 0.70, null,
-      { stability: 6.34174608, difficulty: 7.77895271, interval: 28 }))
+      { stability: 6.18449266, difficulty: 7.78742837, interval: 57 }))
   })
 
   describe('retention target 0.97 (maximum boundary)', () => {
     it('new card good',    () => check(newCard(),      'good', 0.97, null,
-      { stability: 3.173, difficulty: 5.28243442, interval: 1 }))
+      { stability: 2.3065, difficulty: 2.11810397, interval: 1 }))
     it('young card good',  () => check(reviewedCard(), 'good', 0.97, null,
-      { stability: 15.94349097, difficulty: 5.48953271, interval: 4 }))
+      { stability: 15.68024198, difficulty: 5.48972837, interval: 4 }))
     it('mature card good', () => check(matureCard(),   'good', 0.97, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 24 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 18 }))
     it('lapsed card good', () => check(lapsedCard(),   'good', 0.97, null,
-      { stability: 6.34174608, difficulty: 7.77895271, interval: 2 }))
+      { stability: 6.18449266, difficulty: 7.78742837, interval: 2 }))
   })
 
   describe('high stability card (stability=120, reviewCount=30)', () => {
     const card = newCard({ stability: 120, difficulty: 3, interval: 90, reviewCount: 30, lastReview: '2025-10-17' })
     it('again', () => check(card, 'again', 0.9, null,
-      { stability: 6.4319608, difficulty: 5.26231606, interval: 1 }))
+      { stability: 4.01000006, difficulty: 7.68437596, interval: 1 }))
     it('good',  () => check(card, 'good',  0.9, null,
-      { stability: 330.14690877, difficulty: 3.00103271, interval: 330 }))
+      { stability: 308.39690386, difficulty: 2.99222837, interval: 308 }))
   })
 
   describe('reviewCount=1 boundary', () => {
     const card = newCard({ stability: 1.5, difficulty: 5, interval: 1, reviewCount: 1, lapses: 0,
       nextReview: '2026-01-15', lastReview: '2026-01-14' })
     it('again', () => check(card, 'again', 0.9, null,
-      { stability: 0.59362228, difficulty: 6.60703511, interval: 1 }))
+      { stability: 0.41397202, difficulty: 8.34176237, interval: 1 }))
     it('good',  () => check(card, 'good',  0.9, null,
-      { stability: 4.47838282, difficulty: 4.99183271, interval: 4 }))
+      { stability: 4.84757417, difficulty: 4.99022837, interval: 5 }))
   })
 
   describe('zero elapsed days (reviewed today)', () => {
     const card = newCard({ stability: 4, difficulty: 5, interval: 4, reviewCount: 5,
       lapses: 0, nextReview: '2026-01-15', lastReview: '2026-01-15' })
     it('good', () => check(card, 'good', 0.9, null,
-      { stability: 4, difficulty: 4.99183271, interval: 5 }))
+      { stability: 4, difficulty: 4.99022837, interval: 5 }))
     it('easy', () => check(card, 'easy', 0.9, null,
-      { stability: 4, difficulty: 4.18423151, interval: 6 }))
+      { stability: 6.59988479, difficulty: 3.31446137, interval: 7 }))
   })
 
   describe('cards near desired retention boundary (various lapse counts)', () => {
     it('mature lapses=1 good', () => check(matureCard({ lapses: 1 }), 'good', 0.9, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 88 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 83 }))
     it('mature lapses=2 good', () => check(matureCard({ lapses: 2 }), 'good', 0.9, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 88 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 83 }))
     it('mature lapses=3 good', () => check(matureCard({ lapses: 3 }), 'good', 0.9, null,
-      { stability: 88.47482703, difficulty: 4.99183271, interval: 88 }))
+      { stability: 82.55758364, difficulty: 4.99022837, interval: 83 }))
     it('mature lapses=8 again', () => check(matureCard({ lapses: 8 }), 'again', 0.9, null,
-      { stability: 3.53421669, difficulty: 6.60703511, interval: 1 }))
+      { stability: 2.27401015, difficulty: 8.34176237, interval: 1 }))
     it('mature lapses=8 hard',  () => check(matureCard({ lapses: 8 }), 'hard',  0.9, null,
-      { stability: 41.99992246, difficulty: 5.7994339, interval: 42 }))
+      { stability: 60.8109308, difficulty: 6.66599536, interval: 61 }))
   })
 
   describe('custom UserSchedulerParams (17-element w array)', () => {
@@ -177,19 +177,19 @@ describe('FSRS regression baseline', () => {
     const card = newCard({ stability: 10, difficulty: 5.5, interval: 10, reviewCount: 6,
       lapses: 0, nextReview: '2025-12-15', lastReview: '2025-12-05' })
     it('good',  () => check(card, 'good',  0.9, null,
-      { stability: 76.37539942, difficulty: 5.48953271, interval: 76 }))
+      { stability: 56.69701367, difficulty: 5.48972837, interval: 57 }))
     it('again', () => check(card, 'again', 0.9, null,
-      { stability: 3.18152321, difficulty: 6.94321487, interval: 1 }))
+      { stability: 1.68721104, difficulty: 8.50610897, interval: 1 }))
   })
 
   describe('initial difficulty ignored for new cards (ts-fsrs resets from rating)', () => {
     it('difficulty=8 good produces same interval as default new card good', () => {
-      const r1 = scheduleFSRS(newCard({ difficulty: 8, stability: 0 }), 'good', 0.9, null, NOW)
+      const r1 = scheduleFSRS(newCard({ difficulty: 8 }), 'good', 0.9, null, NOW)
       const r2 = scheduleFSRS(newCard(), 'good', 0.9, null, NOW)
       expect(r1.interval).toBe(r2.interval)
     })
     it('difficulty=2 good produces same interval as default new card good', () => {
-      const r1 = scheduleFSRS(newCard({ difficulty: 2, stability: 0 }), 'good', 0.9, null, NOW)
+      const r1 = scheduleFSRS(newCard({ difficulty: 2 }), 'good', 0.9, null, NOW)
       const r2 = scheduleFSRS(newCard(), 'good', 0.9, null, NOW)
       expect(r1.interval).toBe(r2.interval)
     })
