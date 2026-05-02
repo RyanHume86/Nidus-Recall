@@ -73,6 +73,9 @@ export default function Home() {
   const incrementSessionsCompleted = useAppStore(s => s.incrementSessionsCompleted)
   const handleImportCards        = useAppStore(s => s.handleImportCards)
   const handleApkgImportCards    = useAppStore(s => s.handleApkgImportCards)
+  const pendingDrafts            = useAppStore(s => s.pendingDrafts)
+  const restoreDraft             = useAppStore(s => s.restoreDraft)
+  const discardAllDrafts         = useAppStore(s => s.discardAllDrafts)
 
   // ── POPIA agreement gate ───────────────────────────────────────────────────
   const needsAgreement = isAuthenticated && authChecked && user != null && !user.agreement_accepted_at
@@ -316,6 +319,23 @@ export default function Home() {
                   setInstallPromptDismissed(true)
                   localStorage.setItem('nidus-install-prompt-dismissed', 'true')
                 }}>Not now</button>
+            </div>
+          )}
+          {pendingDrafts.length > 0 && !inSession && (
+            <div data-testid="draft-restore-banner" style={{ background:"#FFF8E7", border:`1px solid #D48830`, borderRadius:12, padding:"10px 14px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, maxWidth:520 }}>
+              <span style={{ fontSize:13, color:"#7a5a10", lineHeight:1.55 }}>
+                You have unsaved work ({pendingDrafts.length} draft{pendingDrafts.length!==1?"s":""}).
+              </span>
+              <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                <button className="rapp-btn rapp-btn-primary" style={{ padding:"6px 12px", fontSize:12 }}
+                  onClick={() => restoreDraft(pendingDrafts[0].key)}>
+                  Restore
+                </button>
+                <button className="rapp-btn rapp-btn-ghost" style={{ padding:"6px 10px", fontSize:12 }}
+                  onClick={discardAllDrafts}>
+                  Discard
+                </button>
+              </div>
             </div>
           )}
           {incompleteSession && !inSession && (
