@@ -13,7 +13,7 @@ import { useAppStore } from "@/store/appStore"
 import { useAuth } from "@/lib/AuthContext"
 import NidusLogo from "@/components/NidusLogo"
 import FirstRunOverlay from "@/components/FirstRunOverlay"
-import { AgreementGate } from "@/components/AgreementGate"
+import { AgreementGate, AGREEMENT_VERSION } from "@/components/AgreementGate"
 import { SleepScheduleModal, sleepOnboardComplete } from "@/components/onboarding/SleepScheduleModal"
 import { LibraryView } from "@/views/LibraryView"
 import { DeckView } from "@/views/DeckView"
@@ -42,6 +42,8 @@ export default function Home() {
 
   // ── Auth (needed for sleep onboarding flag and agreement gate) ───────────────
   const { user, isAuthenticated, authChecked, checkUserAuth } = useAuth()
+  // Optimistic flag: gates the re-prompt when the API re-fetch races with the write.
+  const [agreementAcceptedLocally, setAgreementAcceptedLocally] = useState(false)
 
   // ── Store: data + sync ─────────────────────────────────────────────────────
   const cards                   = useAppStore(s => s.cards)
@@ -80,12 +82,19 @@ export default function Home() {
   const discardAllDrafts         = useAppStore(s => s.discardAllDrafts)
 
   // ── POPIA agreement gate ───────────────────────────────────────────────────
-  const needsAgreement = isAuthenticated && authChecked && user != null && !user.agreement_accepted_at
+  // Re-prompt if the user has never accepted, OR if they accepted an older version.
+  // agreementAcceptedLocally prevents a re-prompt when the API re-fetch races the write.
+  const needsAgreement = isAuthenticated && authChecked && user != null
+    && !agreementAcceptedLocally
+    && (!user.agreement_accepted_at || user.agreement_version !== AGREEMENT_VERSION)
 
   const handleAcceptAgreement = async (version) => {
     const { base44 } = await import('@/api/base44Client')
     await base44.auth.updateMe({ agreement_accepted_at: new Date().toISOString(), agreement_version: version })
-    await checkUserAuth()
+    // Set local flag immediately so the gate disappears without waiting for the API re-fetch.
+    setAgreementAcceptedLocally(true)
+    // Refresh user state in the background so subsequent checks use server truth.
+    checkUserAuth().catch(() => {})
   }
 
   // ── Load ───────────────────────────────────────────────────────────────────
