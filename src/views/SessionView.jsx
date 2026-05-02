@@ -5,6 +5,7 @@ import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import { addDays, localDateStr } from "@/lib/dates"
 import { scheduleFSRS, getDue, getNew, getDueWithCatchup, buildReverseIndex } from "@/lib/fsrs"
+import { MAX_INTERVAL_CAP } from "@/lib/settings"
 import { renderClozeFront } from "@/lib/cloze"
 import { computeCalibration, computeFatigueScore, assembleFrictionNote } from "@/lib/stats"
 import { fitSchedulerParams } from "@/lib/fit-params"
@@ -16,7 +17,7 @@ const INTENSITY_WEIGHT = { again:4, hard:3, good:2, easy:1 }
 const INTENSITY_BREAK  = 40
 
 export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings, studyDeckName, log=[], capOverride=null, focused=false, stakesOnly=false, isFirstStudy=false, onFirstStudyComplete=null, onFitParams=null, interleavedCards=null, onSessionCompleted=null }) {
-  const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true } = settings||{}
+  const { newCardCap=15, reviewCap=100, catchupDays=7, retentionTarget=0.9, matureModeEnabled=true, matureCardThreshold=30, fatigueAlertsEnabled=true, maximumInterval=MAX_INTERVAL_CAP } = settings||{}
   const effectiveCap = capOverride != null ? capOverride : reviewCap
   // Compute once at session start - snapshot of log at that moment
   const [fatigueScore] = useState(() => computeFatigueScore(log))
@@ -85,7 +86,8 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
 
   const handleRate = async rating => {
     if (!card) return
-    const { stability, difficulty, interval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
+    const { stability, difficulty, interval: rawInterval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
+    const interval = Math.min(rawInterval, maximumInterval)
     const isNew = phase==="new", failed = rating==="again"?1:0
     const newEntry = { date: new Date().toISOString(), rating }
     const newReviewCount = (card.reviewCount||0)+1
@@ -185,7 +187,8 @@ export function SessionView({ cards, onUpdateCards, onSaveLog, onDone, settings,
 
   const intLabel = rating => {
     if (!card) return ""
-    const { interval } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
+    const { interval: rawInt } = scheduleFSRS(card, rating, retentionTarget, storage.getUserSchedulerParams()?.params || null)
+    const interval = Math.min(rawInt, maximumInterval)
     if (interval===1) return "Tomorrow"
     if (interval<31)  return `${interval}d`
     if (interval<365) return `${Math.round(interval/30.4)}mo`
