@@ -10,7 +10,7 @@ import { getDue, getNew, isActive } from "@/lib/fsrs"
 import { OnboardingView } from "@/views/OnboardingView"
 import { EmptyState } from "@/components/EmptyState"
 
-export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap }) {
+export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck, syncStatus, lastSynced, settings, onCreateSampleDeck, deckParentMap, onArchiveDeck }) {
   const [search,         setSearch]         = useState("")
   const [showArchived,   setShowArchived]   = useState(false)
   const [showCreateDeck, setShowCreateDeck] = useState(false)
@@ -178,7 +178,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
               <div style={{ fontSize:11, fontWeight:600, color:C.textMut, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:10 }}>Recent</div>
               <div className="rapp-col" style={{ gap:10 }}>
                 {recentDecks.map(d => (
-                  <DeckCard key={d.name} d={d} treeEntry={{ indent:0, displayName:d.name }} onSelectDeck={onSelectDeck} />
+                  <DeckCard key={d.name} d={d} treeEntry={{ indent:0, displayName:d.name }} onSelectDeck={onSelectDeck} onArchiveDeck={onArchiveDeck} />
                 ))}
               </div>
             </div>
@@ -197,7 +197,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
               </button>
             )}
           </div>
-          <DeckList visible={visible} deckParentMap={flatView ? new Map() : deckParentMap} onSelectDeck={onSelectDeck} listRef={deckListRef} />
+          <DeckList visible={visible} deckParentMap={flatView ? new Map() : deckParentMap} onSelectDeck={onSelectDeck} onArchiveDeck={onArchiveDeck} listRef={deckListRef} />
         </>
       )}
 
@@ -214,7 +214,7 @@ export function LibraryView({ cards, decks, deckMeta, onSelectDeck, onCreateDeck
 const DECK_VIRTUAL_THRESHOLD = 50
 const DECK_ROW_ESTIMATE = 84  // px: card height (~72) + gap (12)
 
-function DeckList({ visible, deckParentMap, onSelectDeck, listRef }) {
+function DeckList({ visible, deckParentMap, onSelectDeck, onArchiveDeck, listRef }) {
   const tree = useMemo(
     () => buildDeckTree(visible.map(d => d.name), deckParentMap || new Map()),
     [visible, deckParentMap]
@@ -231,7 +231,7 @@ function DeckList({ visible, deckParentMap, onSelectDeck, listRef }) {
   if (visible.length <= DECK_VIRTUAL_THRESHOLD) {
     return (
       <div className="rapp-col" style={{ gap:12 }}>
-        {visible.map((d, idx) => <DeckCard key={d.name} d={d} treeEntry={tree[idx]} onSelectDeck={onSelectDeck} />)}
+        {visible.map((d, idx) => <DeckCard key={d.name} d={d} treeEntry={tree[idx]} onSelectDeck={onSelectDeck} onArchiveDeck={onArchiveDeck} />)}
       </div>
     )
   }
@@ -249,7 +249,7 @@ function DeckList({ visible, deckParentMap, onSelectDeck, listRef }) {
             ref={virtualizer.measureElement}
             style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${vi.start}px)`, paddingBottom: 12 }}
           >
-            <DeckCard d={visible[vi.index]} treeEntry={tree[vi.index]} onSelectDeck={onSelectDeck} />
+            <DeckCard d={visible[vi.index]} treeEntry={tree[vi.index]} onSelectDeck={onSelectDeck} onArchiveDeck={onArchiveDeck} />
           </div>
         ))}
       </div>
@@ -257,7 +257,7 @@ function DeckList({ visible, deckParentMap, onSelectDeck, listRef }) {
   )
 }
 
-function DeckCard({ d, treeEntry, onSelectDeck }) {
+function DeckCard({ d, treeEntry, onSelectDeck, onArchiveDeck }) {
   return (
     <div className="nid-deck-card"
       style={{ marginLeft: treeEntry.indent * 20 }}
@@ -267,7 +267,17 @@ function DeckCard({ d, treeEntry, onSelectDeck }) {
           {treeEntry.indent > 0 && <span style={{ color:C.textMut, marginRight:4, fontSize:12 }}>{'> '.repeat(treeEntry.indent)}</span>}
           {treeEntry.displayName}
         </div>
-        {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          {d.archived && onArchiveDeck && (
+            <button
+              data-testid={`unarchive-btn-${d.name}`}
+              onClick={e=>{ e.stopPropagation(); onArchiveDeck(d.name) }}
+              style={{ fontSize:11, padding:"2px 8px", borderRadius:20, border:`1px solid ${C.border}`, background:"transparent", color:C.textMut, cursor:"pointer", fontFamily:"inherit" }}>
+              Unarchive
+            </button>
+          )}
+          {d.due > 0 && <span className="nid-deck-due">{d.due} due</span>}
+        </div>
       </div>
       <div className="nid-deck-meta">
         {d.total} card{d.total!==1?"s":""}

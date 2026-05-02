@@ -329,9 +329,10 @@ describe('Flow 13 — DeckView: deck menu Archive action calls onArchiveDeck', (
         onUpdateCards={vi.fn()} onBack={vi.fn()} onArchiveDeck={onArchiveDeck}
       />
     )
-    // Open the deck ⋯ menu (no accessible name, select by visible text)
+    // Open the deck ⋯ menu and confirm the archive dialog
     fireEvent.click(screen.getByText('⋯'))
-    fireEvent.click(screen.getByText(/archive deck/i))
+    fireEvent.click(screen.getByTestId('deck-menu-archive'))
+    fireEvent.click(screen.getByTestId('archive-confirm-ok'))
     expect(onArchiveDeck).toHaveBeenCalledWith(DECK_A)
   })
 })

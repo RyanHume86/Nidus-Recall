@@ -25,7 +25,7 @@ const SORT_OPTIONS = [
   { value: "most-lapsed", label: "Most lapsed" },
 ]
 
-export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck, cardsLoading = false }) {
+export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settings, onArchiveDeck, cardsLoading = false, deckMeta = {} }) {
   const [form, setForm]           = useState({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:readLastContentType(), stakesFlag:false, connects_to:[], prerequisite_card_id:null })
   const [addMode, setAddMode]     = useState("basic")
 
@@ -50,6 +50,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   const [mobileModalCard, setMobileModalCard] = useState(null)
   const [saved, setSaved]         = useState(false)
   const [showDeckMenu, setShowDeckMenu] = useState(false)
+  const [confirmArchive, setConfirmArchive] = useState(false)
   const [quickAdd, setQuickAdd]   = useState(false)
   const [qaFront, setQaFront]     = useState("")
   const [qaBack, setQaBack]       = useState("")
@@ -314,7 +315,12 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             {Ico.back(18)}
           </button>
           <div>
-            <div className="rapp-pg-title">{deckName}</div>
+            <div className="rapp-row rapp-gap8" style={{ alignItems:"center" }}>
+              <div className="rapp-pg-title">{deckName}</div>
+              {deckMeta[deckName]?.archived && (
+                <span data-testid="archived-badge" style={{ fontSize:11, fontWeight:600, padding:"2px 8px", borderRadius:20, background:C.surface, border:`1px solid ${C.border}`, color:C.textMut, letterSpacing:"0.04em" }}>Archived</span>
+              )}
+            </div>
             <div className="rapp-pg-sub">{activeCount} card{activeCount!==1?"s":""}</div>
           </div>
         </div>
@@ -327,14 +333,35 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
             onClick={()=>setShowDeckMenu(o=>!o)}>⋯</button>
           {showDeckMenu && (
             <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", background:C.elevated, border:`1px solid ${C.border}`, borderRadius:12, padding:6, minWidth:160, zIndex:10, boxShadow:"0 4px 16px rgba(28,40,32,0.12)" }}>
-              {[{ label:"Archive deck", action:()=>{ onArchiveDeck(deckName); setShowDeckMenu(false) } }].map((item,i) => (
-                <div key={i} onClick={item.action}
+              {deckMeta[deckName]?.archived ? (
+                <div
+                  data-testid="deck-menu-unarchive"
+                  onClick={()=>{ onArchiveDeck(deckName); setShowDeckMenu(false) }}
                   style={{ padding:"9px 14px", fontSize:13, cursor:"pointer", borderRadius:8, color:C.textSec, transition:"background 0.1s" }}
                   onMouseEnter={e=>e.currentTarget.style.background=C.surface}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  {item.label}
+                  Unarchive deck
                 </div>
-              ))}
+              ) : (
+                <div
+                  data-testid="deck-menu-archive"
+                  onClick={()=>{ setShowDeckMenu(false); setConfirmArchive(true) }}
+                  style={{ padding:"9px 14px", fontSize:13, cursor:"pointer", borderRadius:8, color:C.textSec, transition:"background 0.1s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.surface}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  Archive deck
+                </div>
+              )}
+            </div>
+          )}
+          {confirmArchive && (
+            <div data-testid="archive-confirm" style={{ position:"absolute", right:0, top:"calc(100% + 6px)", background:C.elevated, border:`1px solid ${C.border}`, borderRadius:12, padding:16, minWidth:220, zIndex:10, boxShadow:"0 4px 16px rgba(28,40,32,0.12)" }}>
+              <div style={{ fontSize:13, color:C.text, marginBottom:12, lineHeight:1.5 }}>Archive <strong>{deckName}</strong>? It will be hidden from the library but can be restored.</div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="rapp-btn rapp-btn-ghost" style={{ flex:1, fontSize:12 }} onClick={()=>setConfirmArchive(false)}>Cancel</button>
+                <button data-testid="archive-confirm-ok" className="rapp-btn rapp-btn-primary" style={{ flex:1, fontSize:12 }}
+                  onClick={()=>{ onArchiveDeck(deckName); setConfirmArchive(false) }}>Archive</button>
+              </div>
             </div>
           )}
         </div>
