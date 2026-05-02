@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { C } from "@/lib/theme"
 import { Ico } from "@/lib/icons"
 import { ImportExportPanel } from "@/components/ImportExportPanel"
+import { MAX_INTERVAL_CAP } from "@/lib/settings"
 
 // Common IANA timezone list (representative subset + South Africa default)
 const TIMEZONES = [
@@ -40,7 +41,7 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
     fatigueAlertsEnabled=true, attentionDeclarationEnabled=true,
     intensityThreshold=80, intensityPromptsEnabled=true,
     dailyNewCardLimit=20, dailyReviewLimit=200,
-    timezone=detectTimezone(), maximumInterval=36500,
+    timezone=detectTimezone(), maximumInterval=MAX_INTERVAL_CAP,
   } = settings||{}
 
   const [activeTab,         setActiveTab]         = useState("profile")
@@ -378,14 +379,14 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
                   <span style={{ fontSize:16, fontWeight:700, color:C.text }}>{maximumInterval.toLocaleString()}</span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                  <input type="range" className="rapp-slider" min={365} max={36500} step={365} value={maximumInterval}
+                  <input type="range" className="rapp-slider" min={30} max={MAX_INTERVAL_CAP} step={1} value={maximumInterval}
                     onChange={e=>set({ maximumInterval:Number(e.target.value) })} style={{ flex:1 }} />
-                  <input type="number" min={365} max={36500} step={1} value={maximumInterval}
-                    onChange={e=>set({ maximumInterval:Math.min(36500, Math.max(365, +e.target.value||36500)) })}
+                  <input type="number" min={30} max={MAX_INTERVAL_CAP} step={1} value={maximumInterval}
+                    onChange={e=>set({ maximumInterval:Math.min(MAX_INTERVAL_CAP, Math.max(30, +e.target.value||MAX_INTERVAL_CAP)) })}
                     style={{ width:72, textAlign:"right" }} className="rapp-input" />
                 </div>
                 <p style={{ fontSize:12, color:C.textMut, lineHeight:1.6 }}>
-                  FSRS will not schedule a card further out than this. Default: 36500 days (100 years).
+                  Cards will never be scheduled further out than this. Maximum: {MAX_INTERVAL_CAP} days (1 year). Default: {MAX_INTERVAL_CAP} days.
                 </p>
               </div>
 

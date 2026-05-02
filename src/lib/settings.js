@@ -1,3 +1,5 @@
+export const MAX_INTERVAL_CAP = 365
+
 export const DEFAULT_SETTINGS = {
   newCardCap:          15,
   reviewCap:           100,
@@ -12,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   fatigueAlertsEnabled:        true,
   attentionDeclarationEnabled: true,
   sleepPrefersReviews:         true,
+  maximumInterval:     MAX_INTERVAL_CAP,
 }
 
 // ─── Local storage helpers ────────────────────────────────────────────────────
@@ -44,7 +47,13 @@ export const settingsGet  = ()  => {
   const stored = lsGet(SK.settings, {})
   if (stored.newCardCap === 50) stored.newCardCap = 15
   if (stored.reviewCap === 200) stored.reviewCap = 100
-  return { ...DEFAULT_SETTINGS, ...stored }
+  const merged = { ...DEFAULT_SETTINGS, ...stored }
+  // Cap maximumInterval at MAX_INTERVAL_CAP for any user who had a higher value.
+  if (merged.maximumInterval > MAX_INTERVAL_CAP) {
+    if (import.meta.env?.DEV) console.log(`[settings] maximumInterval capped: ${merged.maximumInterval} -> ${MAX_INTERVAL_CAP}`)
+    merged.maximumInterval = MAX_INTERVAL_CAP
+  }
+  return merged
 }
 export const settingsSet  = (v) => lsSet(SK.settings, v)
 export const notionGet    = ()  => lsGet(SK.notion, {})
