@@ -6228,6 +6228,11 @@ exports[`view snapshots > SettingsView 1`] = `
       >
         Nidus Recall v0.6.0
       </span>
+      <div
+        style="font-size: 11px; color: rgb(74, 107, 92); margin-top: 2px;"
+      >
+        Supported: Chrome 110+, Edge 110+, Firefox 110+, Safari 16.4+, Samsung Internet 21+
+      </div>
       <a
         href="https://nidusrecall.com/feedback"
         rel="noopener noreferrer"
