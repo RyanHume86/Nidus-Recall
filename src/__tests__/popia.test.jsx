@@ -62,7 +62,7 @@ describe('LegalPage — legal pages render', () => {
 
   it('renders Data Processing content', () => {
     render(<LegalPage type="data-processing" />)
-    expect(screen.getByText(/Data Processing/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Data Processing/).length).toBeGreaterThan(0)
   })
 
   it('renders "Back to app" link on all pages', () => {
@@ -93,7 +93,7 @@ describe('AgreementGate — sign-up consent gate', () => {
     render(<AgreementGate onAccept={onAccept} />)
     fireEvent.click(screen.getByTestId('agreement-checkbox'))
     fireEvent.click(screen.getByTestId('agreement-continue-btn'))
-    expect(onAccept).toHaveBeenCalledWith('v1.1')
+    expect(onAccept).toHaveBeenCalledWith('v1.2')
   })
 
   it('links to Privacy Policy and Terms of Use', () => {
