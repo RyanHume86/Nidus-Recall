@@ -160,13 +160,40 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
 
   const addFormContent = (
     <>
-      <div style={{ fontSize:14, fontWeight:600, color:C.text, marginBottom:14, display:"flex", gap:8 }}>
-        {["basic","cloze","occlusion"].map(m => (
-          <button key={m} onClick={()=>setAddMode(m)}
-            style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${addMode===m?C.accent:C.border}`, background:addMode===m?C.accent:"transparent", color:addMode===m?"#fff":C.textSec, fontSize:11, fontWeight:500, cursor:"pointer", fontFamily:"inherit", transition:"all 0.12s", textTransform:"capitalize" }}>
-            {m}
-          </button>
-        ))}
+      <div style={{ marginBottom:10 }}>
+        <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+          {[
+            { value:"basic",     label:"Basic" },
+            { value:"cloze",     label:"Cloze" },
+            { value:"occlusion", label:"Image Occlusion" },
+          ].map(({ value, label }) => (
+            <button key={value} onClick={()=>setAddMode(value)} data-testid={`card-type-${value}`}
+              style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${addMode===value?C.accent:C.border}`, background:addMode===value?C.accent:"transparent", color:addMode===value?"#fff":C.textSec, fontSize:11, fontWeight:500, cursor:"pointer", fontFamily:"inherit", transition:"all 0.12s" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {addMode === "basic" && (
+          <p data-testid="card-type-help-basic" style={{ margin:0, fontSize:12, color:C.textMut, lineHeight:1.55 }}>
+            A straightforward question-and-answer card. Write a prompt on the front and the answer on the back.
+            {/* help-anchor: #basic */}
+          </p>
+        )}
+        {addMode === "cloze" && (
+          <p data-testid="card-type-help-cloze" style={{ margin:0, fontSize:12, color:C.textMut, lineHeight:1.55 }}>
+            Hide a word or phrase inside a sentence and recall it from memory.
+            Example: <em>"The capital of France is {"{{"}{`c1::Paris`}{"}}"}"</em>.
+            Each {"{{"}{`c1::...`}{"}}"} becomes a separate card.
+            {/* help-anchor: #cloze */}
+          </p>
+        )}
+        {addMode === "occlusion" && (
+          <p data-testid="card-type-help-occlusion" style={{ margin:0, fontSize:12, color:C.textMut, lineHeight:1.55 }}>
+            Upload an image, draw boxes over the parts you want to test, and recall what is underneath each box.
+            Useful for anatomy diagrams, maps, and labelled charts.
+            {/* help-anchor: #image-occlusion */}
+          </p>
+        )}
       </div>
 
       {addMode === "basic" && <>

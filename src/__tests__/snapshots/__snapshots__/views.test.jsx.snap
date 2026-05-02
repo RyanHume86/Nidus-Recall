@@ -4691,23 +4691,36 @@ exports[`view snapshots > DeckView: with cards 1`] = `
             Add card
           </div>
           <div
-            style="font-size: 14px; font-weight: 600; color: rgb(28, 40, 32); margin-bottom: 14px; display: flex; gap: 8px;"
+            style="margin-bottom: 10px;"
           >
-            <button
-              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
+            <div
+              style="display: flex; gap: 8px; margin-bottom: 8px;"
             >
-              basic
-            </button>
-            <button
-              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
+              <button
+                data-testid="card-type-basic"
+                style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(45, 110, 82); background: rgb(45, 110, 82); color: rgb(255, 255, 255); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s;"
+              >
+                Basic
+              </button>
+              <button
+                data-testid="card-type-cloze"
+                style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s;"
+              >
+                Cloze
+              </button>
+              <button
+                data-testid="card-type-occlusion"
+                style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s;"
+              >
+                Image Occlusion
+              </button>
+            </div>
+            <p
+              data-testid="card-type-help-basic"
+              style="margin: 0px; font-size: 12px; color: rgb(74, 107, 92); line-height: 1.55;"
             >
-              cloze
-            </button>
-            <button
-              style="padding: 4px 10px; border-radius: 6px; border: 1px solid rgb(207, 219, 213); background: transparent; color: rgb(58, 82, 70); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.12s; text-transform: capitalize;"
-            >
-              occlusion
-            </button>
+              A straightforward question-and-answer card. Write a prompt on the front and the answer on the back.
+            </p>
           </div>
           <div
             class="rapp-mb10"
