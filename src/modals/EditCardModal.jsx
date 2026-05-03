@@ -18,7 +18,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
     for (const c of (cards || [])) for (const t of (c.tags || [])) set.add(t)
     return [...set].sort()
   }, [cards])
-  const [showNote, setShowNote]   = useState(!!(card.elaboration))
+  const [showNote, setShowNote]   = useState(true)
   const [showAnchor, setShowAnchor] = useState(!!(card.anchor))
   const [showConnects, setShowConnects] = useState(!!(card.connects_to?.length))
   const [showPrereq, setShowPrereq]     = useState(!!(card.prerequisite_card_id))

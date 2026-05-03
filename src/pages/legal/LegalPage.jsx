@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { C } from '@/lib/theme'
 
-const MD_URLS = {
-  privacy:           '/content/legal/privacy.md',
-  terms:             '/content/legal/terms.md',
-  'data-processing': '/content/legal/data-processing.md',
+import privacyMd        from '@/content/legal/privacy.md?raw'
+import termsMd          from '@/content/legal/terms.md?raw'
+import dataProcessingMd from '@/content/legal/data-processing.md?raw'
+
+const MD_CONTENT = {
+  privacy:           privacyMd,
+  terms:             termsMd,
+  'data-processing': dataProcessingMd,
 }
 
 export const TITLE = {
@@ -15,18 +18,9 @@ export const TITLE = {
 }
 
 export function LegalPage({ type }) {
-  const [md, setMd] = useState('')
+  const md = MD_CONTENT[type]
 
-  useEffect(() => {
-    const url = MD_URLS[type]
-    if (!url) return
-    fetch(url)
-      .then(r => r.text())
-      .then(setMd)
-      .catch(() => setMd('*Failed to load content.*'))
-  }, [type])
-
-  if (!MD_URLS[type]) return <div style={{ padding: 32, color: C.text }}>Page not found.</div>
+  if (!md) return <div style={{ padding: 32, color: C.text }}>Page not found.</div>
 
   return (
     <div style={{

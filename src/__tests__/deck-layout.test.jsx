@@ -102,8 +102,7 @@ describe('DeckView layout', () => {
     expect(row.textContent).toContain(TODAY)
   })
 
-  it('clicking a card row shows edit form in right panel (desktop width)', async () => {
-    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 })
+  it('clicking a card row opens the edit modal', async () => {
     const card = makeCard({ id: 'c1', front: 'What is ATP?' })
     render(<DeckView {...baseProps([card])} />)
     fireEvent.click(screen.getByTestId('card-row-c1'))
@@ -112,17 +111,10 @@ describe('DeckView layout', () => {
     })
   })
 
-  it('right panel reverts to Add card after dismissing edit (desktop width)', async () => {
-    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1440 })
+  it('right panel always shows Add card (edit opens as modal)', () => {
     const card = makeCard({ id: 'c1' })
     render(<DeckView {...baseProps([card])} />)
-    fireEvent.click(screen.getByTestId('card-row-c1'))
-    await waitFor(() => screen.getAllByText('Edit card')[0])
-    // close via the desktop ✕ button in the right panel header
-    fireEvent.click(screen.getByText('✕'))
-    await waitFor(() => {
-      expect(screen.getByTestId('deck-right-panel').textContent).toContain('Add card')
-    })
+    expect(screen.getByTestId('deck-right-panel').textContent).toContain('Add card')
   })
 
   it('search filters the card list', async () => {
