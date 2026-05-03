@@ -35,7 +35,7 @@ export function AgreementGate({ onAccept }) {
         padding: '36px 28px 32px', boxShadow: '0 8px 48px rgba(28,40,32,0.13)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <NidusLogo size={36} withWordmark />
+          <NidusLogo size={36} theme="light" withWordmark />
         </div>
 
         <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 10, letterSpacing: '-0.3px' }}>

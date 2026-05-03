@@ -1,6 +1,6 @@
 const THEMES = {
   dark:  { stroke: "#8AAD91", bg: "#101F12", myelin: "#101F12", text: "#A8C8B0", sub: "#3A5C42" },
-  light: { stroke: "#6E9275", bg: "transparent", myelin: "#FFFFFF", text: "#3A5C42", sub: "#6E9275" },
+  light: { stroke: "#6E9275", bg: "transparent", myelin: "#EBF0ED", text: "#3A5C42", sub: "#6E9275" },
   icon:  { stroke: "#8AAD91", bg: "#101F12", myelin: "#101F12", text: "#A8C8B0", sub: "#3A5C42" },
 };
 
