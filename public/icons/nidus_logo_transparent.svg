@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 6 158 104">
+
+
+      <!-- D1: upper-left, longer complex tree -->
+      <path d="M 54,60 C 46,50 38,38 32,28" fill="none" stroke="#8AAD91" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M 32,28 C 24,20 16,14 10,10" fill="none" stroke="#8AAD91" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M 32,28 C 30,22 24,24 18,30" fill="none" stroke="#8AAD91" stroke-width="1.4" stroke-linecap="round"/>
+
+      <!-- D2: left, medium -->
+      <path d="M 49,68 C 40,64 30,62 20,58" fill="none" stroke="#8AAD91" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M 20,58 C 14,52 10,48 8,46" fill="none" stroke="#8AAD91" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M 20,58 C 16,62 12,66 10,68" fill="none" stroke="#8AAD91" stroke-width="1.3" stroke-linecap="round"/>
+
+      <!-- D3: lower-left, shorter -->
+      <path d="M 54,77 C 46,84 38,90 30,96" fill="none" stroke="#8AAD91" stroke-width="2.1" stroke-linecap="round"/>
+      <path d="M 30,96 C 24,98 18,98 14,96" fill="none" stroke="#8AAD91" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="30" y1="96" x2="28" y2="104" stroke="#8AAD91" stroke-width="1.3" stroke-linecap="round"/>
+
+      <!-- Dendritic spines -->
+      <line x1="43" y1="44" x2="47" y2="40" stroke="#8AAD91" stroke-width="1.0" stroke-linecap="round"/>
+      <line x1="34" y1="63" x2="36" y2="58" stroke="#8AAD91" stroke-width="1.0" stroke-linecap="round"/>
+      <line x1="22" y1="17" x2="25" y2="13" stroke="#8AAD91" stroke-width="1.0" stroke-linecap="round"/>
+
+      <!-- Soma -->
+      <circle cx="60" cy="68" r="14" fill="#8AAD91"/>
+
+      <!-- Axon -->
+      <path d="M 72,68 C 86,64 102,56 118,48 C 126,44 136,42 146,38" fill="none" stroke="#8AAD91" stroke-width="2.2" stroke-linecap="round"/>
+
+      <!-- 7 myelin sheaths, tangent-matched rotations -->
+      <ellipse cx="77"  cy="67" rx="4.8" ry="1.3" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-18,77,67)"/>
+      <ellipse cx="87"  cy="62" rx="4.8" ry="1.3" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-23,87,62)"/>
+      <ellipse cx="98"  cy="58" rx="4.8" ry="1.3" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-25,98,58)"/>
+      <ellipse cx="108" cy="53" rx="4.8" ry="1.3" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-26,108,53)"/>
+      <ellipse cx="119" cy="48" rx="4.8" ry="1.3" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-25,119,48)"/>
+      <ellipse cx="130" cy="44" rx="4.8" ry="1.2" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-18,130,44)"/>
+      <ellipse cx="141" cy="40" rx="4.8" ry="1.2" fill="#101F12" stroke="#8AAD91" stroke-width="1.9" transform="rotate(-19,141,40)"/>
+
+      <!-- Axon collateral from node of Ranvier between S2-S3 -->
+      <path d="M 93,60 C 97,67 99,75 97,83" fill="none" stroke="#8AAD91" stroke-width="1.3" stroke-linecap="round"/>
+
+      <!-- Terminal fork -->
+      <path d="M 146,38 Q 150,33 152,30" fill="none" stroke="#8AAD91" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="146" y1="38" x2="152" y2="44" stroke="#8AAD91" stroke-width="1.4" stroke-linecap="round"/>
+
+      <!-- Terminal boutons -->
+      <circle cx="10"  cy="10"  r="2.8" fill="#8AAD91"/>
+      <circle cx="18"  cy="30"  r="2.8" fill="#8AAD91"/>
+      <circle cx="8"   cy="46"  r="2.8" fill="#8AAD91"/>
+      <circle cx="10"  cy="68"  r="2.8" fill="#8AAD91"/>
+      <circle cx="14"  cy="96"  r="2.8" fill="#8AAD91"/>
+      <circle cx="28"  cy="104" r="2.8" fill="#8AAD91"/>
+      <circle cx="97"  cy="83"  r="2.8" fill="#8AAD91"/>
+      <circle cx="152" cy="30"  r="2.8" fill="#8AAD91"/>
+      <circle cx="152" cy="44"  r="2.8" fill="#8AAD91"/>
+
+      <!-- Synaptic vesicles — upper axon terminal -->
+      <circle cx="155" cy="27"  r="1.8" fill="#8AAD91" opacity="0.85"/>
+      <circle cx="157" cy="30"  r="1.5" fill="#8AAD91" opacity="0.65"/>
+      <circle cx="155" cy="33"  r="1.6" fill="#8AAD91" opacity="0.75"/>
+      <circle cx="158" cy="27"  r="1.2" fill="#8AAD91" opacity="0.45"/>
+      <circle cx="158" cy="33"  r="1.1" fill="#8AAD91" opacity="0.40"/>
+
+      <!-- Synaptic vesicles — lower axon terminal -->
+      <circle cx="155" cy="47"  r="1.8" fill="#8AAD91" opacity="0.85"/>
+      <circle cx="157" cy="43"  r="1.5" fill="#8AAD91" opacity="0.65"/>
+      <circle cx="155" cy="41"  r="1.6" fill="#8AAD91" opacity="0.75"/>
+      <circle cx="158" cy="47"  r="1.2" fill="#8AAD91" opacity="0.45"/>
+      <circle cx="158" cy="41"  r="1.1" fill="#8AAD91" opacity="0.40"/>
+
+      <!-- Synaptic vesicles — collateral terminal -->
+      <circle cx="100" cy="86"  r="1.8" fill="#8AAD91" opacity="0.85"/>
+      <circle cx="97"  cy="88"  r="1.5" fill="#8AAD91" opacity="0.65"/>
+      <circle cx="102" cy="84"  r="1.6" fill="#8AAD91" opacity="0.75"/>
+      <circle cx="100" cy="90"  r="1.1" fill="#8AAD91" opacity="0.40"/>
+
+    
+</svg>
