@@ -3,7 +3,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import UserNotRegisteredError from '@/components/UserNotRegisteredError'
-import { LegalPage } from './pages/legal/LegalPage'
+import { LegalPage } from '@/pages/legal/LegalPage'
 import Home from './pages/Home'
 
 const AuthenticatedApp = () => {
