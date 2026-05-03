@@ -38,7 +38,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
 
   const [clozeText, setClozeText] = useState("")
   const [showOcclusionEditor, setShowOcclusionEditor] = useState(false)
-  const [showNote, setShowNote]   = useState(false)
+  const [showNote, setShowNote]   = useState(true)
   const [showAnchor, setShowAnchor] = useState(false)
   const [showConnects, setShowConnects] = useState(false)
   const [showPrereq, setShowPrereq]     = useState(false)
@@ -47,7 +47,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   const [filterTag, setFilterTag] = useState(null)
   const [filterContentType, setFilterContentType] = useState(null)
   const [sortBy, setSortBy]       = useState("recent")
-  const [editCard, setEditCard]   = useState(null)
   const [mobileModalCard, setMobileModalCard] = useState(null)
   const [saved, setSaved]         = useState(false)
   const [showDeckMenu, setShowDeckMenu] = useState(false)
@@ -115,7 +114,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
     }
     await onUpdateCards([...cards, card])
     setForm({ front:"", back:"", tags:[], note:"", anchor:"", source:"", contentType:"Factual", stakesFlag:false, connects_to:[], prerequisite_card_id:null })
-    setShowNote(false); setShowAnchor(false); setShowConnects(false); setShowPrereq(false)
+    setShowNote(true); setShowAnchor(false); setShowConnects(false); setShowPrereq(false)
     setSaved(true); setTimeout(()=>setSaved(false), 1200)
   }
 
@@ -149,11 +148,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   }
 
   const handleCardRowClick = (card) => {
-    if (window.innerWidth < 769) {
-      setMobileModalCard(card)
-    } else {
-      setEditCard(card)
-    }
+    setMobileModalCard(card)
   }
 
   const canAdd = form.front.trim() && form.back.trim()
@@ -334,11 +329,8 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
   )
 
   return (
-    <div className="rapp-fadein" data-testid="deck-view" style={{ width:"100%" }}>
-      {/* Mobile modal for edit */}
+    <>
       {mobileModalCard && <EditCardModal card={mobileModalCard} cards={cards} onUpdateCards={onUpdateCards} decks={decks} onClose={()=>setMobileModalCard(null)} onSaveHistory={storage.saveCardHistory} />}
-
-      {/* Delete deck modal */}
       {showDeleteDeck && (
         <DeleteDeckModal
           deckName={deckName}
@@ -348,6 +340,7 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
           onClose={() => setShowDeleteDeck(false)}
         />
       )}
+    <div className="rapp-fadein" data-testid="deck-view" style={{ width:"100%" }}>
 
       {/* Header */}
       <div className="rapp-row rapp-sb rapp-mb24">
@@ -482,7 +475,6 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
           ) : (
             <CardList
               filtered={filtered}
-              editCard={editCard}
               onCardClick={handleCardRowClick}
               onArchiveCard={handleArchiveCard}
               isArch={isArch}
@@ -494,37 +486,20 @@ export function DeckView({ deckName, cards, onUpdateCards, onBack, decks, settin
 
         {/* ── Right column: Add card / Edit card ─────────────────── */}
         <div className="nid-deck-right" data-testid="deck-right-panel">
-          {editCard ? (
-            <div className="nid-deck-right-panel">
-              <div className="rapp-row rapp-sb rapp-mb16" style={{ alignItems:"center" }}>
-                <div style={{ fontSize:14, fontWeight:600, color:C.text }}>Edit card</div>
-                <button aria-label="Close editor" onClick={()=>setEditCard(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textMut, fontSize:18, lineHeight:1, padding:4 }}>✕</button>
-              </div>
-              <EditCardModal
-                card={editCard}
-                cards={cards}
-                onUpdateCards={async (updated) => { await onUpdateCards(updated); setEditCard(null) }}
-                decks={decks}
-                onClose={()=>setEditCard(null)}
-                onSaveHistory={storage.saveCardHistory}
-                inline
-              />
-            </div>
-          ) : (
-            <div className="nid-deck-right-panel">
-              <div style={{ fontSize:14, fontWeight:600, color:C.text, marginBottom:14 }}>Add card</div>
-              {addFormContent}
-            </div>
-          )}
+          <div className="nid-deck-right-panel">
+            <div style={{ fontSize:14, fontWeight:600, color:C.text, marginBottom:14 }}>Add card</div>
+            {addFormContent}
+          </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
 
 const CARD_VIRTUAL_THRESHOLD = 100
 
-function CardList({ filtered, editCard, onCardClick, onArchiveCard, isArch, isLeech, listRef }) {
+function CardList({ filtered, onCardClick, onArchiveCard, isArch, isLeech, listRef }) {
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => listRef.current,
@@ -535,10 +510,9 @@ function CardList({ filtered, editCard, onCardClick, onArchiveCard, isArch, isLe
 
   const renderRow = (c) => {
     const front80 = c.front.length > 80 ? c.front.slice(0, 80) + "…" : c.front
-    const isSelected = editCard?.id === c.id
     return (
       <div
-        className={`nid-card-row${isSelected ? " selected" : ""}`}
+        className="nid-card-row"
         data-testid={`card-row-${c.id}`}
         onClick={() => onCardClick(c)}
       >

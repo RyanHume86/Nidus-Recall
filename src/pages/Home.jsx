@@ -267,7 +267,7 @@ export default function Home() {
   return (
     <>
       {needsAgreement && <AgreementGate onAccept={handleAcceptAgreement} />}
-      {!firstRunDone && <FirstRunOverlay onDone={() => setFirstRunDone(true)} />}
+      {authChecked && !needsAgreement && !firstRunDone && <FirstRunOverlay onDone={() => setFirstRunDone(true)} />}
       {showSleepModal && (
         <SleepScheduleModal
           settings={settings}

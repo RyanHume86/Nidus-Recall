@@ -4305,7 +4305,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
               />
             </svg>
             <span>
-              Note / Context
+              Elaboration
             </span>
             <span
               style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
@@ -4319,7 +4319,7 @@ exports[`modal snapshots > EditCardModal: existing card 1`] = `
             <textarea
               class="rapp-textarea"
               maxlength="5000"
-              placeholder="Context, memory hook, or related concept."
+              placeholder="Personal context, patient experience, or clinical reasoning insight."
               rows="2"
             >
               Key mechanism for T2DM.
@@ -4915,7 +4915,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
           >
             <div>
               <button
-                aria-expanded="false"
+                aria-expanded="true"
                 class="nid-note-toggle"
                 type="button"
               >
@@ -4926,7 +4926,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  style="transform: rotate(0deg); transition: transform 0.18s; flex-shrink: 0;"
+                  style="transform: rotate(180deg); transition: transform 0.18s; flex-shrink: 0;"
                   viewBox="0 0 24 24"
                   width="13"
                 >
@@ -4935,7 +4935,7 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                   />
                 </svg>
                 <span>
-                  Note / Context
+                  Elaboration
                 </span>
                 <span
                   style="font-size: 11px; color: rgb(74, 107, 92); margin-left: 4px;"
@@ -4943,6 +4943,23 @@ exports[`view snapshots > DeckView: with cards 1`] = `
                   (optional)
                 </span>
               </button>
+              <div
+                class="rapp-fadein"
+              >
+                <textarea
+                  class="rapp-textarea"
+                  maxlength="5000"
+                  placeholder="Personal context, patient experience, or clinical reasoning insight."
+                  rows="2"
+                />
+                <div
+                  class="nid-char-count"
+                >
+                  0
+                  /
+                  5000
+                </div>
+              </div>
             </div>
           </div>
           <div

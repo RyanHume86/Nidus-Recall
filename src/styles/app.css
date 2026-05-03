@@ -407,7 +407,7 @@
     .nid-card-row.selected { border-color: #2D6E52; }
     .nid-deck-right-panel { background: #1a2b22; border-color: #2a3d30; }
   }
-  @media (max-width: 768px) {
+  @media (max-width: 899px) {
     .nid-deck-layout  { flex-direction: column; }
     .nid-deck-left    { flex: none; width: 100%; }
     .nid-deck-right   { flex: none; width: 100%; position: static; max-height: none; }
