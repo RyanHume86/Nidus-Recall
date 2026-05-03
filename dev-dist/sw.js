@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-9c89b58b'], (function (workbox) { 'use strict';
+define(['./workbox-d47a0fae'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -82,7 +82,7 @@ define(['./workbox-9c89b58b'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.i9cd8cu5p0g"
+    "revision": "0.hp8djjrobn8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -91,7 +91,14 @@ define(['./workbox-9c89b58b'], (function (workbox) { 'use strict';
   workbox.registerRoute(/^https:\/\/api\.base44\.app\/.*/i, new workbox.StaleWhileRevalidate({
     "cacheName": "base44-api-cache",
     plugins: [new workbox.ExpirationPlugin({
-      maxAgeSeconds: 86400
+      maxAgeSeconds: 300
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i, new workbox.CacheFirst({
+    "cacheName": "images-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxAgeSeconds: 2592000,
+      maxEntries: 100
     })]
   }), 'GET');
 
