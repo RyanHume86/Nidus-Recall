@@ -40,7 +40,6 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
     matureModeEnabled=true, matureCardThreshold=30,
     fatigueAlertsEnabled=true, attentionDeclarationEnabled=true,
     intensityThreshold=80, intensityPromptsEnabled=true,
-    dailyNewCardLimit=20, dailyReviewLimit=200,
     timezone=detectTimezone(), maximumInterval=MAX_INTERVAL_CAP,
   } = settings||{}
 
@@ -169,17 +168,17 @@ export function SettingsView({ settings, onUpdateSettings, cards, decks, onExpor
             <div className="rapp-sec-title">Daily limits</div>
             <SliderField
               label="New cards per day"
-              value={dailyNewCardLimit}
+              value={newCardCap}
               min={0} max={200} step={5}
-              onChange={v=>set({ dailyNewCardLimit:v, newCardCap:v })}
+              onChange={v=>set({ newCardCap: v })}
               description="Cards you've never seen before. Start conservative and raise once routine is established."
               color={C.accent}
             />
             <SliderField
               label="Reviews per day"
-              value={dailyReviewLimit}
+              value={reviewCap}
               min={10} max={1000} step={10}
-              onChange={v=>set({ dailyReviewLimit:v, reviewCap:v })}
+              onChange={v=>set({ reviewCap: v })}
               description="Scheduled reviews. 200 is a comfortable upper bound for most learners."
             />
             <SliderField

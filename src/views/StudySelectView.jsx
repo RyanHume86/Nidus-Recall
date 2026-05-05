@@ -10,9 +10,9 @@ export function StudySelectView({ cards, decks, settings, onStartSRS, onStartFre
   const [interleavedDecks, setInterleavedDecks] = useState([])
   const [focused,        setFocused]        = useState(false)
   const [stakesOnly,     setStakesOnly]     = useState(false)
-  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30, dailyNewCardLimit=20, dailyReviewLimit=200 } = settings||{}
-  const effectiveNewCap    = Math.min(newCardCap, dailyNewCardLimit)
-  const effectiveReviewCap = Math.min(reviewCap, dailyReviewLimit)
+  const { newCardCap=15, reviewCap=100, catchupDays=7, attentionDeclarationEnabled=true, matureModeEnabled=true, matureCardThreshold=30 } = settings||{}
+  const effectiveNewCap    = newCardCap
+  const effectiveReviewCap = reviewCap
 
   const filtered = deck==="all" ? cards : cards.filter(c=>c.deck===deck)
   const dueCount  = getDueWithCatchup(filtered, effectiveReviewCap, catchupDays, cards).length
