@@ -5,7 +5,13 @@
  * Does NOT issue any PUT, POST, or DELETE requests.
  *
  * Auth: reads BASE44_TOKEN from the environment or .env.local
- * Usage: BASE44_TOKEN=<token> npm run audit:anonymous
+ * Usage:
+ *   BASE44_TOKEN=<token> BASE44_APP_URL=<your-app>.base44.app npm run audit:anonymous
+ *
+ * BASE44_APP_URL is required — Base44 enforces an origin allowlist on data
+ * endpoints. Set it to the deployed app origin, e.g.:
+ *   https://nidus-recall-abc12345.base44.app
+ * Get it: open the app → DevTools Console → window.location.origin
  *
  * Output: stdout table + scripts/audits/2026-05-anonymous-audit-output.json
  */
@@ -29,7 +35,7 @@ const ENTITIES = [
 
 type EntityName = typeof ENTITIES[number]
 
-// ── Token ─────────────────────────────────────────────────────────────────────
+// ── Credentials ───────────────────────────────────────────────────────────────
 
 function loadToken(): string {
   if (process.env.BASE44_TOKEN) return process.env.BASE44_TOKEN.trim()
@@ -47,18 +53,39 @@ function loadToken(): string {
   )
 }
 
+function loadAppUrl(): string {
+  if (process.env.BASE44_APP_URL) return process.env.BASE44_APP_URL.trim().replace(/\/$/, '')
+  const envPath = resolve(process.cwd(), '.env.local')
+  try {
+    const content = readFileSync(envPath, 'utf-8')
+    const match   = content.match(/^BASE44_APP_URL=(.+)$/m)
+    if (match) return match[1].trim().replace(/\/$/, '')
+  } catch { /* file not present */ }
+  throw new Error(
+    'BASE44_APP_URL not set.\n' +
+    'Base44 enforces an origin allowlist on data endpoints. Set the deployed app URL:\n' +
+    '  export BASE44_APP_URL=https://your-app-name.base44.app\n' +
+    'Get it: open the app → DevTools Console → window.location.origin'
+  )
+}
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 type Record = { id: string; created_date?: string; updated_date?: string; [key: string]: unknown }
 type ApiResult = { entities: Record[] }
 
-async function apiGet(token: string, path: string): Promise<ApiResult> {
+async function apiGet(token: string, appUrl: string, path: string): Promise<ApiResult> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'GET',
     headers: {
-      Authorization:  `Bearer ${token}`,
-      'X-App-Id':     APP_ID,
-      'Content-Type': 'application/json',
+      Authorization:   `Bearer ${token}`,
+      'X-App-Id':      APP_ID,
+      'Content-Type':  'application/json',
+      // Base44 data endpoints enforce an origin allowlist.
+      // X-Origin-URL is what the browser SDK sends (window.location.href).
+      'X-Origin-URL':  `${appUrl}/`,
+      'Origin':        appUrl,
+      'Referer':       `${appUrl}/`,
     },
   })
   if (!res.ok) {
@@ -74,13 +101,14 @@ function entityPath(name: string): string {
 
 async function queryByCreatedBy(
   token: string,
+  appUrl: string,
   entity: string,
   value: string | null,
 ): Promise<Record[]> {
   const q = JSON.stringify({ created_by: value })
   const path = `${entityPath(entity)}?q=${encodeURIComponent(q)}&limit=1000`
   try {
-    const result = await apiGet(token, path)
+    const result = await apiGet(token, appUrl, path)
     return (result.entities ?? []).map(r => ({
       id:           r.id,
       created_date: r.created_date,
@@ -120,20 +148,22 @@ type OutputJson = {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function run() {
-  const token = loadToken()
+  const token  = loadToken()
+  const appUrl = loadAppUrl()
 
   process.stdout.write('\n🔍  Nidus Recall — anonymous record audit (read-only)\n')
-  process.stdout.write(`    App: ${APP_ID}\n`)
-  process.stdout.write(`    Time: ${new Date().toISOString()}\n\n`)
+  process.stdout.write(`    App:    ${APP_ID}\n`)
+  process.stdout.write(`    Origin: ${appUrl}\n`)
+  process.stdout.write(`    Time:   ${new Date().toISOString()}\n\n`)
 
   const results: EntityResult[] = []
 
   for (const entity of ENTITIES) {
     process.stdout.write(`  Querying ${entity}...`)
     const [anonymous, empty, nullRecords] = await Promise.all([
-      queryByCreatedBy(token, entity, 'anonymous'),
-      queryByCreatedBy(token, entity, ''),
-      queryByCreatedBy(token, entity, null),
+      queryByCreatedBy(token, appUrl, entity, 'anonymous'),
+      queryByCreatedBy(token, appUrl, entity, ''),
+      queryByCreatedBy(token, appUrl, entity, null),
     ])
     results.push({ entity, anonymous, empty, null: nullRecords })
     process.stdout.write(
