@@ -9,7 +9,6 @@ const BASE_SETTINGS = {
   sleepBedtime: null, sleepWindowMinutes: 90, sleepBannerEnabled: true, sleepPrefersReviews: true,
   matureModeEnabled: true, matureCardThreshold: 30,
   fatigueAlertsEnabled: true, attentionDeclarationEnabled: true,
-  dailyNewCardLimit: 20, dailyReviewLimit: 200,
   timezone: "Africa/Johannesburg",
 }
 
@@ -115,20 +114,43 @@ describe("SettingsView — timezone", () => {
 })
 
 describe("SettingsView — daily limits", () => {
-  it("calls onUpdateSettings with dailyNewCardLimit when changed", () => {
+  it("calls onUpdateSettings with newCardCap when new-card slider changes", () => {
     const onUpdate = vi.fn()
     renderSettings({}, onUpdate)
     fireEvent.click(screen.getByText("Schedule"))
     const sliders = screen.getAllByRole("slider")
-    // First slider is dailyNewCardLimit
     fireEvent.change(sliders[0], { target: { value: "10" } })
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ dailyNewCardLimit: 10 })
+      expect.objectContaining({ newCardCap: 10 })
     )
+    expect(onUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ dailyNewCardLimit: expect.anything() })
+    )
+  })
+
+  it("calls onUpdateSettings with reviewCap when review slider changes", () => {
+    const onUpdate = vi.fn()
+    renderSettings({}, onUpdate)
+    fireEvent.click(screen.getByText("Schedule"))
+    const sliders = screen.getAllByRole("slider")
+    fireEvent.change(sliders[1], { target: { value: "50" } })
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewCap: 50 })
+    )
+    expect(onUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ dailyReviewLimit: expect.anything() })
+    )
+  })
+
+  it("slider displays newCardCap value (15), not the old dailyNewCardLimit default (20)", () => {
+    renderSettings({ newCardCap: 15 })
+    fireEvent.click(screen.getByText("Schedule"))
+    const sliders = screen.getAllByRole("slider")
+    expect(sliders[0].value).toBe("15")
   })
 })
 
-describe("StudySelectView — daily limit caps", () => {
+describe("StudySelectView — cap behaviour", () => {
   const TODAY = new Date().toISOString().split('T')[0]
   const makeDueCard = (id) => ({
     id, deck: "D", front: "Q", back: "A", status: "Active",
@@ -139,29 +161,28 @@ describe("StudySelectView — daily limit caps", () => {
     nextReview: null, reviewCount: 0, stability: null,
   })
 
-  it("daily_review_limit caps the displayed due count", () => {
+  it("reviewCap caps the displayed due count", () => {
     const cards = [makeDueCard("d1"), makeDueCard("d2"), makeDueCard("d3")]
     render(
       <StudySelectView
         cards={cards}
         decks={["D"]}
-        settings={{ ...BASE_SETTINGS, dailyReviewLimit: 2, reviewCap: 100, catchupDays: 1 }}
+        settings={{ ...BASE_SETTINGS, reviewCap: 2, catchupDays: 1 }}
         onStartSRS={vi.fn()} onStartFree={vi.fn()} onStartInterleaved={vi.fn()}
       />
     )
     const statsRow = screen.getByTestId("srs-stats-row")
-    // Due count should be capped at 2 (dailyReviewLimit), not 3
     expect(statsRow.textContent).toMatch(/\b2\b/)
     expect(statsRow.textContent).not.toMatch(/\b3\b/)
   })
 
-  it("daily_new_card_limit caps the displayed new count", () => {
+  it("newCardCap caps the displayed new count", () => {
     const cards = [makeNewCard("n1"), makeNewCard("n2"), makeNewCard("n3"), makeNewCard("n4"), makeNewCard("n5")]
     render(
       <StudySelectView
         cards={cards}
         decks={["D"]}
-        settings={{ ...BASE_SETTINGS, dailyNewCardLimit: 3, newCardCap: 15, catchupDays: 1 }}
+        settings={{ ...BASE_SETTINGS, newCardCap: 3, catchupDays: 1 }}
         onStartSRS={vi.fn()} onStartFree={vi.fn()} onStartInterleaved={vi.fn()}
       />
     )

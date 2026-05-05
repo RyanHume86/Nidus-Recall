@@ -43,10 +43,14 @@ export const sleepBannerIsDismissed = () => localStorage.getItem(SLEEP_DISMISS_K
 export const sleepBannerDismiss     = () => localStorage.setItem(SLEEP_DISMISS_KEY, new Date().toISOString().slice(0,10))
 
 export const settingsGet  = ()  => {
-  // Migrate old defaults to new defaults on first load.
   const stored = lsGet(SK.settings, {})
-  if (stored.newCardCap === 50) stored.newCardCap = 15
-  if (stored.reviewCap === 200) stored.reviewCap = 100
+  let dirty = false
+  // Remove legacy alias keys — newCardCap / reviewCap are the canonical runtime keys.
+  if ('dailyNewCardLimit' in stored) { delete stored.dailyNewCardLimit; dirty = true }
+  if ('dailyReviewLimit'  in stored) { delete stored.dailyReviewLimit;  dirty = true }
+  if (stored.newCardCap === 50) { stored.newCardCap = 15; dirty = true }
+  if (stored.reviewCap === 200) { stored.reviewCap = 100; dirty = true }
+  if (dirty) lsSet(SK.settings, stored)
   const merged = { ...DEFAULT_SETTINGS, ...stored }
   // Cap maximumInterval at MAX_INTERVAL_CAP for any user who had a higher value.
   if (merged.maximumInterval > MAX_INTERVAL_CAP) {
