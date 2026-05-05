@@ -39,7 +39,7 @@ export function EditCardModal({ card, cards, onUpdateCards, onClose, decks, onSa
       const result = await requestAIEdit({ ...card, ...form }, aiPrompt)
       setAiProposal(result)
     } catch (err) {
-      if (err.message.startsWith("CITATION_REFUSED:")) {
+      if (err.code === 'CITATION_REFUSED') {
         setAiError("Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.")
       } else {
         setAiError(err.message || "AI request failed. Try again.")

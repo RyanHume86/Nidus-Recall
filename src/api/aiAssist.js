@@ -11,6 +11,15 @@
  */
 import { base44 } from '@/api/base44Client'
 
+export class CitationRefusedError extends Error {
+  constructor(reason) {
+    super('CITATION_REFUSED: ' + reason)
+    this.name = 'CitationRefusedError'
+    this.code = 'CITATION_REFUSED'
+    this.reason = reason
+  }
+}
+
 // Matches a verb within 40 characters before citation-related nouns.
 // Refusal is enforced BEFORE the LLM request; the system prompt adds a second layer.
 const CITATION_INTENT_REGEX = /\b(add|insert|include|put|append|write|generate|find|get|look up|provide)\b.{0,40}(citation|reference|source|evidence|study|paper|pmid|doi|url|link)\b/i
@@ -29,14 +38,14 @@ export const isClinicalContent = (deckName, tags) => {
 
 /**
  * requestAIEdit: calls the LLM to propose an edit to a flashcard.
- * Throws 'CITATION_REFUSED: ...' synchronously if citation intent is detected.
+ * Throws CitationRefusedError synchronously if citation intent is detected.
  * Returns { proposed: { front, back }, isClinical: boolean }.
  *
  * The AI system prompt instructs the model not to add citations (second safety layer).
  */
 export const requestAIEdit = async (card, userPrompt) => {
   if (hasCitationIntent(userPrompt)) {
-    throw 'CITATION_REFUSED: Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.'
+    throw new CitationRefusedError('Citations must be added manually. Paste a PMID, DOI, or URL and the system will fetch the metadata.')
   }
 
   const isClinical = isClinicalContent(card.deck, card.tags)

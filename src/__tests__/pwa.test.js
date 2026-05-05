@@ -77,14 +77,12 @@ describe('install prompt session threshold', () => {
 // ── Cache strategy configuration ──────────────────────────────────────────
 
 describe('workbox cache strategy config', () => {
-  it('API cache max age is 5 minutes (300 seconds)', async () => {
+  it('Base44 API responses are not runtime-cached (api.base44.app removed)', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const src = fs.readFileSync(path.resolve(process.cwd(), 'vite.config.js'), 'utf-8')
-    // Find the maxAgeSeconds value in the base44-api-cache block
-    const match = src.match(/base44-api-cache[\s\S]*?maxAgeSeconds:\s*(\d+)/)
-    expect(match).toBeTruthy()
-    expect(parseInt(match[1], 10)).toBe(300)
+    expect(src).not.toContain('base44-api-cache')
+    expect(src).not.toContain('api.base44.app')
   })
 
   it('image cache uses CacheFirst handler', async () => {
@@ -103,34 +101,44 @@ describe('workbox cache strategy config', () => {
     expect(match).toBeTruthy()
     expect(parseInt(match[1], 10)).toBe(2592000)
   })
+
+  it('cleanupOutdatedCaches is explicitly set', async () => {
+    const fs = await import('fs')
+    const path = await import('path')
+    const src = fs.readFileSync(path.resolve(process.cwd(), 'vite.config.js'), 'utf-8')
+    expect(src).toContain('cleanupOutdatedCaches: true')
+  })
 })
 
-// ── manifest values ────────────────────────────────────────────────────────
+// ── manifest values (sourced from vite.config.js) ─────────────────────────
 
 describe('manifest', () => {
-  it('start_url is /library', async () => {
+  let src
+
+  beforeEach(async () => {
     const fs = await import('fs')
     const path = await import('path')
-    const manifestPath = path.resolve(process.cwd(), 'public/manifest.json')
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
-    expect(manifest.start_url).toBe('/library')
+    src = fs.readFileSync(path.resolve(process.cwd(), 'vite.config.js'), 'utf-8')
   })
 
-  it('background_color is #FFFFFF', async () => {
-    const fs = await import('fs')
-    const path = await import('path')
-    const manifestPath = path.resolve(process.cwd(), 'public/manifest.json')
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
-    expect(manifest.background_color).toBe('#FFFFFF')
+  it('start_url is /library', () => {
+    const match = src.match(/start_url:\s*['"]([^'"]+)['"]/)
+    expect(match).toBeTruthy()
+    expect(match[1]).toBe('/library')
   })
 
-  it('has 192px and 512px icons', async () => {
-    const fs = await import('fs')
-    const path = await import('path')
-    const manifestPath = path.resolve(process.cwd(), 'public/manifest.json')
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
-    const sizes = manifest.icons.map(i => i.sizes)
-    expect(sizes).toContain('192x192')
-    expect(sizes).toContain('512x512')
+  it('background_color is #FFFFFF', () => {
+    const match = src.match(/background_color:\s*['"]([^'"]+)['"]/)
+    expect(match).toBeTruthy()
+    expect(match[1]).toBe('#FFFFFF')
+  })
+
+  it('has 192px and 512px icons', () => {
+    expect(src).toContain('192x192')
+    expect(src).toContain('512x512')
+  })
+
+  it('orientation is portrait', () => {
+    expect(src).toContain("orientation: 'portrait'")
   })
 })
