@@ -71,8 +71,11 @@ function loadAppUrl(): string {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
-type Record = { id: string; created_date?: string; updated_date?: string; [key: string]: unknown }
-type ApiResult = { entities: Record[] }
+type AuditRecord = { id: string; created_date?: string; updated_date?: string }
+type ApiResult   = { entities: AuditRecord[] }
+
+// null count means the API rejected the query (unsupported filter)
+type QueryResult = AuditRecord[] | null
 
 async function apiGet(token: string, appUrl: string, path: string): Promise<ApiResult> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -99,13 +102,26 @@ function entityPath(name: string): string {
   return `/apps/${APP_ID}/entities/${name}`
 }
 
-async function queryByCreatedBy(
+async function queryAnonymous(token: string, appUrl: string, entity: string): Promise<AuditRecord[]> {
+  const q    = JSON.stringify({ created_by: 'anonymous' })
+  const path = `${entityPath(entity)}?q=${encodeURIComponent(q)}&limit=1000`
+  const result = await apiGet(token, appUrl, path)
+  return (result.entities ?? []).map(r => ({
+    id:           r.id,
+    created_date: r.created_date,
+    updated_date: r.updated_date,
+  }))
+}
+
+// Base44 may not support empty-string or null filter values; returns null if
+// the API rejects the query with 4xx rather than returning an empty list.
+async function queryOptional(
   token: string,
   appUrl: string,
   entity: string,
   value: string | null,
-): Promise<Record[]> {
-  const q = JSON.stringify({ created_by: value })
+): Promise<QueryResult> {
+  const q    = JSON.stringify({ created_by: value })
   const path = `${entityPath(entity)}?q=${encodeURIComponent(q)}&limit=1000`
   try {
     const result = await apiGet(token, appUrl, path)
@@ -116,8 +132,7 @@ async function queryByCreatedBy(
     }))
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
-    // Some Base44 backends reject null queries — treat as zero results
-    if (message.includes('400') || message.includes('422')) return []
+    if (/40[0-9]|422/.test(message)) return null   // unsupported filter value
     throw err
   }
 }
@@ -128,9 +143,9 @@ type BucketKey = 'anonymous' | 'empty' | 'null'
 
 type EntityResult = {
   entity:    EntityName
-  anonymous: Record[]
-  empty:     Record[]
-  null:      Record[]
+  anonymous: AuditRecord[]   // always present — hard failure if API rejects
+  empty:     QueryResult     // null = API rejected the filter
+  null:      QueryResult     // null = API rejected the filter
 }
 
 type OutputJson = {
@@ -139,8 +154,8 @@ type OutputJson = {
   results:    EntityResult[]
   summary: {
     total_anonymous: number
-    total_empty:     number
-    total_null:      number
+    total_empty:     number | 'n/a'
+    total_null:      number | 'n/a'
     grand_total:     number
   }
 }
@@ -160,28 +175,25 @@ async function run() {
 
   for (const entity of ENTITIES) {
     process.stdout.write(`  Querying ${entity}...`)
-    const [anonymous, empty, nullRecords] = await Promise.all([
-      queryByCreatedBy(token, appUrl, entity, 'anonymous'),
-      queryByCreatedBy(token, appUrl, entity, ''),
-      queryByCreatedBy(token, appUrl, entity, null),
+    // anonymous is strict — a failure here means auth/origin is broken
+    const anonymous   = await queryAnonymous(token, appUrl, entity)
+    // empty/null are best-effort — Base44 may not support these filter values
+    const [empty, nullRecords] = await Promise.all([
+      queryOptional(token, appUrl, entity, ''),
+      queryOptional(token, appUrl, entity, null),
     ])
     results.push({ entity, anonymous, empty, null: nullRecords })
-    process.stdout.write(
-      ` anonymous=${anonymous.length}  empty=${empty.length}  null=${nullRecords.length}\n`
-    )
+    const emptyStr = empty   === null ? 'n/a' : String(empty.length)
+    const nullStr  = nullRecords === null ? 'n/a' : String(nullRecords.length)
+    process.stdout.write(` anonymous=${anonymous.length}  empty=${emptyStr}  null=${nullStr}\n`)
   }
 
   // ── Table ──────────────────────────────────────────────────────────────────
 
-  const COL = {
-    entity: 20,
-    anon:   24,
-    empty:  16,
-    null:   16,
-  }
-
+  const COL = { entity: 20, anon: 24, empty: 16, null: 16 }
   const pad = (s: string | number, n: number) => String(s).padEnd(n)
   const sep = '-'.repeat(COL.entity + COL.anon + COL.empty + COL.null + 3)
+  const fmt = (q: QueryResult) => q === null ? 'n/a' : String(q.length)
 
   process.stdout.write('\n')
   process.stdout.write(
@@ -196,8 +208,8 @@ async function run() {
     process.stdout.write(
       pad(r.entity, COL.entity) + '| ' +
       pad(r.anonymous.length, COL.anon) + '| ' +
-      pad(r.empty.length, COL.empty) + '| ' +
-      r.null.length + '\n'
+      pad(fmt(r.empty), COL.empty) + '| ' +
+      fmt(r.null) + '\n'
     )
   }
 
@@ -205,17 +217,21 @@ async function run() {
 
   // ── Detail rows ────────────────────────────────────────────────────────────
 
-  const buckets: { key: BucketKey; label: string }[] = [
-    { key: 'anonymous', label: 'created_by="anonymous"' },
-    { key: 'empty',     label: 'created_by=""' },
-    { key: 'null',      label: 'created_by=null' },
-  ]
-
   let anyDetail = false
+
   for (const r of results) {
-    for (const { key, label } of buckets) {
+    if (r.anonymous.length > 0) {
+      anyDetail = true
+      process.stdout.write(`\n  ${r.entity} — created_by="anonymous" (${r.anonymous.length} record(s)):\n`)
+      for (const rec of r.anonymous) {
+        process.stdout.write(
+          `    id=${rec.id}  created=${rec.created_date ?? 'n/a'}  updated=${rec.updated_date ?? 'n/a'}\n`
+        )
+      }
+    }
+    for (const [key, label] of [['empty', 'created_by=""'], ['null', 'created_by=null']] as const) {
       const records = r[key]
-      if (records.length === 0) continue
+      if (records === null || records.length === 0) continue
       anyDetail = true
       process.stdout.write(`\n  ${r.entity} — ${label} (${records.length} record(s)):\n`)
       for (const rec of records) {
@@ -233,8 +249,13 @@ async function run() {
   // ── JSON output ────────────────────────────────────────────────────────────
 
   const totalAnonymous = results.reduce((s, r) => s + r.anonymous.length, 0)
-  const totalEmpty     = results.reduce((s, r) => s + r.empty.length, 0)
-  const totalNull      = results.reduce((s, r) => s + r.null.length, 0)
+  const anyEmptyUnsupported = results.some(r => r.empty === null)
+  const anyNullUnsupported  = results.some(r => r.null  === null)
+  const totalEmpty: number | 'n/a' = anyEmptyUnsupported ? 'n/a' : results.reduce((s, r) => s + (r.empty?.length ?? 0), 0)
+  const totalNull:  number | 'n/a' = anyNullUnsupported  ? 'n/a' : results.reduce((s, r) => s + (r.null?.length  ?? 0), 0)
+  const grandTotal = totalAnonymous +
+    (typeof totalEmpty === 'number' ? totalEmpty : 0) +
+    (typeof totalNull  === 'number' ? totalNull  : 0)
 
   const output: OutputJson = {
     audited_at: new Date().toISOString(),
@@ -244,7 +265,7 @@ async function run() {
       total_anonymous: totalAnonymous,
       total_empty:     totalEmpty,
       total_null:      totalNull,
-      grand_total:     totalAnonymous + totalEmpty + totalNull,
+      grand_total:     grandTotal,
     },
   }
 
@@ -255,7 +276,7 @@ async function run() {
   writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf-8')
 
   process.stdout.write(`\n  📄  JSON report written to:\n      ${outPath}\n`)
-  process.stdout.write(`\n  Summary: anonymous=${totalAnonymous}  empty=${totalEmpty}  null=${totalNull}  total=${totalAnonymous + totalEmpty + totalNull}\n\n`)
+  process.stdout.write(`\n  Summary: anonymous=${totalAnonymous}  empty=${totalEmpty}  null=${totalNull}  total=${grandTotal}\n\n`)
 }
 
 run().catch((err: unknown) => {
