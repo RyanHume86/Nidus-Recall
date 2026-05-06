@@ -1,0 +1,56 @@
+name: Anonymous record audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+
+      - name: Set up Node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b  # v4.0.3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run audit
+        env:
+          BASE44_TOKEN: ${{ secrets.BASE44_TOKEN }}
+          BASE44_APP_URL: ${{ secrets.BASE44_APP_URL }}
+        run: |
+          if [ -z "$BASE44_TOKEN" ] || [ -z "$BASE44_APP_URL" ]; then
+            echo "::error::BASE44_TOKEN and BASE44_APP_URL must be set as repo secrets."
+            exit 1
+          fi
+          npm run audit:anonymous
+
+      - name: Verify output is from this run, not a checked-in artefact
+        run: |
+          if [ ! -f scripts/audits/2026-05-anonymous-audit-output.json ]; then
+            echo "::error::Audit output file was not created."
+            exit 1
+          fi
+          AUDITED_AT=$(jq -r '.audited_at' scripts/audits/2026-05-anonymous-audit-output.json)
+          TODAY=$(date -u +%Y-%m-%d)
+          if ! echo "$AUDITED_AT" | grep -q "^$TODAY"; then
+            echo "::error::audited_at ($AUDITED_AT) does not start with today's UTC date ($TODAY). The script may have written a stale or fabricated file."
+            exit 1
+          fi
+          echo "Audit output verified live (audited_at=$AUDITED_AT)."
+
+      - name: Upload audit output
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a  # v4.3.6
+        with:
+          name: anonymous-audit-${{ github.run_id }}
+          path: scripts/audits/2026-05-anonymous-audit-output.json
+          retention-days: 90

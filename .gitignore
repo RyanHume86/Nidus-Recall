@@ -29,3 +29,6 @@ dist-ssr
 
 .env
 .vite
+
+# Audit output — live results are stored as workflow artifacts, not in the repo
+scripts/audits/*-output.json
