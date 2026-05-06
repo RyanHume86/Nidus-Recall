@@ -17,12 +17,12 @@
     "postinstall": "node -e \"require('fs').copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm','public/sql-wasm.wasm')\" && node scripts/generate-icons.js",
     "seed:onboarding": "tsx scripts/seed/onboarding-deck.ts",
     "schema:apply-rls": "tsx scripts/schema/apply-rls.ts",
-    "migrate:assign-anonymous": "tsx scripts/migrations/2026-05-assign-anonymous.ts"
+    "migrate:assign-anonymous": "tsx scripts/migrations/2026-05-assign-anonymous.ts",
+    "audit:anonymous": "tsx scripts/audits/2026-05-anonymous-audit.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.27",
     "@base44/vite-plugin": "^1.0.13",
-    "@tanstack/react-query": "^5.84.1",
     "@tanstack/react-virtual": "^3.13.24",
     "clsx": "^2.1.1",
     "dexie": "^4.0.0",

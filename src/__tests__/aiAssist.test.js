@@ -18,7 +18,7 @@ vi.mock('@/api/base44Client', () => ({
 }))
 
 import { base44 } from '@/api/base44Client'
-import { hasCitationIntent, isClinicalContent, requestAIEdit } from '../api/aiAssist'
+import { hasCitationIntent, isClinicalContent, requestAIEdit, CitationRefusedError } from '../api/aiAssist'
 import { saveCardHistory, listCardHistory } from '../api/storage'
 import { setAuthState } from '@/lib/api/withAuth'
 
@@ -64,10 +64,10 @@ describe('isClinicalContent', () => {
 describe('requestAIEdit', () => {
   const card = { front: 'Q?', back: 'A.', deck: 'Science', tags: [] }
 
-  it('throws CITATION_REFUSED when citation intent is detected', async () => {
+  it('throws CitationRefusedError when citation intent is detected', async () => {
     await expect(
       requestAIEdit(card, 'add a reference to this claim')
-    ).rejects.toMatch(/^CITATION_REFUSED:/)
+    ).rejects.toMatchObject({ code: 'CITATION_REFUSED' })
   })
 
   it('calls invokeLLM for a safe prompt', async () => {
@@ -129,6 +129,43 @@ describe('saveCardHistory', () => {
     expect(base44.entities.CardHistory.create).toHaveBeenCalledWith(
       expect.objectContaining({ version: 3 })
     )
+  })
+})
+
+describe('CitationRefusedError', () => {
+  it('is an instance of Error', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err instanceof Error).toBe(true)
+  })
+
+  it('is an instance of CitationRefusedError', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err instanceof CitationRefusedError).toBe(true)
+  })
+
+  it('has name CitationRefusedError', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err.name).toBe('CitationRefusedError')
+  })
+
+  it('has code CITATION_REFUSED', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err.code).toBe('CITATION_REFUSED')
+  })
+
+  it('message starts with CITATION_REFUSED:', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err.message.startsWith('CITATION_REFUSED:')).toBe(true)
+  })
+
+  it('has a defined stack', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err.stack).toBeDefined()
+  })
+
+  it('reason equals the constructor argument', () => {
+    const err = new CitationRefusedError('test reason')
+    expect(err.reason).toBe('test reason')
   })
 })
 

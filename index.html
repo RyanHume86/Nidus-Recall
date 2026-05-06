@@ -2,27 +2,18 @@
 <html lang="en">
   <head>
     <script>
-      // 1. Patch navigator.serviceWorker.register so ALL SW registrations silently swallow
-      //    SecurityErrors — including the vite-plugin's own dev-sw.js registration which
-      //    fires before any module script and cannot be caught by unhandledrejection.
-      (function() {
-        if (!('serviceWorker' in navigator)) return;
-        var _orig = navigator.serviceWorker.register.bind(navigator.serviceWorker);
-        navigator.serviceWorker.register = function(scriptURL, options) {
-          return _orig(scriptURL, options).catch(function() {});
-        };
-      })();
-
-      // 2. Catch-all for any other unhandled rejections that crash the vite-plugin
-      //    error handler (it calls .match() on reason without guarding).
+      // Narrow filter: silence only known service worker registration
+      // failures with SecurityError-class errors. Everything else surfaces.
       window.addEventListener('unhandledrejection', function(e) {
         var r = e.reason;
-        if (r == null) { e.preventDefault(); return; }
-        if (typeof r === 'string') { e.preventDefault(); return; }
-        if (r instanceof DOMException) { e.preventDefault(); return; }
-        if (r && (r.name === 'SecurityError' || r.name === 'AbortError' || r.name === 'NotAllowedError')) { e.preventDefault(); return; }
-        if (!r || typeof r.message !== 'string') { e.preventDefault(); return; }
-        if (r.message.indexOf('ServiceWorker') !== -1 || r.message.indexOf('service worker') !== -1) { e.preventDefault(); return; }
+        if (!r || typeof r !== 'object') return;
+        var msg = typeof r.message === 'string' ? r.message : '';
+        if (r.name === 'SecurityError' &&
+            (msg.indexOf('ServiceWorker') !== -1 ||
+             msg.indexOf('/sw.js') !== -1 ||
+             msg.indexOf('service worker') !== -1)) {
+          e.preventDefault();
+        }
       }, true);
     </script>
     <meta charset="UTF-8" />
@@ -34,7 +25,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Nidus Recall" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
     <title>Nidus Recall</title>
   </head>
   <body>

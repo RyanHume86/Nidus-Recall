@@ -39,16 +39,8 @@ export default defineConfig({
       workbox: {
         // Cache all common static asset types for full offline app shell support.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
-          {
-            // API entity reads: stale-while-revalidate, 5-minute max age.
-            urlPattern: /^https:\/\/api\.base44\.app\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'base44-api-cache',
-              expiration: { maxAgeSeconds: 300 },
-            },
-          },
           {
             // Images: cache-first, 30-day expiry.
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
@@ -60,8 +52,6 @@ export default defineConfig({
           },
         ],
       },
-      // Note: vite-plugin-pwa generates its own manifest; public/manifest.json
-      // is also kept for legacy browser compatibility. Both should stay in sync.
       manifest: {
         name: 'Nidus Recall',
         short_name: 'Nidus',
@@ -69,6 +59,7 @@ export default defineConfig({
         theme_color: '#2D6E52',
         background_color: '#FFFFFF',
         display: 'standalone',
+        orientation: 'portrait',
         start_url: '/library',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
