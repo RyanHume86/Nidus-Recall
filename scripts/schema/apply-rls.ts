@@ -1,11 +1,15 @@
 /**
- * Applies Row-Level Security rules to Deck, Flashcard, and SessionLog entities.
+ * Applies Row-Level Security rules to all six Nidus Recall entities.
  *
  * Rules:
  *   create — authenticated users only (role: "user")
  *   read   — record owner OR admin
  *   update — record owner OR admin
  *   delete — record owner OR admin
+ *
+ * CardState, CardHistory, and UserSchedulerParams must be registered in the
+ * Base44 dashboard before this script is run against them. See
+ * scripts/schema/manual-setup.md for instructions.
  *
  * Auth: reads BASE44_TOKEN from the environment or .env.local
  * Usage: BASE44_TOKEN=<token> npm run schema:apply-rls
@@ -63,9 +67,9 @@ async function getSchema(token: string, entityName: string): Promise<object> {
 
 async function run() {
   const token = loadToken()
-  process.stdout.write('\n🔒  Nidus Recall — applying RLS rules\n\n')
+  process.stdout.write('\n🔒  Nidus Recall — applying RLS rules (6 entities)\n\n')
 
-  for (const entity of ['Deck', 'Flashcard', 'SessionLog']) {
+  for (const entity of ['Deck', 'Flashcard', 'SessionLog', 'CardState', 'CardHistory', 'UserSchedulerParams']) {
     const schema = await getSchema(token, entity)
     await applyRls(token, entity, schema)
   }
