@@ -102,15 +102,27 @@ function entityPath(name: string): string {
   return `/apps/${APP_ID}/entities/${name}`
 }
 
-async function queryAnonymous(token: string, appUrl: string, entity: string): Promise<AuditRecord[]> {
+// Returns 'NOT_REGISTERED' when the entity doesn't exist in the live app schema (404).
+// Any other error (401, 403, 5xx) propagates — those indicate auth or infra failures.
+async function queryAnonymous(
+  token: string,
+  appUrl: string,
+  entity: string,
+): Promise<AuditRecord[] | 'NOT_REGISTERED'> {
   const q    = JSON.stringify({ created_by: 'anonymous' })
   const path = `${entityPath(entity)}?q=${encodeURIComponent(q)}&limit=1000`
-  const result = await apiGet(token, appUrl, path)
-  return (result.entities ?? []).map(r => ({
-    id:           r.id,
-    created_date: r.created_date,
-    updated_date: r.updated_date,
-  }))
+  try {
+    const result = await apiGet(token, appUrl, path)
+    return (result.entities ?? []).map(r => ({
+      id:           r.id,
+      created_date: r.created_date,
+      updated_date: r.updated_date,
+    }))
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('→ 404')) return 'NOT_REGISTERED'
+    throw err
+  }
 }
 
 // Base44 may not support empty-string or null filter values; returns null if
@@ -139,13 +151,14 @@ async function queryOptional(
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type BucketKey = 'anonymous' | 'empty' | 'null'
+type AnonymousResult = AuditRecord[] | 'NOT_REGISTERED'
 
 type EntityResult = {
   entity:    EntityName
-  anonymous: AuditRecord[]   // always present — hard failure if API rejects
-  empty:     QueryResult     // null = API rejected the filter
-  null:      QueryResult     // null = API rejected the filter
+  // 'NOT_REGISTERED' = entity doesn't exist in live Base44 app schema (404)
+  anonymous: AnonymousResult
+  empty:     QueryResult     // null = filter value unsupported by API
+  null:      QueryResult     // null = filter value unsupported by API
 }
 
 type OutputJson = {
@@ -153,10 +166,11 @@ type OutputJson = {
   app_id:     string
   results:    EntityResult[]
   summary: {
-    total_anonymous: number
-    total_empty:     number | 'n/a'
-    total_null:      number | 'n/a'
-    grand_total:     number
+    total_anonymous:     number
+    not_registered:      string[]
+    total_empty:         number | 'n/a'
+    total_null:          number | 'n/a'
+    grand_total:         number
   }
 }
 
@@ -175,15 +189,18 @@ async function run() {
 
   for (const entity of ENTITIES) {
     process.stdout.write(`  Querying ${entity}...`)
-    // anonymous is strict — a failure here means auth/origin is broken
-    const anonymous   = await queryAnonymous(token, appUrl, entity)
-    // empty/null are best-effort — Base44 may not support these filter values
+    const anonymous = await queryAnonymous(token, appUrl, entity)
+    if (anonymous === 'NOT_REGISTERED') {
+      results.push({ entity, anonymous, empty: null, null: null })
+      process.stdout.write(` not registered in app schema\n`)
+      continue
+    }
     const [empty, nullRecords] = await Promise.all([
       queryOptional(token, appUrl, entity, ''),
       queryOptional(token, appUrl, entity, null),
     ])
     results.push({ entity, anonymous, empty, null: nullRecords })
-    const emptyStr = empty   === null ? 'n/a' : String(empty.length)
+    const emptyStr = empty       === null ? 'n/a' : String(empty.length)
     const nullStr  = nullRecords === null ? 'n/a' : String(nullRecords.length)
     process.stdout.write(` anonymous=${anonymous.length}  empty=${emptyStr}  null=${nullStr}\n`)
   }
@@ -193,7 +210,8 @@ async function run() {
   const COL = { entity: 20, anon: 24, empty: 16, null: 16 }
   const pad = (s: string | number, n: number) => String(s).padEnd(n)
   const sep = '-'.repeat(COL.entity + COL.anon + COL.empty + COL.null + 3)
-  const fmt = (q: QueryResult) => q === null ? 'n/a' : String(q.length)
+  const fmtQ = (q: QueryResult)       => q  === null ? 'n/a'            : String(q.length)
+  const fmtA = (a: AnonymousResult)   => a  === 'NOT_REGISTERED' ? 'NOT_REGISTERED' : String(a.length)
 
   process.stdout.write('\n')
   process.stdout.write(
@@ -207,9 +225,9 @@ async function run() {
   for (const r of results) {
     process.stdout.write(
       pad(r.entity, COL.entity) + '| ' +
-      pad(r.anonymous.length, COL.anon) + '| ' +
-      pad(fmt(r.empty), COL.empty) + '| ' +
-      fmt(r.null) + '\n'
+      pad(fmtA(r.anonymous), COL.anon) + '| ' +
+      pad(fmtQ(r.empty), COL.empty) + '| ' +
+      fmtQ(r.null) + '\n'
     )
   }
 
@@ -220,6 +238,7 @@ async function run() {
   let anyDetail = false
 
   for (const r of results) {
+    if (r.anonymous === 'NOT_REGISTERED') continue
     if (r.anonymous.length > 0) {
       anyDetail = true
       process.stdout.write(`\n  ${r.entity} — created_by="anonymous" (${r.anonymous.length} record(s)):\n`)
@@ -248,24 +267,31 @@ async function run() {
 
   // ── JSON output ────────────────────────────────────────────────────────────
 
-  const totalAnonymous = results.reduce((s, r) => s + r.anonymous.length, 0)
-  const anyEmptyUnsupported = results.some(r => r.empty === null)
-  const anyNullUnsupported  = results.some(r => r.null  === null)
-  const totalEmpty: number | 'n/a' = anyEmptyUnsupported ? 'n/a' : results.reduce((s, r) => s + (r.empty?.length ?? 0), 0)
-  const totalNull:  number | 'n/a' = anyNullUnsupported  ? 'n/a' : results.reduce((s, r) => s + (r.null?.length  ?? 0), 0)
+  const notRegistered    = results.filter(r => r.anonymous === 'NOT_REGISTERED').map(r => r.entity)
+  const registered       = results.filter(r => r.anonymous !== 'NOT_REGISTERED')
+  const totalAnonymous   = registered.reduce((s, r) => s + (r.anonymous as AuditRecord[]).length, 0)
+  const anyEmptyBad      = registered.some(r => r.empty === null)
+  const anyNullBad       = registered.some(r => r.null  === null)
+  const totalEmpty: number | 'n/a' = anyEmptyBad ? 'n/a' : registered.reduce((s, r) => s + (r.empty?.length ?? 0), 0)
+  const totalNull:  number | 'n/a' = anyNullBad  ? 'n/a' : registered.reduce((s, r) => s + (r.null?.length  ?? 0), 0)
   const grandTotal = totalAnonymous +
     (typeof totalEmpty === 'number' ? totalEmpty : 0) +
     (typeof totalNull  === 'number' ? totalNull  : 0)
+
+  if (notRegistered.length > 0) {
+    process.stdout.write(`\n  ℹ️   Not registered in app schema: ${notRegistered.join(', ')}\n`)
+  }
 
   const output: OutputJson = {
     audited_at: new Date().toISOString(),
     app_id:     APP_ID,
     results,
     summary: {
-      total_anonymous: totalAnonymous,
-      total_empty:     totalEmpty,
-      total_null:      totalNull,
-      grand_total:     grandTotal,
+      total_anonymous:  totalAnonymous,
+      not_registered:   notRegistered,
+      total_empty:      totalEmpty,
+      total_null:       totalNull,
+      grand_total:      grandTotal,
     },
   }
 
