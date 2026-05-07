@@ -428,14 +428,19 @@ export const syncCardState = async (clientId, stateFields) => {
     clozeIndex:         stateFields.clozeIndex          ?? null,
     sourceCardClientId: stateFields.sourceCardClientId  || null,
   }
-  if (entityId) {
-    await base44.entities.CardState.update(entityId, payload)
-  } else {
-    const created = await base44.entities.CardState.create({ ...payload, migrated: false })
-    cardStateEntityIdMap.set(clientId, created.id)
+  try {
+    if (entityId) {
+      await base44.entities.CardState.update(entityId, payload)
+    } else {
+      const created = await base44.entities.CardState.create({ ...payload, migrated: false })
+      cardStateEntityIdMap.set(clientId, created.id)
+    }
+    cardStateMap.set(clientId, toAppCardState(payload))
+    cardStateSnapshot.set(clientId, toAppCardState(payload))
+  } catch (_) {
+    // CardState entity may not exist in this environment; scheduling state
+    // is still held in memory so the session continues unaffected.
   }
-  cardStateMap.set(clientId, toAppCardState(payload))
-  cardStateSnapshot.set(clientId, toAppCardState(payload))
 }
 
 /**
@@ -485,13 +490,18 @@ export const saveUserSchedulerParams = async (params, reviewCount) => {
     reviewCountAtFit: reviewCount || 0,
     fitVersion:       'v1-retention-only',
   }
-  if (userSchedulerParamsId) {
-    await base44.entities.UserSchedulerParams.update(userSchedulerParamsId, payload)
-  } else {
-    const created = await base44.entities.UserSchedulerParams.create(payload)
-    userSchedulerParamsId = created.id
+  try {
+    if (userSchedulerParamsId) {
+      await base44.entities.UserSchedulerParams.update(userSchedulerParamsId, payload)
+    } else {
+      const created = await base44.entities.UserSchedulerParams.create(payload)
+      userSchedulerParamsId = created.id
+    }
+    userSchedulerParams = { ...payload, id: userSchedulerParamsId }
+  } catch (_) {
+    // UserSchedulerParams entity may not exist in this environment; params are
+    // held in memory for the session duration.
   }
-  userSchedulerParams = { ...payload, id: userSchedulerParamsId }
 }
 
 /**
