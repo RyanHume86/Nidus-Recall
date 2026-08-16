@@ -24,20 +24,124 @@
     },
     "frictionNote": {
       "type": "string",
-      "description": "Optional session note from the user"
+      "description": "User-authored session note (plain text; system flags are stored in dedicated fields)"
     },
     "intensity_score": {
       "type": "number",
       "description": "Cumulative cognitive load score for the session."
     },
+    "ratingBreakdown": {
+      "type": "object",
+      "description": "Count of each rating button press during the session",
+      "properties": {
+        "again": {
+          "type": "number",
+          "default": 0
+        },
+        "hard": {
+          "type": "number",
+          "default": 0
+        },
+        "good": {
+          "type": "number",
+          "default": 0
+        },
+        "easy": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "contentTypeBreakdown": {
+      "type": "object",
+      "description": "Count of reviews by card content type",
+      "properties": {
+        "Factual": {
+          "type": "number",
+          "default": 0
+        },
+        "Mechanism": {
+          "type": "number",
+          "default": 0
+        },
+        "Clinical Reasoning": {
+          "type": "number",
+          "default": 0
+        },
+        "Anatomy": {
+          "type": "number",
+          "default": 0
+        },
+        "Pathology": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "fatigueFlag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether fatigue risk was elevated at session end"
+    },
+    "focusedFlag": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this was a declared focused session"
+    },
     "status": {
       "type": "string",
-      "enum": ["in-progress", "complete"],
+      "enum": [
+        "complete",
+        "abandoned"
+      ],
       "default": "complete",
-      "description": "Session completion status."
+      "description": "Session completion status"
     }
   },
   "required": [
     "date"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

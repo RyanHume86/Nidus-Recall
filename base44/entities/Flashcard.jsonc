@@ -12,10 +12,12 @@
     },
     "front": {
       "type": "string",
+      "maxLength": 1500,
       "description": "The question shown on the front of the card"
     },
     "back": {
       "type": "string",
+      "maxLength": 3000,
       "description": "The answer shown on the back of the card"
     },
     "contentType": {
@@ -30,62 +32,9 @@
       "default": "Factual",
       "description": "Card content category"
     },
-    "cardType": {
-      "type": "string",
-      "enum": ["basic", "cloze", "image_occlusion"],
-      "default": "basic",
-      "description": "Card rendering type. basic = front/back; cloze = deletion cards; image_occlusion = masked image cards."
-    },
-    "clozeText": {
-      "type": "string",
-      "nullable": true,
-      "description": "Source text for cloze cards using Anki-compatible {{c1::answer}} or {{c1::answer::hint}} syntax."
-    },
-    "clozeIndex": {
-      "type": "number",
-      "nullable": true,
-      "description": "Which cloze index this Flashcard represents (1-based). Null for basic cards."
-    },
-    "imageUrl": {
-      "type": "string",
-      "nullable": true,
-      "description": "URL or Base44 file reference for the source image (image occlusion cards)."
-    },
-    "occlusionRegions": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "type": { "type": "string", "enum": ["rect", "polygon"], "default": "rect" },
-          "x": { "type": "number" },
-          "y": { "type": "number" },
-          "width": { "type": "number" },
-          "height": { "type": "number" },
-          "points": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "x": { "type": "number" },
-                "y": { "type": "number" }
-              }
-            },
-            "description": "Polygon vertices as fractional coordinates (0.0 to 1.0). Only present when type is polygon."
-          }
-        }
-      },
-      "nullable": true,
-      "description": "Mask regions for image occlusion cards. Each region is either rect (x,y,width,height) or polygon (points array). Coordinates are fractions of image dimensions (0.0 to 1.0)."
-    },
-    "occlusionRegionId": {
-      "type": "string",
-      "nullable": true,
-      "description": "For generated image occlusion cards: which region this card tests. The front shows all other regions unmasked."
-    },
     "elaboration": {
       "type": "string",
+      "maxLength": 5000,
       "description": "Third-side elaboration shown during review"
     },
     "status": {
@@ -98,46 +47,80 @@
       "default": "Active",
       "description": "Card status"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "maxItems": 5,
+      "default": [],
+      "description": "User-defined tags for cross-deck filtering. Stored as normalised slugs (lowercase, hyphens)."
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "unreviewed",
+        "reviewed",
+        "outdated"
+      ],
+      "default": "unreviewed",
+      "description": "Clinical accuracy review status for this card."
+    },
+    "accuracy_date": {
+      "type": "string",
+      "description": "YYYY-MM-DD date of the last clinical accuracy review."
+    },
+    "accuracy_reviewer": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "Name or identifier of the person who reviewed this card's clinical accuracy."
+    },
+    "guideline_version": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Clinical guideline version this card was reviewed against (e.g. SAMF 2024, UTD 2025)."
+    },
     "nextReview": {
       "type": "string",
-      "description": "Deprecated: use CardState. YYYY-MM-DD date of next scheduled review. Retained for backward compatibility during migration."
+      "description": "YYYY-MM-DD date of next scheduled review"
     },
     "interval": {
       "type": "number",
-      "description": "Deprecated: use CardState. Current review interval in days.",
+      "description": "Current review interval in days",
       "default": 1
     },
     "reviewCount": {
       "type": "number",
-      "description": "Deprecated: use CardState. Total number of reviews.",
+      "description": "Total number of reviews",
       "default": 0
     },
     "stability": {
       "type": "number",
-      "description": "Deprecated: use CardState. FSRS stability parameter."
+      "description": "FSRS stability parameter"
     },
     "difficulty": {
       "type": "number",
-      "description": "Deprecated: use CardState. FSRS difficulty parameter."
+      "description": "FSRS difficulty parameter"
     },
     "lapses": {
       "type": "number",
-      "description": "Deprecated: use CardState. Number of times rated Again.",
+      "description": "Number of times rated Again",
       "default": 0
     },
     "lastReview": {
       "type": "string",
-      "description": "Deprecated: use CardState. YYYY-MM-DD date of last review."
+      "description": "YYYY-MM-DD date of last review"
     },
     "anchor": {
       "type": "string",
-      "description": "Personal memory anchor: a case, moment, or story connecting this card to existing knowledge.",
-      "maxLength": 400
+      "description": "Personal memory anchor \u2014 a case, moment, or story connecting this card to existing knowledge.",
+      "maxLength": 600
     },
     "stakes_flag": {
       "type": "boolean",
       "default": false,
-      "description": "Clinically critical card: prioritised in session queue."
+      "description": "Clinically critical card \u2014 prioritised in session queue."
     },
     "connects_to": {
       "type": "array",
@@ -146,12 +129,6 @@
       },
       "maxItems": 5,
       "description": "clientId values of related cards in the same deck."
-    },
-    "tags": {
-      "type": "array",
-      "items": {"type": "string"},
-      "maxItems": 5,
-      "description": "User-defined topic tags for card organisation."
     },
     "ratingHistory": {
       "type": "array",
@@ -173,20 +150,67 @@
         }
       },
       "maxItems": 50,
-      "description": "Deprecated: use CardState. Per-card rating event log for calibration scoring."
+      "description": "Per-card rating event log for calibration scoring."
     },
     "source": {
       "type": "string",
-      "description": "Source reference: article, chapter, guideline, or lecture.",
+      "description": "Source reference \u2014 article, chapter, guideline, or lecture.",
       "maxLength": 200
     },
     "prerequisite_card_id": {
       "type": "string",
-      "description": "clientId of a prerequisite card that must reach stability >= 7 before this card enters the review queue."
+      "description": "Base44 entity ID of the prerequisite card (translated from clientId on write; translated back on read). The referenced card must reach stability >= 7 before this card enters the review queue."
+    },
+    "imageId": {
+      "type": "string",
+      "description": "Base44 entity ID of the associated Image record (for occlusion cards)."
     }
   },
   "required": [
     "front",
     "back"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

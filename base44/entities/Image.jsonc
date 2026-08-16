@@ -1,0 +1,88 @@
+{
+  "name": "Image",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "Base64 data URL of the compressed image"
+    },
+    "mimeType": {
+      "type": "string",
+      "description": "MIME type of the image (e.g. image/jpeg, image/png)",
+      "default": "image/jpeg"
+    },
+    "width": {
+      "type": "number",
+      "description": "Image width in pixels after compression"
+    },
+    "height": {
+      "type": "number",
+      "description": "Image height in pixels after compression"
+    },
+    "altText": {
+      "type": "string",
+      "description": "Accessible alt text for the image",
+      "maxLength": 300
+    },
+    "occlusionRegions": {
+      "type": "array",
+      "description": "Array of occlusion region objects (rect/polygon)",
+      "items": {
+        "type": "object"
+      }
+    },
+    "linkedCardIds": {
+      "type": "array",
+      "description": "clientId values of flashcards that reference this image",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "url"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -2,12 +2,6 @@
   "name": "User",
   "type": "object",
   "properties": {
-    "first_name": {
-      "type": "string",
-      "nullable": true,
-      "maxLength": 60,
-      "description": "User's first name for personalised greetings only. Mirrored to localStorage under nidus.firstName."
-    },
     "role": {
       "type": "string",
       "enum": [
@@ -18,8 +12,8 @@
     },
     "sleep_bedtime": {
       "type": "string",
-      "nullable": true,
-      "description": "User's bedtime in HH:MM 24-hour format for sleep-aware scheduling."
+      "description": "User's bedtime in HH:MM 24-hour format for sleep-aware scheduling. Defaults to 22:00 when not set.",
+      "default": "22:00"
     },
     "sleep_window_minutes": {
       "type": "number",
@@ -61,25 +55,23 @@
       "default": true,
       "description": "Show focus declaration checkbox at session start."
     },
-    "first_study_completed": {
+    "onboarding_sleep_completed": {
       "type": "boolean",
       "default": false,
-      "description": "Set to true after the user completes their first ever card review."
+      "description": "True once the user has seen and dismissed the sleep-schedule onboarding modal."
     },
-    "sleep_prefers_reviews": {
-      "type": "boolean",
-      "default": true,
-      "description": "When true, due reviews are prioritised over new cards in the pre-bedtime window."
-    },
-    "notion_integration_token": {
+    "agreement_accepted_at": {
       "type": "string",
+      "format": "date-time",
       "nullable": true,
-      "description": "Notion Internal Integration token (sensitive; stored server-side, never in localStorage or JSON exports)."
+      "default": null,
+      "description": "ISO 8601 datetime when the user accepted the Privacy Policy and Terms of Use. Null means not yet accepted."
     },
-    "notion_database_id": {
+    "agreement_version": {
       "type": "string",
-      "nullable": true,
-      "description": "Notion database ID or URL for card sync."
+      "default": "v1.0",
+      "description": "Version of the Privacy Policy and Terms that were accepted."
     }
-  }
+  },
+  "required": []
 }

@@ -15,18 +15,56 @@
       "description": "Accent color for the deck card",
       "default": "#2D6E52"
     },
-    "card_count": {
-      "type": "number",
-      "description": "Total number of cards in the deck",
-      "default": 0
-    },
-    "parentDeckId": {
-      "type": "string",
-      "nullable": true,
-      "description": "Entity ID of the parent Deck. Null for top-level decks."
+    "is_sample": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for built-in onboarding/sample decks managed by the seed script."
     }
   },
   "required": [
     "title"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }
